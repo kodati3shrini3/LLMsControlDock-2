@@ -1,0 +1,27 @@
+# Build output folder: compiled programs for each OS/CPU live here and can be rebuilt from source
+dist/
+bin/
+
+# Compiled binaries on any OS (Linux has no extension, Windows uses .exe)
+*.exe
+*.test
+*.out
+
+# Go test coverage reports: generated files, not source code
+coverage.txt
+*.coverprofile
+
+# Saved monitoring history (F10): must never reach GitHub, supports requirement S4
+history/
+*.history.json
+
+# Local user settings written by the app: personal to each machine
+settings.json
+
+# Environment files that might hold secrets such as tokens
+.env
+
+# Editor and OS clutter
+.vscode/
+.idea/
+.DS_Store
