@@ -131,8 +131,8 @@
 </tr>
 {{/* One row per model in this category. */}}
 {{range $g.Rows}}
-{{/* A model row. */}}
-<tr>{{/* start of a table row. */}}
+{{/* A model row; the name and loaded flag let the script compare this page with a fresh copy. */}}
+<tr data-model="{{.Name}}" data-loaded="{{if .Loaded}}1{{else}}0{{end}}">{{/* start of a table row. */}}
 {{/* The model name is the row heading and stays visible while scrolling. */}}
 <th scope="row" class="stickycol">{{.Name}}</th>
 {{/* The state cell: a dot (solid green when loaded, an empty ring when not) plus the words, so colour is never the only signal. */}}
@@ -162,6 +162,12 @@
 </form>
 {{/* End of the loaded check. */}}
 {{end -}}
+{{/* Only a loaded model gets the unload timer; it sits on its own line under the state words, so it takes no extra width. */}}
+{{if .Loaded}}
+{{/* The timer line; the stylesheet draws the square brackets and the italics. */}}
+<span class="timerline"><span class="timer{{if .TimerSeconds}} countdown{{end}}"{{if .TimerSeconds}} data-seconds="{{.TimerSeconds}}"{{end}}{{if .TimerExpired}} data-expired="1"{{end}} role="timer" aria-label="Time until Ollama unloads {{.Name}}">{{.Timer}}</span></span>
+{{/* End of the timer line. */}}
+{{end}}
 </td>
 {{/* The other eight cells; the first of the nine is the state text, which the cell above already shows. */}}
 {{range slice .Cells 1}}
@@ -187,6 +193,8 @@
 </section>
 {{/* End of the main content. */}}
 </main>
+{{/* The monitor's own script ticks the timers and asks the monitor for fresh figures every few seconds; it is loaded only when a table is shown. */}}
+{{if .HasTable}}<script src="/countdown.js" defer></script>{{end}}
 </body>{{/* end of the visible page. */}}
 </html>{{/* end of the page. */}}
 {{/* The help bubble content: three labelled parts, and the task names when there are any. */}}

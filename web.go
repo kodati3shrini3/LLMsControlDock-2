@@ -156,6 +156,11 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 			// Stop here.
 			return
 		} // end of the template check
+		// With a table the page runs the monitor's own script, so it gets the policy that also lets the script ask this same address for fresh figures.
+		if data.HasTable {
+			// Replace the strict policy.
+			w.Header().Set("Content-Security-Policy", contentSecurityPolicyMainPage)
+		} // end of the script policy
 		// Tell the browser this is an HTML page.
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		// Send the finished page.

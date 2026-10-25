@@ -6,6 +6,8 @@ import ( // import lists the standard-library packages this file uses.
 	"fmt"
 	// strings joins the abilities into one cell.
 	"strings"
+	// time provides the clock reading the unload timer is worked out from.
+	"time"
 ) // end of imports
 
 // tipView is one help bubble as the page template needs it.
@@ -34,6 +36,12 @@ type rowView struct {
 	Loaded bool
 	// StateWord is "Loaded" or "Not loaded"; the page shows it next to the dot.
 	StateWord string
+	// Timer is the text of the unload timer for a loaded model (empty for a model that is not loaded).
+	Timer string
+	// TimerSeconds is the whole seconds left when the timer should tick (0 means a fixed text such as "stays loaded").
+	TimerSeconds int
+	// TimerExpired is true when the unload time has arrived but Ollama still lists the model; the page asks again soon.
+	TimerExpired bool
 } // end of rowView
 
 // groupView is one category section.
@@ -88,8 +96,51 @@ func stateWord(loaded bool) string {
 	return "Not loaded"
 } // end of stateWord
 
-// buildTableView turns the installed and loaded lists into the data the page template draws.
+// longKeepText is shown for a model that Ollama keeps loaded indefinitely (its keep-alive is set to never unload).
+const longKeepText = "stays loaded"
+
+// timerFor works out the text, the ticking seconds and the "time has arrived" flag of the unload timer for one loaded model.
+func timerFor(l loadedModel, now time.Time) (string, int, bool) {
+	// Read the unload time; ok is false when it is missing or unreadable.
+	expires, ok := l.expiresTime()
+	// No usable time: say so, and do not tick.
+	if !ok {
+		// The same wording as the terminal table.
+		return formatRemaining(now, expires, ok), 0, false
+	} // end of the no-time case
+	// How long is left.
+	left := expires.Sub(now)
+	// So far away that the model is set to stay loaded: a fixed text, no ticking.
+	if left > 30*24*time.Hour {
+		// Say it stays loaded.
+		return longKeepText, 0, false
+	} // end of the far-away case
+	// The ticking seconds; 0 here means the time has arrived or passed.
+	secs := remainingSeconds(now, expires, ok)
+	// Time has arrived: the text says so, and the page asks Ollama again soon.
+	if secs == 0 {
+		// The same wording as the terminal table, flagged as arrived.
+		return formatRemaining(now, expires, ok), 0, true
+	} // end of the arrived case
+	// A normal countdown: the text and the seconds the script ticks from.
+	return formatRemaining(now, expires, ok), secs, false
+} // end of timerFor
+
+// buildTableView builds the page data using the current clock.
 func buildTableView(installed []installedModel, loaded []loadedModel) tableView {
+	// Delegate with the real time; tests call buildTableViewAt with a fixed time.
+	return buildTableViewAt(installed, loaded, time.Now())
+} // end of buildTableView
+
+// buildTableViewAt turns the installed and loaded lists into the data the page template draws, using the given moment for the unload timers.
+func buildTableViewAt(installed []installedModel, loaded []loadedModel, now time.Time) tableView {
+	// Remember each loaded model by name, so a row can find its unload time.
+	byName := make(map[string]loadedModel, len(loaded))
+	// Go through the loaded models.
+	for _, l := range loaded {
+		// Store it.
+		byName[l.Name] = l
+	} // end of the loaded loop
 	// Mark each model as loaded or not, then sort into category sections (both from the terminal version).
 	groups := groupRows(combine(installed, loaded))
 	// Start the view with the total.
@@ -107,8 +158,19 @@ func buildTableView(installed []installedModel, loaded []loadedModel) tableView 
 		for _, r := range g.Rows {
 			// A short name for the model's data.
 			m := r.Model
+			// The unload timer exists only for a loaded model.
+			var timer string
+			// The seconds the timer ticks from.
+			var timerSecs int
+			// True when the unload time has arrived.
+			var timerExpired bool
+			// Look the model up in the loaded list.
+			if r.Loaded {
+				// Work out the timer text and seconds.
+				timer, timerSecs, timerExpired = timerFor(byName[m.Name], now)
+			} // end of the timer
 			// Add the row: the name first, then the nine cells in the same order and formats as the terminal table.
-			gv.Rows = append(gv.Rows, rowView{Name: m.Name, Loaded: r.Loaded, StateWord: stateWord(r.Loaded), Cells: []string{
+			gv.Rows = append(gv.Rows, rowView{Name: m.Name, Loaded: r.Loaded, StateWord: stateWord(r.Loaded), Timer: timer, TimerSeconds: timerSecs, TimerExpired: timerExpired, Cells: []string{
 				// Loaded or not, symbol plus words.
 				stateText(r.Loaded),
 				// Size on disk.
@@ -134,4 +196,4 @@ func buildTableView(installed []installedModel, loaded []loadedModel) tableView 
 	} // end of the group loop
 	// Return the view.
 	return view
-} // end of buildTableView
+} // end of buildTableViewAt

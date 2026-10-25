@@ -18,6 +18,9 @@ var countdownJS []byte
 // contentSecurityPolicyWithScript is the policy for the message pages that show a ticking timer: the same as the main page plus scripts from this same address only (no inline scripts, no other sites).
 const contentSecurityPolicyWithScript = "default-src 'none'; style-src 'self'; script-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 
+// contentSecurityPolicyMainPage is the policy for the main page when it shows the table: the message-page policy plus connect-src 'self', so the script can ask this same address for fresh figures (still no inline scripts, no other sites).
+const contentSecurityPolicyMainPage = contentSecurityPolicyWithScript + "; connect-src 'self'"
+
 // countdownHandler sends the script file.
 func countdownHandler(w http.ResponseWriter, r *http.Request) {
 	// Tell the browser this is JavaScript.

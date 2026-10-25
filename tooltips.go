@@ -88,7 +88,7 @@ var helpTexts = map[string]tooltip{
 	// The loaded or not-loaded state.
 	"State": {
 		// What it means.
-		Plain: "Whether the model is in memory now (● Loaded) or only stored on disk (○ Not loaded).",
+		Plain: "In memory now (● Loaded, with [the time until Ollama unloads it]) or only on disk (○ Not loaded).",
 		// A real case.
 		Example: "A ○ Not loaded model needs a moment to load before it answers.",
 		// What it helps with.
