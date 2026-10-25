@@ -19,6 +19,9 @@ var installedColumns = []string{"Model", "State", "Size on disk", "Family", "Par
 // loadedColumns are the five column titles of the Loaded table, in order; a test checks they match render.go.
 var loadedColumns = []string{"Model", "Size (as reported)", "Memory on GPU", "Loaded context length", "Time until unload"}
 
+// gearHeadings are the headings on the settings page and the Load page that have a help bubble, in the order they appear; a test checks each has a text.
+var gearHeadings = []string{"Context size", "Model maximum", "Smallest allowed", "Saved in the model", "Other saved settings", "Keep-alive time"}
+
 // helpTexts holds every tooltip, keyed by the exact heading text it belongs to.
 // The wording was checked against Ollama's documentation; "Max context length" and "Embedding length" are not described there.
 var helpTexts = map[string]tooltip{
@@ -190,6 +193,60 @@ var helpTexts = map[string]tooltip{
 		// What it helps with.
 		Decide: "Check the model's own page to see what it does.",
 	}, // end of the catch-all category
+	// The context size setting.
+	"Context size": {
+		// What it means.
+		Plain: "How much text the model keeps in mind at once, counted in tokens (word pieces). Bigger needs more memory.",
+		// A real case, measured on the machine this project was built on.
+		Example: "medgemma:latest used 3.8 GB (gigabytes) at 131072 and 3.0 GB (gigabytes) at 8192.",
+		// What it helps with.
+		Decide: "How much memory to spend against how long a text it can handle.",
+	}, // end of Context size
+	// The model's own limit.
+	"Model maximum": {
+		// What it means.
+		Plain: "The largest context size this model was built for. This page refuses anything above it.",
+		// A real case.
+		Example: "medgemma:latest: 131072. qwen3.6:27b: 262144.",
+		// What it helps with.
+		Decide: "The top of the range you can choose.",
+	}, // end of Model maximum
+	// This monitor's own lowest value.
+	"Smallest allowed": {
+		// What it means.
+		Plain: "The lowest context size this monitor lets you save. Ollama itself sets no lowest value.",
+		// A real case.
+		Example: "512. Ollama accepted a size of 1 in a test, which would make the model unusable.",
+		// What it helps with.
+		Decide: "It stops a value that would break the model.",
+	}, // end of Smallest allowed
+	// What is stored in the model.
+	"Saved in the model": {
+		// What it means.
+		Plain: "Settings stored inside the model in Ollama. Programs that do not send their own value use them.",
+		// A real case.
+		Example: "After saving 8192, the next load of the model starts at 8192.",
+		// What it helps with.
+		Decide: "What every program gets when it loads this model.",
+	}, // end of Saved in the model
+	// The other stored settings.
+	"Other saved settings": {
+		// What it means.
+		Plain: "Other settings stored in the model, such as stop words. They are shown here and kept as they are.",
+		// A real case.
+		Example: "medgemma:latest has the stop word end_of_turn.",
+		// What it helps with.
+		Decide: "What the model already does before you change anything.",
+	}, // end of Other saved settings
+	// The keep-alive time on the Load page.
+	"Keep-alive time": {
+		// What it means.
+		Plain: "How long the model stays in memory after its last use, before Ollama unloads it by itself.",
+		// A real case.
+		Example: "5 minutes is Ollama's default. Never unload keeps it until you press Unload.",
+		// What it helps with.
+		Decide: "Fast answers against memory kept free for other work.",
+	}, // end of Keep-alive time
 } // end of helpTexts
 
 // helpFor returns the tooltip for a heading, and false when there is none.

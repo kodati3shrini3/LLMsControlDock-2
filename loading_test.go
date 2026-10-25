@@ -25,7 +25,7 @@ func TestLoadWarningHasWaitingBox(t *testing.T) {
 	// Read the page.
 	body := bodyOf(res)
 	// Every part the script needs, and the honest wording.
-	for _, want := range []string{`<form method="post" action="/load/confirm" data-loading>`, `id="choices"`, `id="loading" role="status" aria-live="polite" hidden`, `class="elapsed"`, `<script src="/loading.js" defer></script>`, "not a percentage"} {
+	for _, want := range []string{`<form id="loadform" method="post" action="/load/confirm" data-loading>`, `id="choices"`, `id="loading" role="status" aria-live="polite" hidden`, `class="elapsed"`, `<script src="/loading.js" defer></script>`, "not a percentage"} {
 		// Look for it.
 		if !strings.Contains(body, want) {
 			// Report the problem.

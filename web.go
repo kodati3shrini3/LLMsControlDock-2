@@ -96,6 +96,14 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	mux.HandleFunc("POST /load", loadAsk)
 	// Route: a POST request for "/load/confirm" loads the model.
 	mux.HandleFunc("POST /load/confirm", loadConfirm)
+	// Make the three settings handlers: the settings page, the review step and the save (the checks are in gear.go).
+	gearShow, gearReview, gearSave := gearHandlers(addr, token)
+	// Route: a POST request for "/gear" shows a model's settings and changes nothing.
+	mux.HandleFunc("POST /gear", gearShow)
+	// Route: a POST request for "/gear/review" checks the typed size and asks for confirmation.
+	mux.HandleFunc("POST /gear/review", gearReview)
+	// Route: a POST request for "/gear/save" saves the size inside the model.
+	mux.HandleFunc("POST /gear/save", gearSave)
 	// Route: a GET request for "/countdown.js" sends the small script that makes the timers tick (only the message pages use it).
 	mux.HandleFunc("GET /countdown.js", countdownHandler)
 	// Route: a GET request for "/loading.js" sends the small script that shows the waiting message while a model loads (only the load warning page uses it).

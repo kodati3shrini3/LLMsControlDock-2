@@ -1,0 +1,29 @@
+{{/* Shared help-bubble templates, used by the settings page and the load page; the comments are template comments, so they never reach the browser. */}}
+{{/* The bubble content: three labelled parts, and the task names when there are any. */}}
+{{define "tip"}}
+{{/* What the heading means. */}}
+<span class="tip-part"><strong>In plain words:</strong> {{.Plain}}</span>
+{{/* A real example. */}}
+<span class="tip-part"><strong>Example:</strong> {{.Example}}</span>
+{{/* What it helps you decide. */}}
+<span class="tip-part"><strong>Helps you decide:</strong> {{.Decide}}</span>
+{{/* Task names, only for categories. */}}
+{{if .AlsoKnown}}
+{{/* The common names. */}}
+<span class="tip-part"><strong>Also known as:</strong> {{.AlsoKnown}}</span>
+{{/* End of the task-name check. */}}
+{{end}}
+{{/* End of the bubble content. */}}
+{{end}}
+{{/* A heading with its bubble: the dotted heading can be reached with Tab, and the bubble opens on pointing or focus. */}}
+{{define "tipbox"}}
+{{/* The area that opens the bubble. */}}
+<span class="tipbox">
+{{/* The heading text; aria-describedby ties it to its bubble for screen readers. */}}
+<span class="help" tabindex="0" aria-describedby="{{.ID}}">{{.Title}}</span>
+{{/* The bubble. */}}
+<span class="tip" role="tooltip" id="{{.ID}}">{{template "tip" .}}</span>
+{{/* End of the bubble area. */}}
+</span>
+{{/* End of the heading with its bubble. */}}
+{{end}}

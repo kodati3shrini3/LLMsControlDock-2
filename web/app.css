@@ -749,8 +749,8 @@ h2 {
   display: block;
   /* A little air above it, not more. */
   margin-top: 0.1rem;
-  /* Start under the dot of the state words. */
-  margin-left: 0;
+  /* Start under the dot of the state words: the gear slot plus the space after it. */
+  margin-left: calc(1.6rem + 0.3rem);
 } /* end of rule */
 
 /* The unload timer itself: italic, in the same font and size as the text around it. */
@@ -771,6 +771,68 @@ h2 {
 .timer::after {
   /* The closing bracket. */
   content: "]";
+} /* end of rule */
+
+/* The gear form and the empty slot that replaces it on a loaded row; both have the same width, so the state words stay in line. */
+.gearform, .gearslot {
+  /* A box in the line, so it can have a width. */
+  display: inline-block;
+  /* The same width for both. */
+  width: 1.6rem;
+  /* No outer space. */
+  margin: 0;
+} /* end of rule */
+
+/* The gear button: plain, so it does not compete with Load and Unload. */
+.gear {
+  /* Use the page font. */
+  font: inherit;
+  /* No frame and no fill. */
+  border: 0;
+  /* No fill. */
+  background: none;
+  /* A little room to click on. */
+  padding: 0 0.2rem;
+  /* The secondary colour until it is pointed at. */
+  color: var(--muted);
+  /* A hand cursor. */
+  cursor: pointer;
+} /* end of rule */
+
+/* Pointed at or focused: the normal text colour. */
+.gear:hover, .gear:focus-visible {
+  /* Stronger colour. */
+  color: var(--text);
+} /* end of rule */
+
+/* A clear ring for keyboard users. */
+.gear:focus-visible {
+  /* A ring around the gear. */
+  outline: 3px solid var(--text);
+  /* A gap between gear and ring. */
+  outline-offset: 2px;
+} /* end of rule */
+
+/* The number field and the drop-down of the settings and Load pages. */
+.numfield, .keepselect {
+  /* Use the page font. */
+  font: inherit;
+  /* Room inside. */
+  padding: 0.3rem 0.5rem;
+  /* A solid outline, visible without colour. */
+  border: 2px solid var(--border);
+  /* Slightly rounded corners. */
+  border-radius: 0.4rem;
+  /* Colours from the variables, so both themes work. */
+  background: var(--panel);
+  /* Text colour. */
+  color: var(--text);
+} /* end of rule */
+
+/* The number field is only as wide as a big number needs. */
+.numfield {
+  /* Wide enough for 7 digits. */
+  width: 9rem;
 } /* end of rule */
 
 /* The hidden attribute must always win over any display rule. */
