@@ -2,15 +2,17 @@
 package main
 
 import ( // import lists the standard-library packages this file uses.
+	// context supplies the (empty) context the check function needs.
+	"context"
 	// flag reads command-line options such as -listen.
 	"flag"
-	// fmt writes formatted text, here into the web reply.
+	// fmt writes formatted text, here into the web reply and the check line.
 	"fmt"
 	// log prints timestamped messages to the terminal.
 	"log"
 	// net/http is Go's built-in web server (standard library only, requirement T1).
 	"net/http"
-	// os reads environment variables.
+	// os reads environment variables and ends the program with an exit code.
 	"os"
 	// time provides durations such as the request-header timeout.
 	"time"
@@ -27,12 +29,25 @@ func helloHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "OllamaControlCenter is running")
 } // end of helloHandler
 
+// formatCheck turns one check result into the single status line the -check option prints.
+func formatCheck(res checkResult) string {
+	// A successful check says ONLINE, the version and the time taken.
+	if res.Online {
+		// Build the online line; %s is text and %d is a whole number.
+		return fmt.Sprintf("ONLINE  version %s  %d ms", res.Version, res.Elapsed.Milliseconds())
+	} // end of the online case
+	// A failed check says OFFLINE, the reason and the time taken.
+	return fmt.Sprintf("OFFLINE  %s  %d ms", res.Reason, res.Elapsed.Milliseconds())
+} // end of formatCheck
+
 // main is where every Go program starts running.
 func main() {
 	// Define a -listen option: its name, its default value, and the help text shown by -h.
 	listen := flag.String("listen", defaultListen, "address and port for the monitor page, as host:port")
 	// Define an -ollama-url option; empty means "not given", so the environment variable or the default is used.
 	ollamaFlag := flag.String("ollama-url", "", "address of the Ollama server; overrides the OCC_OLLAMA_URL environment variable (default http://127.0.0.1:11434)")
+	// Define a -check switch: false unless given on the command line.
+	checkFlag := flag.Bool("check", false, "check Ollama once, print one status line, and exit (0 = online, 1 = offline)")
 	// Read the command line now, so the variables above receive their values.
 	flag.Parse()
 
@@ -45,6 +60,21 @@ func main() {
 	} // end of the address check
 	// Print the address (any password shown as xxxxx) and which layer supplied it.
 	log.Printf("Ollama address: %s (from %s)", addr.URL.Redacted(), addr.Source)
+
+	// In -check mode, knock once, print the result, and leave without starting the web page.
+	if *checkFlag {
+		// Ask Ollama once, waiting at most the default timeout.
+		res := checkOllama(context.Background(), addr.URL, defaultCheckTimeout)
+		// Print the single status line.
+		fmt.Println(formatCheck(res))
+		// Exit with 0 when online, so scripts can tell it worked.
+		if res.Online {
+			// Leave with the success code.
+			os.Exit(0)
+		} // end of the online exit
+		// Leave with the failure code.
+		os.Exit(1)
+	} // end of the check mode
 
 	// Create a router, which decides which function answers which URL.
 	mux := http.NewServeMux()
