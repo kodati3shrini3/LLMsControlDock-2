@@ -660,6 +660,16 @@ func TestGearShowsSettings(t *testing.T) {
 		// Report the problem.
 		t.Errorf("wording of the column or the bubbles is wrong")
 	} // end of the wording check
+	// The first column is called "Inference parameters".
+	if !strings.Contains(body, `<th scope="col">Inference parameters</th>`) || strings.Contains(body, `<th scope="col">Setting</th>`) {
+		// Report the problem.
+		t.Errorf("the first column heading is wrong")
+	} // end of the heading check
+	// Fields of parameters that are not set are marked for the white background; fields that hold a value are not.
+	if !regexp.MustCompile(`class="numfield notset" name="s_min_p"`).MatchString(body) || !regexp.MustCompile(`class="numfield" name="s_temperature"`).MatchString(body) || strings.Contains(body, `class="stopfield notset"`) {
+		// Report the problem.
+		t.Errorf("the not-set marking is wrong")
+	} // end of the marking check
 	// Every setting has a field and a help bubble.
 	for _, s := range settingSpecs {
 		// The field.
