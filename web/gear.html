@@ -38,7 +38,7 @@
 {{/* The table of all settings, one row each. */}}
 <table class="settingtable">
 {{/* The column headings, three with their help bubbles. */}}
-<thead><tr><th scope="col">Setting</th><th scope="col">{{template "tipbox" .Tips.default}}</th><th scope="col">{{template "tipbox" .Tips.saved}}</th><th scope="col">New value</th><th scope="col">{{template "tipbox" .Tips.range}}</th></tr></thead>
+<thead><tr><th scope="col">Inference parameters</th><th scope="col">{{template "tipbox" .Tips.default}}</th><th scope="col">{{template "tipbox" .Tips.saved}}</th><th scope="col">New value</th><th scope="col">{{template "tipbox" .Tips.range}}</th></tr></thead>
 {{/* The body. */}}
 <tbody>
 {{/* One row for each setting; the dollar sign reaches the page-level values from inside the loop. */}}
@@ -72,11 +72,11 @@
 {{/* The stop words are a box with one word per line. */}}
 {{else if eq .Kind "list"}}
 {{/* The box; a saved list can never be emptied. */}}
-<textarea class="stopfield" name="s_{{.Key}}" rows="3" cols="24" maxlength="2000" aria-label="{{.Heading}} for {{$.Model}}, one per line"{{if .HasSaved}} required{{end}}>{{.Typed}}</textarea>
+<textarea class="stopfield{{if not .HasSaved}} notset{{end}}" name="s_{{.Key}}" rows="3" cols="24" maxlength="2000" aria-label="{{.Heading}} for {{$.Model}}, one per line"{{if .HasSaved}} required{{end}}>{{.Typed}}</textarea>
 {{/* Numbers get a number field with the browser's own range check; the monitor checks again. */}}
 {{else}}
 {{/* The field; the suggestions belong to the context size only. */}}
-<input class="numfield" name="s_{{.Key}}" type="number" inputmode="decimal" min="{{.InMin}}" max="{{.InMax}}" step="{{.Step}}" aria-label="{{.Heading}} for {{$.Model}}" value="{{.Typed}}"{{if .HasSaved}} required{{end}}{{if .Presets}} list="presets"{{end}}>
+<input class="numfield{{if not .HasSaved}} notset{{end}}" name="s_{{.Key}}" type="number" inputmode="decimal" min="{{.InMin}}" max="{{.InMax}}" step="{{.Step}}" aria-label="{{.Heading}} for {{$.Model}}" value="{{.Typed}}"{{if .HasSaved}} required{{end}}{{if .Presets}} list="presets"{{end}}>
 {{/* The suggestions for the context size. */}}
 {{if .Presets}}<datalist id="presets">{{range .Presets}}<option value="{{.}}"></option>{{end}}</datalist>{{end}}
 {{/* End of the field choice. */}}
@@ -114,7 +114,7 @@
 {{/* The changes only. */}}
 <table class="settingtable">
 {{/* The headings. */}}
-<thead><tr><th scope="col">Setting</th><th scope="col">Now</th><th scope="col">After saving</th></tr></thead>
+<thead><tr><th scope="col">Inference parameters</th><th scope="col">Now</th><th scope="col">After saving</th></tr></thead>
 {{/* The body. */}}
 <tbody>
 {{/* One row for each change. */}}
@@ -162,7 +162,7 @@
 {{/* The values. */}}
 <table class="settingtable">
 {{/* The headings. */}}
-<thead><tr><th scope="col">Setting</th><th scope="col">Saved now</th></tr></thead>
+<thead><tr><th scope="col">Inference parameters</th><th scope="col">Saved now</th></tr></thead>
 {{/* The body. */}}
 <tbody>
 {{/* One row for each change. */}}

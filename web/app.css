@@ -829,6 +829,14 @@ h2 {
   color: var(--text);
 } /* end of rule */
 
+/* A field of a parameter that is not set in the model is plain white with dark text in both themes, so it stands out from the fields that already hold a value. */
+.numfield.notset, .stopfield.notset {
+  /* White background. */
+  background: #ffffff;
+  /* Dark text, so what is typed stays readable on white in the dark theme too. */
+  color: #1a1a1a;
+} /* end of rule */
+
 /* The number field is only as wide as a big number needs. */
 .numfield {
   /* Wide enough for 7 digits. */
