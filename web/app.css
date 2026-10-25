@@ -773,14 +773,64 @@ h2 {
   content: "]";
 } /* end of rule */
 
+/* The column that holds the gear and, just below it, the Modelfile icon. */
+.iconstack {
+  /* A box in the line that lays its children out in a column. */
+  display: inline-flex;
+  /* One icon under the other. */
+  flex-direction: column;
+  /* Level with the state words. */
+  vertical-align: middle;
+  /* Each icon is centred in the column, so the gear sits exactly under the page icon. */
+  align-items: center;
+} /* end of rule */
+
+/* A tip for an icon is a single short line, so it is only as wide as its text (but never wider than the normal bubble). */
+.tip-icon {
+  /* Fit the text. */
+  width: max-content;
+  /* Never wider than the normal bubble. */
+  max-width: min(26rem, 92vw);
+} /* end of rule */
+
+/* The Modelfile text: a monospace box that keeps every line break and space and scrolls sideways instead of cutting lines. */
+.modelfile {
+  /* Same font list as code, same size as the text around it. */
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  /* Normal text size. */
+  font-size: 1em;
+  /* Keep line breaks and spaces. */
+  white-space: pre;
+  /* Scroll sideways for long lines. */
+  overflow-x: auto;
+  /* Room inside. */
+  padding: 0.8rem 1rem;
+  /* A solid outline, visible without colour. */
+  border: 2px solid var(--border);
+  /* Slightly rounded corners. */
+  border-radius: 0.4rem;
+  /* Colours from the variables, so both themes work. */
+  background: var(--panel);
+  /* Text colour. */
+  color: var(--text);
+} /* end of rule */
+
 /* The gear form and the empty slot that replaces it on a loaded row; both have the same width, so the state words stay in line. */
 .gearform, .gearslot {
   /* A box in the line, so it can have a width. */
   display: inline-block;
   /* The same width for both. */
   width: 1.6rem;
+  /* The icon inside is centred in that width. */
+  text-align: center;
   /* No outer space. */
   margin: 0;
+} /* end of rule */
+
+/* The empty slot is as tall as a gear button, so the Modelfile icon below stays in place on a loaded row. */
+.gearslot {
+  /* Same height as the button's line. */
+  height: 1.4em;
 } /* end of rule */
 
 /* The gear button: plain, so it does not compete with Load and Unload. */
@@ -797,6 +847,8 @@ h2 {
   color: var(--muted);
   /* A hand cursor. */
   cursor: pointer;
+  /* Same line height as the empty slot, so the two icons keep their places. */
+  line-height: 1.4;
 } /* end of rule */
 
 /* Pointed at or focused: the normal text colour. */

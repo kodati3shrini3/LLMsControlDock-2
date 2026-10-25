@@ -1,0 +1,55 @@
+{{/* Modelfile page template: shows a model's Modelfile, read-only. The comments are template comments, so they never reach the browser. */}}
+<!DOCTYPE html>
+{{/* lang tells screen readers which language the page is written in. */}}
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<head>{{/* start of the head. */}}
+{{/* Text encoding. */}}
+<meta charset="utf-8">
+{{/* Fit the page to the width of the screen on phones. */}}
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* The title shown on the browser tab. */}}
+<title>Modelfile - OllamaControlCenter</title>
+{{/* Our one stylesheet. */}}
+<link rel="stylesheet" href="/app.css">
+</head>{{/* end of the head. */}}
+<body>{{/* start of the visible page. */}}
+{{/* The page content. */}}
+<main>
+{{/* A panel that holds the message. */}}
+<section class="panel">
+{{/* The heading names the model, so there is no doubt which one is meant. */}}
+<h1>Modelfile of <code>{{.Model}}</code></h1>
+{{/* Version 1: the Modelfile text. */}}
+{{if eq .Kind "modelfile"}}
+{{/* What this page is. */}}
+<p class="muted">Read-only: this is the text that <code>ollama show --modelfile</code> prints for this model. Nothing here can be changed.</p>
+{{/* The text itself, in a box that scrolls sideways instead of cutting lines; the template escapes every character. */}}
+<pre class="modelfile" tabindex="0" aria-label="Modelfile text">{{.Text}}</pre>
+{{/* A note when a very long text was cut. */}}
+{{if .Truncated}}
+{{/* The note, with a symbol and a bold lead, so colour is never the only signal. */}}
+<p class="warn" role="alert"><strong>⚠ Shortened.</strong> The Modelfile is very long, so only the first part is shown.</p>
+{{/* End of the note. */}}
+{{end}}
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 2: the model is not installed. */}}
+{{else if eq .Kind "notinstalled"}}
+{{/* Say so. */}}
+<p>This model is not installed, so it has no Modelfile to show.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 3: something went wrong. */}}
+{{else}}
+{{/* Say what went wrong, in the plain words the program already uses. */}}
+<p><strong>Could not do this.</strong> {{.Detail}}</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* End of the versions. */}}
+{{end}}
+{{/* End of the panel. */}}
+</section>
+{{/* End of the content. */}}
+</main>
+</body>{{/* end of the visible page. */}}
+</html>{{/* end of the page. */}}
