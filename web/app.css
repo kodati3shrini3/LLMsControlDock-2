@@ -813,8 +813,8 @@ h2 {
   outline-offset: 2px;
 } /* end of rule */
 
-/* The number field and the drop-down of the settings and Load pages. */
-.numfield, .keepselect {
+/* The number field, the stop word box and the drop-down of the settings and Load pages. */
+.numfield, .stopfield, .keepselect {
   /* Use the page font. */
   font: inherit;
   /* Room inside. */
@@ -833,6 +833,77 @@ h2 {
 .numfield {
   /* Wide enough for 7 digits. */
   width: 9rem;
+} /* end of rule */
+
+/* The table of settings: thin lines between rows, text on the left, top-aligned cells. */
+.settingtable {
+  /* No double lines. */
+  border-collapse: collapse;
+  /* Room above and below. */
+  margin: 0.6rem 0 1rem;
+} /* end of rule */
+
+/* Cells of the settings table. */
+.settingtable th, .settingtable td {
+  /* Text starts on the left. */
+  text-align: left;
+  /* Room around the text. */
+  padding: 0.45rem 1rem 0.45rem 0.4rem;
+  /* A thin line between rows, visible without colour. */
+  border-bottom: 1px solid var(--border);
+  /* Align the top lines of tall cells (the stop word box). */
+  vertical-align: top;
+} /* end of rule */
+
+/* The column headings of the settings table stand out without colour. */
+.settingtable thead th {
+  /* A stronger line under the headings. */
+  border-bottom: 2px solid var(--border);
+} /* end of rule */
+
+/* On a narrow screen each setting becomes a small card: the column headings are hidden and every cell carries its own label, so nothing runs off the screen. */
+@media (max-width: 720px) {
+  /* The table and its parts stop behaving like a table. */
+  .settingtable, .settingtable tbody, .settingtable tr, .settingtable th, .settingtable td {
+    /* Each part fills the width, one under the other. */
+    display: block;
+    /* Never wider than the screen. */
+    max-width: 100%;
+  } /* end of rule */
+  /* The headings row is replaced by the labels in each cell. */
+  .settingtable thead {
+    /* Hidden from the screen. */
+    display: none;
+  } /* end of rule */
+  /* A line between settings. */
+  .settingtable tr {
+    /* A thin line under each card. */
+    border-bottom: 1px solid var(--border);
+    /* Room around. */
+    padding: 0.4rem 0;
+  } /* end of rule */
+  /* Cells lose their own lines and get less padding. */
+  .settingtable th, .settingtable td {
+    /* No line inside a card. */
+    border-bottom: 0;
+    /* Little room. */
+    padding: 0.15rem 0.4rem;
+  } /* end of rule */
+  /* The label in front of each cell value. */
+  .settingtable td[data-label]::before {
+    /* The text comes from the attribute. */
+    content: attr(data-label) ": ";
+    /* Bold, so the label stands apart without colour. */
+    font-weight: 700;
+  } /* end of rule */
+} /* end of the narrow-screen rules */
+
+/* The stop word box: one word per line, resizable only downwards. */
+.stopfield {
+  /* Wide enough for a typical stop word. */
+  width: 14rem;
+  /* The user may make it taller, not wider. */
+  resize: vertical;
 } /* end of rule */
 
 /* The hidden attribute must always win over any display rule. */

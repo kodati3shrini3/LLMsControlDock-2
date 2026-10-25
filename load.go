@@ -409,7 +409,13 @@ func loadHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.Hand
 // readModelForm runs the checks the load forms share (same rules as the unload forms): origin, form, token and model name; ok is false when a refusal was already sent.
 func readModelForm(w http.ResponseWriter, r *http.Request, token string) (string, bool) {
 	// Never read more than 2 KB of form data; the real form is tiny.
-	r.Body = http.MaxBytesReader(w, r.Body, 2048)
+	return readModelFormLimit(w, r, token, 2048)
+} // end of readModelForm
+
+// readModelFormLimit does the same checks with a chosen limit on the form size (the settings forms are larger).
+func readModelFormLimit(w http.ResponseWriter, r *http.Request, token string, limit int64) (string, bool) {
+	// Never read more than the limit.
+	r.Body = http.MaxBytesReader(w, r.Body, limit)
 	// Only a form on this very page may send this request (requirement S2).
 	if !sameOrigin(r) {
 		// Refuse.
@@ -442,4 +448,4 @@ func readModelForm(w http.ResponseWriter, r *http.Request, token string) (string
 	} // end of the name check
 	// All checks passed.
 	return name, true
-} // end of readModelForm
+} // end of readModelFormLimit

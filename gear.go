@@ -28,8 +28,6 @@ import ( // import lists the standard-library packages this file uses.
 	"net/url"
 	// sort puts the preset sizes in order.
 	"sort"
-	// strconv turns numbers into text and back.
-	"strconv"
 	// strings trims and splits text.
 	"strings"
 	// sync makes sure two saves never run at the same time.
@@ -48,14 +46,11 @@ var gearTemplateText string
 //go:embed web/tips.html
 var tipsTemplateText string
 
-// minContext is the smallest context size this monitor lets you save; Ollama itself sets no smallest value (a test on the real Ollama accepted 1).
-const minContext int64 = 512
-
 // maxShowReply caps how many bytes of an /api/show reply are read (16 MiB, far more than the real reply).
 const maxShowReply = 16 * 1024 * 1024
 
-// maxContextField is the longest text the context size field may hold.
-const maxContextField = 40
+// maxGearForm is the most form data the settings routes read (16 KB: ten settings and up to eight stop words of 100 characters each, even in four-byte characters).
+const maxGearForm = 16 * 1024
 
 // gearTimeout is how long one request to Ollama may take on the settings pages.
 const gearTimeout = 2 * time.Minute
@@ -97,64 +92,6 @@ func parseParams(text string) []paramLine {
 	// Hand back the pairs.
 	return out
 } // end of parseParams
-
-// savedContext reads the saved context size: text is what Ollama printed, present says a num_ctx line exists, and n is its value (0 when it is not a usable whole number).
-func savedContext(lines []paramLine) (text string, n int64, present bool) {
-	// The last num_ctx line wins, like in a Modelfile.
-	for _, l := range lines {
-		// Only the context size line counts.
-		if l.Name != "num_ctx" {
-			// Next line.
-			continue
-		} // end of the name check
-		// Remember it.
-		text, present, n = l.Value, true, 0
-		// Ollama may print a big number in the form 1e+08, so read it as a decimal number first.
-		f, err := strconv.ParseFloat(l.Value, 64)
-		// Accept only a whole number in a sane range.
-		if err == nil && f == math.Trunc(f) && f >= 1 && f <= 1e12 {
-			// Keep it.
-			n = int64(f)
-		} // end of the number check
-	} // end of the line loop
-	// Hand back all three.
-	return text, n, present
-} // end of savedContext
-
-// otherParams returns every saved parameter except num_ctx, as "name value" texts in the order Ollama gave them.
-func otherParams(lines []paramLine) []string {
-	// The result.
-	var out []string
-	// Go through the lines.
-	for _, l := range lines {
-		// The context size is handled separately.
-		if l.Name != "num_ctx" {
-			// Keep the rest as they are.
-			out = append(out, l.Name+" "+l.Value)
-		} // end of the name check
-	} // end of the line loop
-	// Hand back the list.
-	return out
-} // end of otherParams
-
-// sameStrings says whether two lists hold the same texts in the same order.
-func sameStrings(a, b []string) bool {
-	// Different lengths cannot be the same.
-	if len(a) != len(b) {
-		// Not the same.
-		return false
-	} // end of the length check
-	// Compare one by one.
-	for i := range a {
-		// A difference.
-		if a[i] != b[i] {
-			// Not the same.
-			return false
-		} // end of the compare
-	} // end of the loop
-	// All equal.
-	return true
-} // end of sameStrings
 
 // modelMaxContext reads the largest context size the model supports from its own facts; the second result is false when it cannot be read.
 func modelMaxContext(info map[string]json.RawMessage) (int64, bool) {
@@ -256,49 +193,6 @@ func contextPresets(min, max int64) []int64 {
 	return out
 } // end of contextPresets
 
-// validateContext checks what was typed; it returns the number and an empty text when all is well, or zero and the reason in plain words.
-func validateContext(raw string, min, max int64) (int64, string) {
-	// Spaces around the number do not matter.
-	s := strings.TrimSpace(raw)
-	// An empty value is never allowed: a saved value can be changed but not removed.
-	if s == "" {
-		// Say why.
-		return 0, "The context size cannot be empty. A saved value can be changed, but not removed."
-	} // end of the empty check
-	// Only the digits 0 to 9: no signs, no decimals, no letters, no other scripts.
-	for _, r := range s {
-		// Anything else is refused.
-		if r < '0' || r > '9' {
-			// Say what is expected.
-			return 0, "Use digits only, as a whole number such as 8192."
-		} // end of the digit check
-	} // end of the loop
-	// A number with more than 12 digits is far outside any model.
-	if len(s) > 12 {
-		// Say so with the range.
-		return 0, fmt.Sprintf("That number is too large. The model maximum is %d.", max)
-	} // end of the length check
-	// Read the number; it cannot fail now.
-	n, err := strconv.ParseInt(s, 10, 64)
-	// Defensive: treat a failure as a bad number.
-	if err != nil {
-		// Say what is expected.
-		return 0, "Use digits only, as a whole number such as 8192."
-	} // end of the parse check
-	// Below the smallest allowed size.
-	if n < min {
-		// Say so.
-		return 0, fmt.Sprintf("%d is too small. The smallest size allowed here is %d.", n, min)
-	} // end of the small check
-	// Above the model's maximum.
-	if n > max {
-		// Say so.
-		return 0, fmt.Sprintf("%d is more than this model supports. The model maximum is %d.", n, max)
-	} // end of the large check
-	// All good.
-	return n, ""
-} // end of validateContext
-
 // postForReply sends one JSON body and decodes the JSON reply into out (when out is not nil); it also returns the short error text Ollama may have sent; every error text is fixed and never contains the address.
 func postForReply(ctx context.Context, base *url.URL, path string, timeout time.Duration, payload any, out any) (int, string, error) {
 	// Turn the payload into JSON text.
@@ -371,13 +265,57 @@ func fetchShow(ctx context.Context, base *url.URL, name string, timeout time.Dur
 	return reply, status, err
 } // end of fetchShow
 
-// createWithContext saves a context size inside the model: Ollama rewrites the model's saved settings, keeping everything else (the model is created from itself, so no weights are fetched).
-func createWithContext(ctx context.Context, base *url.URL, name string, n int64, timeout time.Duration) (int, string, error) {
+// createWithParams saves settings inside the model: Ollama rewrites the saved settings of the model, changing only the names sent and keeping everything else (a test on the real Ollama showed this; a new stop list replaces the old one). The model is created from itself, so no weights are fetched.
+func createWithParams(ctx context.Context, base *url.URL, name string, params map[string]any, timeout time.Duration) (int, string, error) {
 	// The body Ollama expects; stream false makes it answer once, when finished.
-	payload := map[string]any{"model": name, "from": name, "parameters": map[string]any{"num_ctx": n}, "stream": false}
+	payload := map[string]any{"model": name, "from": name, "parameters": params, "stream": false}
 	// Send it.
 	return postForReply(ctx, base, "api/create", timeout, payload, nil)
-} // end of createWithContext
+} // end of createWithParams
+
+// settingRow is everything the page shows for one setting.
+type settingRow struct {
+	// Key is the parameter name; the form field is called s_ plus this.
+	Key string
+	// Heading is the setting's name.
+	Heading string
+	// Kind is int, float or list.
+	Kind string
+	// Tip is the help bubble of the heading.
+	Tip tipView
+	// Default is Ollama's own default, in words.
+	Default string
+	// Saved says what the model has saved now, or that nothing is saved.
+	Saved string
+	// HasSaved is true when the model has this setting saved, so the field must never be emptied.
+	HasSaved bool
+	// Typed is the text in the field.
+	Typed string
+	// Editable is false when no safe limit is known for this model.
+	Editable bool
+	// Range describes the allowed values in words.
+	Range string
+	// InMin and InMax are the limits given to the browser's own number check.
+	InMin, InMax string
+	// Step is the browser's step for the number field.
+	Step string
+	// Problem explains why the typed value was refused.
+	Problem string
+	// Warn is a note that is not a refusal, such as a saved value above the model's limit.
+	Warn string
+	// After is the new value, on the review page.
+	After string
+	// Presets are the suggested sizes (only for the context size).
+	Presets []int64
+} // end of settingRow
+
+// hiddenField is one hidden form field of the review page.
+type hiddenField struct {
+	// Name is the field name.
+	Name string
+	// Value is the field value.
+	Value string
+} // end of hiddenField
 
 // gearPage is everything the settings page template can show.
 type gearPage struct {
@@ -385,30 +323,20 @@ type gearPage struct {
 	Kind string
 	// Model is the model name.
 	Model string
-	// SavedText says what is saved now: the number, or a sentence when nothing is saved.
-	SavedText string
-	// Max is the model's largest context size; 0 when unknown.
-	Max int64
-	// Min is the smallest size this monitor allows.
-	Min int64
-	// Presets are the suggested sizes.
-	Presets []int64
-	// Others are the other saved parameters, shown and kept as they are.
+	// Rows are the ten settings, in order.
+	Rows []settingRow
+	// Changed lists the rows that change (review and done pages).
+	Changed []settingRow
+	// Hidden are the values the review page passes on to the save step.
+	Hidden []hiddenField
+	// Others are saved parameters this page does not edit, shown and kept as they are.
 	Others []string
-	// CanSave is false when no safe limit is known, so saving is switched off.
-	CanSave bool
-	// Problem explains why the typed value was refused.
+	// Problem is the general note shown above the table when a value was refused.
 	Problem string
-	// Typed is what was typed, shown again in the field.
-	Typed string
-	// NewValue is the size to be saved (review and done pages).
-	NewValue int64
-	// AfterText is what Ollama reports after the save.
-	AfterText string
 	// Detail is the plain reason shown on the error and mismatch pages.
 	Detail string
-	// AboveMax is true when the saved size is already above the model's maximum.
-	AboveMax bool
+	// Max is the model's largest context size; 0 when unknown.
+	Max int64
 	// Theme is the saved theme choice, as on the main page.
 	Theme string
 	// Token is the page token for the forms on this page.
@@ -421,34 +349,311 @@ type gearPage struct {
 type gearFacts struct {
 	// Page holds the figures for the page.
 	Page gearPage
-	// Lines are the saved parameters.
+	// Saved holds the saved parameters by name.
+	Saved map[string][]string
+	// Lines are the saved parameters in the order Ollama gave them.
 	Lines []paramLine
-	// Current is the saved context size (0 when none or unusable).
-	Current int64
-	// Present says whether a num_ctx line exists.
-	Present bool
+	// Max is the model's context length, 0 when unknown.
+	Max int64
 } // end of gearFacts
 
-// gearTipKeys maps the short names used in the template to the headings of the help texts.
-var gearTipKeys = map[string]string{"ctx": "Context size", "max": "Model maximum", "min": "Smallest allowed", "saved": "Saved in the model", "other": "Other saved settings"}
+// change is one setting that the typed values would change.
+type change struct {
+	// Spec describes the setting.
+	Spec settingSpec
+	// New is the value to save.
+	New settingValue
+} // end of change
 
-// gearHandlers builds the three handlers: the settings page (shows, changes nothing), the review page (checks the typed value and asks "are you sure?"), and the save (changes the model).
+// fieldName is the form field name of a setting.
+func fieldName(key string) string {
+	// The same prefix everywhere.
+	return "s_" + key
+} // end of fieldName
+
+// evaluate builds the ten rows from what is saved and, when a form is given, from what was typed; it returns the rows, the changes, and whether any typed value was refused. A setting whose field is missing from the form is left alone.
+func evaluate(f gearFacts, form url.Values, tips map[string]tipView) ([]settingRow, []change, bool) {
+	// The result.
+	var rows []settingRow
+	// The changes.
+	var changes []change
+	// Becomes true when a typed value is refused.
+	refused := false
+	// Go through the ten settings.
+	for _, spec := range settingSpecs {
+		// What is saved now.
+		val, present, readable := readSaved(spec, f.Saved[spec.Key])
+		// The limits for this model.
+		min, max, limitOK := spec.limits(f.Max)
+		// The row starts with the facts.
+		row := settingRow{Key: spec.Key, Heading: spec.Heading, Kind: spec.Kind, Tip: tips[spec.Key], Default: spec.Default, HasSaved: present, Editable: limitOK, Range: spec.rangeText(f.Max)}
+		// The words for the saved value.
+		switch {
+		// Nothing saved.
+		case !present:
+			// Say what that means.
+			row.Saved = "not set"
+		// Saved but not usable.
+		case !readable:
+			// Show it as it is.
+			row.Saved = strings.Join(f.Saved[spec.Key], ", ") + " (not a usable value)"
+		// A normal value.
+		default:
+			// Show it.
+			row.Saved = val.text(spec)
+		} // end of the saved text
+		// The browser's own checks for number fields.
+		if spec.Kind != kindList && limitOK {
+			// The limits.
+			row.InMin, row.InMax = fmtNum(min), fmtNum(max)
+			// Whole numbers step by one; decimals accept any step.
+			row.Step = "1"
+			// Decimals.
+			if spec.Kind == kindFloat {
+				// Any step.
+				row.Step = "any"
+			} // end of the step choice
+		} // end of the browser limits
+		// Suggestions for the context size.
+		if spec.Key == "num_ctx" && limitOK {
+			// The usual sizes inside the range.
+			row.Presets = contextPresets(int64(min), int64(max))
+		} // end of the preset case
+		// A saved number above this model's limit deserves a note.
+		if present && readable && spec.Kind != kindList && limitOK && val.Num > max {
+			// The note.
+			row.Warn = "The saved value is above what this model supports. Saving a valid value fixes it."
+		} // end of the above-limit note
+		// The text shown in the field when nothing was typed: the saved value.
+		if present && readable {
+			// Lists go one per line.
+			if spec.Kind == kindList {
+				// Join the words.
+				row.Typed = strings.Join(val.List, "\n")
+			} else {
+				// The number.
+				row.Typed = fmtNum(val.Num)
+			} // end of the pre-fill choice
+		} // end of the pre-fill
+		// Without a form this is the plain settings page.
+		values, typedPresent := form[fieldName(spec.Key)]
+		// A missing field means no change.
+		if form == nil || !typedPresent {
+			// Keep the row as it is.
+			rows = append(rows, row)
+			// Next setting.
+			continue
+		} // end of the missing-field case
+		// What was typed: the stop words may arrive as several fields (the review page sends one for each word).
+		typed := strings.Join(values, "\n")
+		// Show what was typed, cut to a sane length.
+		if len(typed) > maxListText {
+			// Cut it.
+			typed = typed[:maxListText]
+		} // end of the cut
+		// Show it again in the field.
+		row.Typed = typed
+		// A blank field.
+		if strings.TrimSpace(typed) == "" {
+			// A saved value can be changed but never removed.
+			if present {
+				// Refuse with the clear reason.
+				row.Problem = "This field cannot be empty. A saved value can be changed, but not removed."
+				// Count the refusal.
+				refused = true
+			} // end of the saved case
+			// An unsaved setting left blank simply stays unsaved.
+			rows = append(rows, row)
+			// Next setting.
+			continue
+		} // end of the blank case
+		// Nothing can be saved without a known limit.
+		if !limitOK {
+			// Refuse.
+			row.Problem = "No safe limit is known for this model, so this setting cannot be changed."
+			// Count the refusal.
+			refused = true
+			// Keep the row.
+			rows = append(rows, row)
+			// Next setting.
+			continue
+		} // end of the limit case
+		// The new value.
+		var nv settingValue
+		// The reason when it is refused.
+		var problem string
+		// Lists and numbers have their own rules.
+		if spec.Kind == kindList {
+			// The stop words.
+			nv.List, problem = parseStopWords(typed)
+		} else {
+			// The number.
+			nv.Num, problem = spec.parseNumber(typed, f.Max)
+		} // end of the rule choice
+		// A refusal.
+		if problem != "" {
+			// Keep it.
+			row.Problem = problem
+			// Count the refusal.
+			refused = true
+			// Keep the row.
+			rows = append(rows, row)
+			// Next setting.
+			continue
+		} // end of the problem check
+		// The same as what is saved: no change.
+		if present && readable && nv.equal(val, spec) {
+			// Keep the row.
+			rows = append(rows, row)
+			// Next setting.
+			continue
+		} // end of the same-value case
+		// A real change.
+		row.After = nv.text(spec)
+		// Remember it.
+		changes = append(changes, change{Spec: spec, New: nv})
+		// Keep the row.
+		rows = append(rows, row)
+	} // end of the setting loop
+	// Hand everything back.
+	return rows, changes, refused
+} // end of evaluate
+
+// changedRows picks the rows that change, in order.
+func changedRows(rows []settingRow) []settingRow {
+	// The result.
+	var out []settingRow
+	// Go through the rows.
+	for _, r := range rows {
+		// A row with a new value changes.
+		if r.After != "" && r.Problem == "" {
+			// Keep it.
+			out = append(out, r)
+		} // end of the check
+	} // end of the loop
+	// Hand back the list.
+	return out
+} // end of changedRows
+
+// hiddenFor builds the hidden fields the review page passes on: only the changed settings, one field per stop word.
+func hiddenFor(changes []change) []hiddenField {
+	// The result.
+	var out []hiddenField
+	// Go through the changes.
+	for _, c := range changes {
+		// A list is sent one word per field.
+		if c.Spec.Kind == kindList {
+			// Each word.
+			for _, w := range c.New.List {
+				// One field.
+				out = append(out, hiddenField{Name: fieldName(c.Spec.Key), Value: w})
+			} // end of the word loop
+			// Next change.
+			continue
+		} // end of the list case
+		// A number.
+		out = append(out, hiddenField{Name: fieldName(c.Spec.Key), Value: fmtNum(c.New.Num)})
+	} // end of the change loop
+	// Hand back the fields.
+	return out
+} // end of hiddenFor
+
+// paramsFor builds the parameters object of the create request from the changes; whole-number settings are sent as whole numbers.
+func paramsFor(changes []change) map[string]any {
+	// The result.
+	out := map[string]any{}
+	// Go through the changes.
+	for _, c := range changes {
+		// The kind decides the JSON type.
+		switch c.Spec.Kind {
+		// The stop words are a list of texts.
+		case kindList:
+			// The list.
+			out[c.Spec.Key] = c.New.List
+		// Whole numbers.
+		case kindInt:
+			// An integer.
+			out[c.Spec.Key] = int64(c.New.Num)
+		// Decimals.
+		default:
+			// A decimal number.
+			out[c.Spec.Key] = c.New.Num
+		} // end of the kind switch
+	} // end of the loop
+	// Hand back the object.
+	return out
+} // end of paramsFor
+
+// sameSaved says whether two saved-parameter maps hold the same values for every name except the skipped ones; the order of lines does not matter.
+func sameSaved(a, b map[string][]string, skip map[string]bool) bool {
+	// The names of both.
+	names := map[string]bool{}
+	// From a.
+	for k := range a {
+		// Remember it.
+		names[k] = true
+	} // end of a
+	// From b.
+	for k := range b {
+		// Remember it.
+		names[k] = true
+	} // end of b
+	// Compare each name.
+	for k := range names {
+		// A skipped name is not compared.
+		if skip[k] {
+			// Next name.
+			continue
+		} // end of the skip check
+		// Copy and sort both lists.
+		x, y := append([]string{}, a[k]...), append([]string{}, b[k]...)
+		// Sort.
+		sort.Strings(x)
+		// Sort.
+		sort.Strings(y)
+		// Different sizes.
+		if len(x) != len(y) {
+			// Not the same.
+			return false
+		} // end of the size check
+		// Compare each.
+		for i := range x {
+			// A difference.
+			if x[i] != y[i] {
+				// Not the same.
+				return false
+			} // end of the compare
+		} // end of the loop
+	} // end of the name loop
+	// All the same.
+	return true
+} // end of sameSaved
+
+// gearTipKeys maps the short names used in the template to the headings of the help texts; each setting is added by its parameter name.
+var gearTipKeys = map[string]string{"saved": "Set in the model", "default": "Ollama's default", "range": "Allowed values"}
+
+// gearHandlers builds the three handlers: the settings page (shows, changes nothing), the review page (checks the typed values and asks "are you sure?"), and the save (changes the model).
 func gearHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.HandlerFunc, http.HandlerFunc) {
 	// Read the template once, together with the shared help-bubble templates; Must stops the program at start-up if it is broken, which a test would catch first.
 	page := template.Must(template.New("gear").Parse(gearTemplateText + tipsTemplateText))
 	// The help bubbles never change, so build them once.
 	tips := map[string]tipView{}
-	// One for each short name.
+	// The fixed ones.
 	for key, heading := range gearTipKeys {
 		// Build it with an element name that is unique on the page.
 		tips[key] = makeTip("tip-gear-"+key, heading)
-	} // end of the tip loop
+	} // end of the fixed tips
+	// One for each setting.
+	for _, spec := range settingSpecs {
+		// Build it.
+		tips[spec.Key] = makeTip("tip-gear-"+spec.Key, spec.Heading)
+	} // end of the setting tips
 	// A lock so two saves never run at the same time (a double click on the Yes button, for example).
 	var saveLock sync.Mutex
 	// show builds the page in memory first, so a template error produces a clean 500 and not a half page.
 	show := func(w http.ResponseWriter, r *http.Request, status int, data gearPage) {
 		// Add what every version of the page needs.
-		data.Theme, data.Token, data.Tips, data.Min = themeFromRequest(r), token, tips, minContext
+		data.Theme, data.Token, data.Tips = themeFromRequest(r), token, tips
 		// Build the page.
 		var buf bytes.Buffer
 		// Run the template.
@@ -524,190 +729,134 @@ func gearHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.Hand
 			// Stop here.
 			return gearFacts{}, false
 		} // end of the status check
-		// Work out the figures.
+		// The saved parameters.
 		lines := parseParams(info.Parameters)
-		// The saved context size.
-		text, current, present := savedContext(lines)
-		// The model maximum.
-		max, maxOK := modelMaxContext(info.ModelInfo)
-		// Start the page figures.
-		p := gearPage{Model: name, Max: max, Others: otherParams(lines), CanSave: maxOK}
-		// The words for the saved value.
-		switch {
-		// Nothing saved.
-		case !present:
-			// Say what that means.
-			p.SavedText = "not saved in the model (Ollama chooses a size when the model loads)"
-		// Saved but not usable.
-		case current == 0:
-			// Show it as it is.
-			p.SavedText = text + " (not a usable size)"
-		// A normal value.
-		default:
-			// Show the number.
-			p.SavedText = strconv.FormatInt(current, 10)
-		} // end of the saved text
-		// Offer suggestions only when the limit is known.
-		if maxOK {
-			// The suggestions.
-			p.Presets = contextPresets(minContext, max)
-			// A saved value above the maximum deserves a note.
-			p.AboveMax = current > max
-		} // end of the preset case
+		// The model maximum (0 when unknown).
+		max, _ := modelMaxContext(info.ModelInfo)
+		// The parameters this page does not edit are listed as they are.
+		var others []string
+		// Go through the lines.
+		for _, l := range lines {
+			// One of ours?
+			if _, ok := specByKey(l.Name); !ok {
+				// Keep it for the note.
+				others = append(others, l.Name+" "+l.Value)
+			} // end of the check
+		} // end of the loop
 		// Hand everything back.
-		return gearFacts{Page: p, Lines: lines, Current: current, Present: present}, true
+		return gearFacts{Page: gearPage{Model: name, Max: max, Others: others}, Saved: savedMap(lines), Lines: lines, Max: max}, true
 	} // end of facts
-	// check runs the typed value through the rules; it shows the settings page again with the reason when it is refused, and returns false then.
-	check := func(w http.ResponseWriter, r *http.Request, f gearFacts) (int64, bool) {
-		// The typed text, cut to a sane length first.
-		typed := r.PostFormValue("num_ctx")
-		// An absurdly long text is refused at once.
-		if len(typed) > maxContextField {
-			// Cut it for display.
-			typed = typed[:maxContextField]
-		} // end of the length check
-		// Without a known maximum nothing can be saved.
-		if !f.Page.CanSave {
-			// Show the settings page with the reason.
-			p := f.Page
-			// The reason.
-			p.Kind, p.Problem, p.Typed = "settings", "Ollama does not report this model's maximum context size, so no safe limit can be checked and nothing can be saved.", typed
-			// Show it.
-			show(w, r, http.StatusOK, p)
-			// Refused.
-			return 0, false
-		} // end of the limit check
-		// Apply the rules.
-		n, problem := validateContext(r.PostFormValue("num_ctx"), minContext, f.Page.Max)
-		// A refusal.
-		if problem != "" {
-			// Show the settings page with the reason.
-			p := f.Page
-			// The reason and the typed text.
-			p.Kind, p.Problem, p.Typed = "settings", problem, typed
-			// Show it.
-			show(w, r, http.StatusOK, p)
-			// Refused.
-			return 0, false
-		} // end of the problem check
-		// Accepted.
-		return n, true
-	} // end of check
-	// settings is the first step: it shows the saved values and the form; it changes nothing.
-	settings := func(w http.ResponseWriter, r *http.Request) {
-		// Run the shared form checks.
-		name, ok := readModelForm(w, r, token)
+	// begin runs the form checks and the model checks that every step needs; ok is false after a page was shown.
+	begin := func(w http.ResponseWriter, r *http.Request) (gearFacts, bool) {
+		// Run the shared form checks (a larger form limit than the load and unload forms).
+		name, ok := readModelFormLimit(w, r, token, maxGearForm)
 		// A refusal was already sent.
 		if !ok {
 			// Stop here.
-			return
+			return gearFacts{}, false
 		} // end of the form checks
 		// Run the model checks.
-		f, ok := facts(w, r, name)
+		return facts(w, r, name)
+	} // end of begin
+	// settings is the first step: it shows the saved values and the form; it changes nothing.
+	settings := func(w http.ResponseWriter, r *http.Request) {
+		// The checks.
+		f, ok := begin(w, r)
 		// A page was already shown.
 		if !ok {
 			// Stop here.
 			return
-		} // end of the model checks
-		// Show the form; the field starts with the saved value when there is one.
+		} // end of the checks
+		// The rows, filled with the saved values.
 		p := f.Page
 		// The kind of page.
 		p.Kind = "settings"
-		// Pre-fill the field with the saved value.
-		if f.Current > 0 {
-			// The number.
-			p.Typed = strconv.FormatInt(f.Current, 10)
-		} // end of the pre-fill
+		// Build the rows.
+		p.Rows, _, _ = evaluate(f, nil, tips)
 		// Show it.
 		show(w, r, http.StatusOK, p)
 	} // end of settings
-	// review is the second step: it checks the typed value and asks "are you sure?"; it changes nothing.
+	// review is the second step: it checks the typed values and asks "are you sure?"; it changes nothing.
 	review := func(w http.ResponseWriter, r *http.Request) {
-		// Run the shared form checks.
-		name, ok := readModelForm(w, r, token)
-		// A refusal was already sent.
-		if !ok {
-			// Stop here.
-			return
-		} // end of the form checks
-		// Run the model checks.
-		f, ok := facts(w, r, name)
+		// The checks.
+		f, ok := begin(w, r)
 		// A page was already shown.
 		if !ok {
 			// Stop here.
 			return
-		} // end of the model checks
-		// Run the rules.
-		n, ok := check(w, r, f)
-		// A page was already shown.
-		if !ok {
-			// Stop here.
-			return
-		} // end of the rule check
-		// The same value as now: nothing to do.
+		} // end of the checks
+		// Check the typed values.
+		rows, changes, refused := evaluate(f, r.PostForm, tips)
+		// The page figures.
 		p := f.Page
-		// The size under review.
-		p.NewValue = n
-		// Nothing changes.
-		if f.Present && n == f.Current {
+		// The rows.
+		p.Rows = rows
+		// Any refusal: show the settings page again with the reasons; nothing is saved.
+		if refused {
+			// The page and the general note.
+			p.Kind, p.Problem = "settings", "Nothing was saved. Fix the marked settings and review again."
+			// Show it.
+			show(w, r, http.StatusOK, p)
+			// Stop here.
+			return
+		} // end of the refusal case
+		// Nothing differs from what is saved.
+		if len(changes) == 0 {
 			// Say so.
 			p.Kind = "nochange"
 			// Show it.
 			show(w, r, http.StatusOK, p)
 			// Stop here.
 			return
-		} // end of the same-value case
-		// Ask for the confirmation.
-		p.Kind = "review"
+		} // end of the no-change case
+		// Ask for the confirmation, listing only what changes.
+		p.Kind, p.Changed, p.Hidden = "review", changedRows(rows), hiddenFor(changes)
 		// Show it.
 		show(w, r, http.StatusOK, p)
 	} // end of review
 	// save is the third step: it checks everything again, saves, and then asks Ollama what is saved now.
 	save := func(w http.ResponseWriter, r *http.Request) {
-		// Run the shared form checks.
-		name, ok := readModelForm(w, r, token)
-		// A refusal was already sent.
-		if !ok {
-			// Stop here.
-			return
-		} // end of the form checks
-		// Only one save at a time.
+		// Only one save at a time; the lock is taken after the form checks, which need no waiting.
 		saveLock.Lock()
 		// Release at the end.
 		defer saveLock.Unlock()
-		// Run the model checks again: things may have changed since the review page.
-		f, ok := facts(w, r, name)
+		// The checks, repeated: things may have changed since the review page.
+		f, ok := begin(w, r)
 		// A page was already shown.
 		if !ok {
 			// Stop here.
 			return
-		} // end of the model checks
-		// Run the rules again.
-		n, ok := check(w, r, f)
-		// A page was already shown.
-		if !ok {
-			// Stop here.
-			return
-		} // end of the rule check
-		// The page figures for the result pages.
+		} // end of the checks
+		// Check the values again.
+		rows, changes, refused := evaluate(f, r.PostForm, tips)
+		// The page figures.
 		p := f.Page
-		// The size being saved.
-		p.NewValue = n
-		// The same value as now: nothing to do (a second click on Yes ends up here).
-		if f.Present && n == f.Current {
+		// The rows.
+		p.Rows = rows
+		// Any refusal.
+		if refused {
+			// The page and the general note.
+			p.Kind, p.Problem = "settings", "Nothing was saved. Fix the marked settings and review again."
+			// Show it.
+			show(w, r, http.StatusOK, p)
+			// Stop here.
+			return
+		} // end of the refusal case
+		// Nothing differs: a second click on Yes ends up here.
+		if len(changes) == 0 {
 			// Say so.
 			p.Kind = "nochange"
 			// Show it.
 			show(w, r, http.StatusOK, p)
 			// Stop here.
 			return
-		} // end of the same-value case
-		// Save it inside the model.
-		status, text, err := createWithContext(r.Context(), addr.URL, name, n, gearTimeout)
+		} // end of the no-change case
+		// Save only what changes.
+		status, text, err := createWithParams(r.Context(), addr.URL, f.Page.Model, paramsFor(changes), gearTimeout)
 		// No answer at all.
 		if err != nil {
 			// Show the plain reason.
-			show(w, r, http.StatusBadGateway, gearPage{Kind: "error", Model: name, Detail: err.Error()})
+			show(w, r, http.StatusBadGateway, gearPage{Kind: "error", Model: f.Page.Model, Detail: err.Error()})
 			// Stop here.
 			return
 		} // end of the send check
@@ -721,27 +870,39 @@ func gearHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.Hand
 				detail += " Ollama said: " + text
 			} // end of the message
 			// Show it.
-			show(w, r, http.StatusBadGateway, gearPage{Kind: "error", Model: name, Detail: detail})
+			show(w, r, http.StatusBadGateway, gearPage{Kind: "error", Model: f.Page.Model, Detail: detail})
 			// Stop here.
 			return
 		} // end of the refusal check
 		// Do not trust the success alone: ask Ollama what is saved now.
-		after, status, err := fetchShow(r.Context(), addr.URL, name, gearTimeout)
+		after, status, err := fetchShow(r.Context(), addr.URL, f.Page.Model, gearTimeout)
 		// The check could not be done.
 		if err != nil || status != http.StatusOK {
 			// Say exactly what is known.
-			show(w, r, http.StatusBadGateway, gearPage{Kind: "error", Model: name, Detail: "Ollama accepted the change, but the check afterwards failed. Open the settings again to see what is saved."})
+			show(w, r, http.StatusBadGateway, gearPage{Kind: "error", Model: f.Page.Model, Detail: "Ollama accepted the change, but the check afterwards failed. Open the settings again to see what is saved."})
 			// Stop here.
 			return
 		} // end of the check read
 		// Read the saved values again.
-		afterLines := parseParams(after.Parameters)
-		// The saved context size now.
-		afterText, afterN, afterPresent := savedContext(afterLines)
-		// What Ollama reports, for the page.
-		p.AfterText = afterText
-		// The size must be the new one, and every other saved parameter must be exactly as before.
-		if !afterPresent || afterN != n || !sameStrings(otherParams(f.Lines), otherParams(afterLines)) {
+		afterSaved := savedMap(parseParams(after.Parameters))
+		// The names that changed.
+		changed := map[string]bool{}
+		// Becomes false when a changed setting is not what was asked.
+		allSet := true
+		// Check each change.
+		for _, c := range changes {
+			// Remember the name.
+			changed[c.Spec.Key] = true
+			// What Ollama reports now.
+			v, present, readable := readSaved(c.Spec, afterSaved[c.Spec.Key])
+			// It must be the new value.
+			if !present || !readable || !v.equal(c.New, c.Spec) {
+				// Not as asked.
+				allSet = false
+			} // end of the value check
+		} // end of the change loop
+		// Every other saved parameter must be exactly as before.
+		if !allSet || !sameSaved(f.Saved, afterSaved, changed) {
 			// Say honestly that the result is not what was asked.
 			p.Kind = "mismatch"
 			// The detail.
@@ -752,7 +913,7 @@ func gearHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.Hand
 			return
 		} // end of the verify check
 		// Everything checked out.
-		p.Kind = "done"
+		p.Kind, p.Changed = "done", changedRows(rows)
 		// Show it.
 		show(w, r, http.StatusOK, p)
 	} // end of save

@@ -21,56 +21,88 @@
 <h1>Settings for <code>{{.Model}}</code></h1>
 {{/* Version 1: the settings and the form. */}}
 {{if eq .Kind "settings"}}
-{{/* A refused value is explained first, with a symbol and a bold lead, so colour is never the only signal. */}}
+{{/* A general note when values were refused. */}}
 {{if .Problem}}
-{{/* The reason. */}}
+{{/* The note, with a symbol and a bold lead, so colour is never the only signal. */}}
 <p class="warn" role="alert"><strong>⚠ Not saved.</strong> {{.Problem}}</p>
 {{/* End of the problem note. */}}
 {{end}}
-{{/* A saved value above the model's limit is pointed out. */}}
-{{if .AboveMax}}
-{{/* The note. */}}
-<p class="warn"><strong>⚠ The saved size is above what this model supports.</strong> Saving a valid size below fixes it.</p>
-{{/* End of the above-limit note. */}}
-{{end}}
 {{/* What these settings are. */}}
-<p class="muted">{{template "tipbox" .Tips.saved}}: these settings are stored inside the model in Ollama, so every program that loads it without a value of its own uses them. The model must not be loaded now.</p>
-{{/* The facts, each heading with its help bubble. */}}
-<table class="facts">
-{{/* Row 1: the saved context size. */}}
-<tr><th scope="row">{{template "tipbox" .Tips.ctx}}</th><td>{{.SavedText}}</td></tr>
-{{/* Row 2: the model maximum. */}}
-<tr><th scope="row">{{template "tipbox" .Tips.max}}</th><td>{{if .Max}}{{.Max}} tokens (word pieces){{else}}not reported{{end}}</td></tr>
-{{/* Row 3: the smallest size allowed. */}}
-<tr><th scope="row">{{template "tipbox" .Tips.min}}</th><td>{{.Min}} tokens (word pieces); this is this monitor's own limit</td></tr>
-{{/* Row 4: the other saved settings. */}}
-<tr><th scope="row">{{template "tipbox" .Tips.other}}</th><td>{{if .Others}}{{range $i, $o := .Others}}{{if $i}}, {{end}}<code>{{$o}}</code>{{end}}{{else}}none{{end}}. They are kept as they are.</td></tr>
-{{/* End of the facts. */}}
-</table>
-{{/* The form, only when a safe limit is known. */}}
-{{if .CanSave}}
+<p class="muted">{{template "tipbox" .Tips.saved}}: these settings are stored inside the model in Ollama, so every program that loads it without a value of its own uses them. The model must not be loaded now. Leave a setting empty to leave it as it is; a saved setting can be changed but never emptied.</p>
 {{/* The form goes to the review step, which changes nothing yet. */}}
 <form method="post" action="/gear/review">
 {{/* The page token proves the form comes from this monitor. */}}
 <input type="hidden" name="token" value="{{.Token}}">
 {{/* The model name. */}}
 <input type="hidden" name="model" value="{{.Model}}">
-{{/* The label and the number field; the browser also checks the range, and the monitor checks it again. */}}
-<p><label for="num_ctx">New context size (tokens):</label> <input class="numfield" id="num_ctx" name="num_ctx" type="number" inputmode="numeric" min="{{.Min}}" max="{{.Max}}" step="1" required value="{{.Typed}}" list="presets"></p>
-{{/* The suggestions; they appear when the field is clicked. */}}
-<datalist id="presets">{{range .Presets}}<option value="{{.}}"></option>{{end}}</datalist>
-{{/* The rules in plain words. */}}
-<p class="muted">Click the field to see suggestions. A saved size cannot be removed, only changed. To go back to the largest size, choose the model maximum.</p>
+{{/* The table of all settings, one row each. */}}
+<table class="settingtable">
+{{/* The column headings, three with their help bubbles. */}}
+<thead><tr><th scope="col">Setting</th><th scope="col">{{template "tipbox" .Tips.default}}</th><th scope="col">{{template "tipbox" .Tips.saved}}</th><th scope="col">New value</th><th scope="col">{{template "tipbox" .Tips.range}}</th></tr></thead>
+{{/* The body. */}}
+<tbody>
+{{/* One row for each setting; the dollar sign reaches the page-level values from inside the loop. */}}
+{{range .Rows}}
+{{/* The row. */}}
+<tr>
+{{/* The setting's name with its help bubble. */}}
+<th scope="row">{{template "tipbox" .Tip}}</th>
+{{/* Ollama's own default. */}}
+<td data-label="Ollama's default">{{.Default}}</td>
+{{/* What the model has saved now. */}}
+<td data-label="Set in the model">{{.Saved}}</td>
+{{/* The field, or the reason there is none. */}}
+<td data-label="New value">
+{{/* A refusal for this setting, first. */}}
+{{if .Problem}}
+{{/* The reason, with a symbol. */}}
+<p class="warn" role="alert"><strong>⚠</strong> {{.Problem}}</p>
+{{/* End of the refusal. */}}
+{{end}}
+{{/* A note that is not a refusal. */}}
+{{if .Warn}}
+{{/* The note. */}}
+<p class="warn"><strong>⚠</strong> {{.Warn}}</p>
+{{/* End of the note. */}}
+{{end}}
+{{/* No safe limit known: no field. */}}
+{{if not .Editable}}
+{{/* Say why. */}}
+<span class="muted">cannot be changed: Ollama does not report this model's maximum context size</span>
+{{/* The stop words are a box with one word per line. */}}
+{{else if eq .Kind "list"}}
+{{/* The box; a saved list can never be emptied. */}}
+<textarea class="stopfield" name="s_{{.Key}}" rows="3" cols="24" maxlength="2000" aria-label="{{.Heading}} for {{$.Model}}, one per line"{{if .HasSaved}} required{{end}}>{{.Typed}}</textarea>
+{{/* Numbers get a number field with the browser's own range check; the monitor checks again. */}}
+{{else}}
+{{/* The field; the suggestions belong to the context size only. */}}
+<input class="numfield" name="s_{{.Key}}" type="number" inputmode="decimal" min="{{.InMin}}" max="{{.InMax}}" step="{{.Step}}" aria-label="{{.Heading}} for {{$.Model}}" value="{{.Typed}}"{{if .HasSaved}} required{{end}}{{if .Presets}} list="presets"{{end}}>
+{{/* The suggestions for the context size. */}}
+{{if .Presets}}<datalist id="presets">{{range .Presets}}<option value="{{.}}"></option>{{end}}</datalist>{{end}}
+{{/* End of the field choice. */}}
+{{end}}
+{{/* End of the field cell. */}}
+</td>
+{{/* The allowed values. */}}
+<td data-label="Allowed values">{{.Range}}</td>
+{{/* End of the row. */}}
+</tr>
+{{/* End of the row loop. */}}
+{{end}}
+{{/* End of the body. */}}
+</tbody>
+{{/* End of the table. */}}
+</table>
+{{/* Settings saved in the model that this page does not edit. */}}
+{{if .Others}}
+{{/* They are kept as they are. */}}
+<p class="muted">Also saved in the model and kept as they are: {{range $i, $o := .Others}}{{if $i}}, {{end}}<code>{{$o}}</code>{{end}}.</p>
+{{/* End of the other settings. */}}
+{{end}}
 {{/* The button. */}}
-<p><button type="submit" class="btn-load">Review the change</button></p>
+<p><button type="submit" class="btn-load">Review the changes</button></p>
 {{/* End of the form. */}}
 </form>
-{{/* No safe limit is known: no form. */}}
-{{else}}
-{{/* Say why. */}}
-<p class="muted">Nothing can be saved here because Ollama does not report this model's maximum context size, so no safe limit can be checked.</p>
-{{/* End of the form case. */}}
-{{end}}
 {{/* A pointer to the other setting. */}}
 <p class="muted">How long a model stays loaded is chosen on the Load page each time you load it.</p>
 {{/* A link back. */}}
@@ -78,37 +110,45 @@
 {{/* Version 2: the review step. */}}
 {{else if eq .Kind "review"}}
 {{/* The warning, with a symbol and a bold lead. */}}
-<p class="warn"><strong>⚠ This changes the model itself.</strong> Every program that loads this model without a size of its own will use the new one.</p>
-{{/* The change. */}}
-<table class="facts">
-{{/* Before. */}}
-<tr><th scope="row">Context size now</th><td>{{.SavedText}}</td></tr>
-{{/* After. */}}
-<tr><th scope="row">Context size after saving</th><td><strong>{{.NewValue}}</strong> tokens (word pieces)</td></tr>
-{{/* End of the change. */}}
+<p class="warn"><strong>⚠ This changes the model itself.</strong> Every program that loads this model without a value of its own will use the new values.</p>
+{{/* The changes only. */}}
+<table class="settingtable">
+{{/* The headings. */}}
+<thead><tr><th scope="col">Setting</th><th scope="col">Now</th><th scope="col">After saving</th></tr></thead>
+{{/* The body. */}}
+<tbody>
+{{/* One row for each change. */}}
+{{range .Changed}}
+{{/* The row. */}}
+<tr><th scope="row">{{.Heading}}</th><td>{{.Saved}}</td><td><strong>{{.After}}</strong></td></tr>
+{{/* End of the loop. */}}
+{{end}}
+{{/* End of the body. */}}
+</tbody>
+{{/* End of the table. */}}
 </table>
 {{/* What is and is not affected. */}}
 <ul>
-{{/* A bigger size needs more memory. */}}
-<li>A bigger size needs more memory when the model loads; a smaller one needs less.</li>
+{{/* Memory. */}}
+<li>A bigger context size needs more memory when the model loads; a smaller one needs less.</li>
 {{/* The weights stay. */}}
-<li>The model's weights are not changed, and its other saved settings are kept.</li>
+<li>The model's weights are not changed, and every setting not listed above is kept.</li>
 {{/* No removal. */}}
-<li>You can change it again later, but a saved size cannot be removed.</li>
+<li>You can change a setting again later, but a saved setting cannot be removed.</li>
 {{/* End of the list. */}}
 </ul>
 {{/* The two choices side by side. */}}
 <div class="choices">
-{{/* The Yes form sends the values to the save step. */}}
+{{/* The Yes form sends only the changed values to the save step. */}}
 <form method="post" action="/gear/save">
 {{/* The page token. */}}
 <input type="hidden" name="token" value="{{.Token}}">
 {{/* The model name. */}}
 <input type="hidden" name="model" value="{{.Model}}">
-{{/* The size to save. */}}
-<input type="hidden" name="num_ctx" value="{{.NewValue}}">
+{{/* The values to save. */}}
+{{range .Hidden}}<input type="hidden" name="{{.Name}}" value="{{.Value}}">{{end}}
 {{/* The Yes button. */}}
-<button type="submit" class="btn-load">Yes, save it into the model</button>
+<button type="submit" class="btn-load">Yes, save them into the model</button>
 {{/* End of the Yes form. */}}
 </form>
 {{/* The Cancel link simply goes back; nothing was changed. */}}
@@ -118,15 +158,31 @@
 {{/* Version 3: saved and checked. */}}
 {{else if eq .Kind "done"}}
 {{/* Say so; it was checked afterwards. */}}
-<p><strong>Saved.</strong> Ollama now reports a context size of {{.AfterText}} for this model, and its other saved settings are unchanged (both checked).</p>
+<p><strong>Saved.</strong> Ollama now reports these values for this model, and every other saved setting is unchanged (both checked).</p>
+{{/* The values. */}}
+<table class="settingtable">
+{{/* The headings. */}}
+<thead><tr><th scope="col">Setting</th><th scope="col">Saved now</th></tr></thead>
+{{/* The body. */}}
+<tbody>
+{{/* One row for each change. */}}
+{{range .Changed}}
+{{/* The row. */}}
+<tr><th scope="row">{{.Heading}}</th><td>{{.After}}</td></tr>
+{{/* End of the loop. */}}
+{{end}}
+{{/* End of the body. */}}
+</tbody>
+{{/* End of the table. */}}
+</table>
 {{/* What happens next. */}}
-<p class="muted">The next load of this model uses it. After loading, the Loaded table shows the context size actually used.</p>
+<p class="muted">The next load of this model uses them. After loading, the Loaded table shows the context size actually used.</p>
 {{/* A link back. */}}
 <p><a class="btn-plain" href="/">Back to the monitor</a></p>
-{{/* Version 4: the same value was already saved. */}}
+{{/* Version 4: nothing differs from what is saved. */}}
 {{else if eq .Kind "nochange"}}
 {{/* Say so. */}}
-<p>Nothing to change: a context size of {{.NewValue}} is already saved.</p>
+<p>Nothing to change: the values you entered are already what the model has saved, or the fields were left empty.</p>
 {{/* A link back. */}}
 <p><a class="btn-plain" href="/">Back to the monitor</a></p>
 {{/* Version 5: the model is loaded. */}}
@@ -146,7 +202,7 @@
 {{/* Say exactly what is known and what is not. */}}
 <p><strong>Please check.</strong> {{.Detail}}</p>
 {{/* What Ollama reports. */}}
-<p class="muted">Ollama now reports a context size of {{if .AfterText}}{{.AfterText}}{{else}}nothing{{end}}; you asked for {{.NewValue}}.</p>
+<p class="muted">Open the settings again to see what Ollama reports now.</p>
 {{/* A link back. */}}
 <p><a class="btn-plain" href="/">Back to the monitor</a></p>
 {{/* Version 8: something went wrong. */}}

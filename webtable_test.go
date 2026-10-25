@@ -142,7 +142,7 @@ func TestTableHelpForEveryHeading(t *testing.T) {
 	// Every column title must be a focusable heading.
 	for _, col := range installedColumns {
 		// The heading element holds the title text.
-		if !strings.Contains(body, ">"+html.EscapeString(col)+"</span>") {
+		if !strings.Contains(body, ">"+drawnHeading(col)+"</span>") {
 			// Report the gap.
 			t.Errorf("no heading element for column %q", col)
 		} // end of the heading check
@@ -315,6 +315,46 @@ func TestStylesheetHasTableAndBubbleRules(t *testing.T) {
 	} // end of the loop
 } // end of TestStylesheetHasTableAndBubbleRules
 
+// drawnHeading is a column title the way the page draws it: the lines joined by a line break, each escaped.
+func drawnHeading(col string) string {
+	// Escape each line, then join them with a break.
+	var parts []string
+	// Go through the lines.
+	for _, l := range headingLines(col) {
+		// Escape it.
+		parts = append(parts, html.EscapeString(l))
+	} // end of the loop
+	// Join.
+	return strings.Join(parts, "<br>")
+} // end of drawnHeading
+
+// TestLongHeadingsUseTwoLines checks the three long headings are drawn on two lines, the others on one, and that the help text of the page no longer carries the label "In plain words".
+func TestLongHeadingsUseTwoLines(t *testing.T) {
+	// Fake Ollama with the six real models.
+	body := pageFor(t, fullOllama(t, realModels, realPsBody))
+	// The three two-line headings.
+	for _, want := range []string{">Size<br>on disk</span>", ">Max context<br>length</span>", ">Embedding<br>length</span>"} {
+		// Look for it.
+		if !strings.Contains(body, want) {
+			// Report the gap.
+			t.Errorf("page lacks %q", want)
+		} // end of the check
+	} // end of the loop
+	// The short headings stay on one line.
+	for _, want := range []string{">Model</span>", ">Family</span>", ">Parameters</span>", ">Quantization</span>", ">Last modified</span>", ">Abilities</span>"} {
+		// Look for it.
+		if !strings.Contains(body, want) {
+			// Report the gap.
+			t.Errorf("page lacks %q", want)
+		} // end of the check
+	} // end of the loop
+	// The label is gone from every bubble, and the other two labels stay.
+	if strings.Contains(body, "In plain words") || !strings.Contains(body, "<strong>Example:</strong>") || !strings.Contains(body, "<strong>Helps you decide:</strong>") {
+		// Report the problem.
+		t.Errorf("the bubble labels are wrong")
+	} // end of the label check
+} // end of TestLongHeadingsUseTwoLines
+
 // TestTableColumnOrder checks the headings appear on the page in the order the person asked for.
 func TestTableColumnOrder(t *testing.T) {
 	// Fake Ollama with the six real models.
@@ -326,7 +366,7 @@ func TestTableColumnOrder(t *testing.T) {
 	// Go through the titles in order.
 	for _, col := range want {
 		// Find the heading element after the previous one.
-		i := strings.Index(body[pos:], ">"+col+"</span>")
+		i := strings.Index(body[pos:], ">"+drawnHeading(col)+"</span>")
 		// A missing or early heading means the order is wrong.
 		if i < 0 {
 			// Report the problem.
