@@ -1,0 +1,79 @@
+{{/* Unload page template: one page with five versions, chosen by Kind. The comments are template comments, so they never reach the browser. */}}
+<!DOCTYPE html>
+{{/* lang tells screen readers which language the page is written in. */}}
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<head>{{/* start of the head. */}}
+{{/* Text encoding. */}}
+<meta charset="utf-8">
+{{/* Fit the page to the width of the screen on phones. */}}
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* The title shown on the browser tab. */}}
+<title>Unload a model - OllamaControlCenter</title>
+{{/* Our one stylesheet. */}}
+<link rel="stylesheet" href="/app.css">
+</head>{{/* end of the head. */}}
+<body>{{/* start of the visible page. */}}
+{{/* The page content. */}}
+<main>
+{{/* A panel that holds the message. */}}
+<section class="panel">
+{{/* The heading names the model, so there is no doubt which one is meant. */}}
+<h1>Unload <code>{{.Model}}</code></h1>
+{{/* Version 1: the model is loaded and the person must confirm. */}}
+{{if eq .Kind "confirm"}}
+{{/* The warning about work in progress, in plain words. */}}
+<p><strong>Before you continue:</strong> This monitor cannot see whether a model is working on a request right now. If an application is using this model at this moment, unloading it can interrupt that work or leave the application in an unexpected state.</p>
+{{/* What happens if the person does nothing. */}}
+<p class="muted">If you do nothing, Ollama unloads this model by itself in: <span class="countdown"{{if .Seconds}} data-seconds="{{.Seconds}}"{{end}}>{{.Remaining}}</span>.</p>
+{{/* The advice. */}}
+<p>Only continue if you know that nothing is using this model.</p>
+{{/* The two choices side by side. */}}
+<div class="choices">
+{{/* The Yes form sends the model name and the page token to the second step. */}}
+<form method="post" action="/unload/confirm">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* The model name. */}}
+<input type="hidden" name="model" value="{{.Model}}">
+{{/* The Yes button. */}}
+<button type="submit" class="btn-solid">Yes, unload it now</button>
+{{/* End of the Yes form. */}}
+</form>
+{{/* The Cancel link simply goes back; nothing was changed. */}}
+<a class="btn-plain" href="/">Cancel, keep it loaded</a>
+{{/* End of the choices. */}}
+</div>
+{{/* Version 2: the model is not loaded (any more). */}}
+{{else if eq .Kind "notloaded"}}
+{{/* Say so; there is nothing to unload. */}}
+<p>This model is not loaded right now, so there is nothing to unload.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 3: the unload worked. */}}
+{{else if eq .Kind "done"}}
+{{/* Say so; it was checked afterwards. */}}
+<p><strong>Done.</strong> Ollama no longer lists this model as loaded.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 4: Ollama accepted the request but the model is still listed. */}}
+{{else if eq .Kind "stillloaded"}}
+{{/* Say exactly what is known and what is not. */}}
+<p><strong>Not unloaded yet.</strong> Ollama accepted the request, but the model is still listed as loaded. It may be busy with a request. Reload the monitor page in a moment to check.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 5: something went wrong. */}}
+{{else}}
+{{/* Say what went wrong, in the plain words the program already uses. */}}
+<p><strong>Could not do this.</strong> {{.Detail}}</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* End of the five versions. */}}
+{{end}}
+{{/* End of the panel. */}}
+</section>
+{{/* End of the content. */}}
+</main>
+{{/* The ticking timer needs the monitor's own script; it is included only when there is a timer to tick. */}}
+{{if .Seconds}}<script src="/countdown.js" defer></script>{{end}}
+</body>{{/* end of the visible page. */}}
+</html>{{/* end of the page. */}}

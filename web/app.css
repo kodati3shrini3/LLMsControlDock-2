@@ -28,8 +28,8 @@
 
 /* When the computer is set to a dark theme, replace the colours; the layout stays the same. */
 @media (prefers-color-scheme: dark) {
-  /* The dark set of colours. */
-  :root {
+  /* The dark set of colours, used only when no theme was chosen with the buttons. */
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
     /* Page background. */
     --bg: #121417;
     /* Panel background. */
@@ -55,6 +55,34 @@
     /* Tell the browser to draw its own controls in dark colours. */
     color-scheme: dark;
   } /* end of rule */
+} /* end of rule */
+
+/* The dark set again, used when the person chose Dark with the buttons (a chosen Light needs no rule: the light colours above are the default). */
+:root[data-theme="dark"] {
+  /* Page background. */
+  --bg: #121417;
+  /* Panel background. */
+  --panel: #1b1f24;
+  /* Main text colour (contrast 15.6:1). */
+  --text: #ececec;
+  /* Secondary text colour (contrast 9.8:1). */
+  --muted: #b8bdc5;
+  /* Colour for the online line (contrast 10.9:1). */
+  --ok: #6fdc97;
+  /* Colour for the offline line (contrast 9.1:1). */
+  --bad: #ff9a9a;
+  /* Border colour (contrast 3.8:1). */
+  --border: #6b727c;
+  /* Colour of the dot for a loaded model (contrast 8:1 on the page). */
+  --dot-on: #3fb950;
+  /* Category row background: a deep slate blue band (text contrast 10.1:1). */
+  --cat-bg: #1f3550;
+  /* Category row text colour: pale blue. */
+  --cat-text: #dbe9fb;
+  /* Category row accent bar on the left edge (contrast 8.4:1 on the page). */
+  --cat-accent: #7fb2f0;
+  /* Tell the browser to draw its own controls in dark colours. */
+  color-scheme: dark;
 } /* end of rule */
 
 /* Page-wide basics: the system font, our colours, and comfortable line spacing. */
@@ -347,4 +375,439 @@ h2 {
   background: transparent;
   /* A softer border than the loaded dot. */
   border-color: var(--muted);
+} /* end of rule */
+
+/* The header: title on the left, theme switch on the right; they wrap under each other in a narrow window. */
+.headrow {
+  /* Put the two blocks side by side. */
+  display: flex;
+  /* Let them wrap in a narrow window. */
+  flex-wrap: wrap;
+  /* Title left, theme buttons right. */
+  justify-content: space-between;
+  /* Line the blocks up at the top. */
+  align-items: flex-start;
+  /* Space between the blocks when they wrap. */
+  gap: 0.5rem 1rem;
+} /* end of rule */
+
+/* The theme form: the Auto button (when shown) and the switch in one line. */
+.themeform {
+  /* Side by side. */
+  display: flex;
+  /* Centre them vertically. */
+  align-items: center;
+  /* Space between the Auto button and the switch. */
+  gap: 0.6rem;
+  /* No extra space around the form. */
+  margin: 0;
+} /* end of rule */
+
+/* The theme switch: a small rounded slider with a knob. */
+.switch {
+  /* A box that holds the knob. */
+  display: inline-flex;
+  /* Centre the knob vertically. */
+  align-items: center;
+  /* Small: about the size of two letters. */
+  width: 2.8rem;
+  /* A low, pill-shaped height. */
+  height: 1.5rem;
+  /* A little room around the knob. */
+  padding: 0.1rem;
+  /* The border counts inside the size. */
+  box-sizing: border-box;
+  /* A solid outline, visible without colour. */
+  border: 2px solid var(--border);
+  /* Rounded ends. */
+  border-radius: 999px;
+  /* Track colour from the variables. */
+  background: var(--panel);
+  /* A hand cursor shows it can be clicked. */
+  cursor: pointer;
+} /* end of rule */
+
+/* The switch that goes to the light theme is hidden until the dark theme is showing; its knob sits on the right. */
+.switch.to-light {
+  /* Hidden by default. */
+  display: none;
+  /* Knob on the right edge. */
+  justify-content: flex-end;
+} /* end of rule */
+
+/* A chosen dark theme: hide the switch to dark, show the switch to light. */
+:root[data-theme="dark"] .switch.to-dark {
+  /* Hide it. */
+  display: none;
+} /* end of rule */
+
+/* A chosen dark theme: show the switch to light. */
+:root[data-theme="dark"] .switch.to-light {
+  /* Show it. */
+  display: inline-flex;
+} /* end of rule */
+
+/* The computer's own dark setting, when no theme was chosen with the switch. */
+@media (prefers-color-scheme: dark) {
+  /* No chosen theme: hide the switch to dark. */
+  :root:not([data-theme]) .switch.to-dark {
+    /* Hide it. */
+    display: none;
+  } /* end of rule */
+  /* No chosen theme: show the switch to light. */
+  :root:not([data-theme]) .switch.to-light {
+    /* Show it. */
+    display: inline-flex;
+  } /* end of rule */
+} /* end of rule */
+
+/* The knob: a round disc with the sun or the moon in it. */
+.knob {
+  /* Centre the symbol. */
+  display: inline-flex;
+  /* Centre it vertically. */
+  align-items: center;
+  /* Centre it horizontally. */
+  justify-content: center;
+  /* A small disc. */
+  width: 1.1rem;
+  /* Same height as width, so it is round. */
+  height: 1.1rem;
+  /* Make it a circle. */
+  border-radius: 50%;
+  /* The disc uses the text colour... */
+  background: var(--text);
+  /* ...and the symbol uses the page colour. */
+  color: var(--bg);
+  /* A small symbol, large enough to tell the sun from the moon. */
+  font-size: 0.85rem;
+  /* No extra line height. */
+  line-height: 1;
+} /* end of rule */
+
+/* The switch under the mouse: a stronger outline. */
+.switch:hover {
+  /* Outline in the text colour. */
+  border-color: var(--text);
+} /* end of rule */
+
+/* The small Auto button: plain text with a dotted underline, so it stays quiet. */
+.autobtn {
+  /* Use the page font. */
+  font: inherit;
+  /* Small text. */
+  font-size: 0.75rem;
+  /* No button box. */
+  background: none;
+  /* No border. */
+  border: 0;
+  /* No padding. */
+  padding: 0;
+  /* Secondary text colour. */
+  color: var(--muted);
+  /* A dotted underline shows it can be clicked. */
+  text-decoration: underline dotted;
+  /* A hand cursor. */
+  cursor: pointer;
+} /* end of rule */
+
+/* Button colours: a red that works on each theme (contrast 6.6:1 on white in light, 7.9:1 on the dark panel in dark). */
+:root {
+  /* Outline and text colour of the Unload button. */
+  --btn: #b3261e;
+  /* Text colour on the filled button. */
+  --btn-text: #ffffff;
+} /* end of rule */
+
+/* The same two colours for a chosen dark theme. */
+:root[data-theme="dark"] {
+  /* Lighter red for dark backgrounds. */
+  --btn: #ff8a80;
+  /* Dark text on the light red fill. */
+  --btn-text: #121417;
+} /* end of rule */
+
+/* The same two colours for the computer's own dark setting when no theme was chosen. */
+@media (prefers-color-scheme: dark) {
+  /* No theme chosen. */
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    /* Lighter red for dark backgrounds. */
+    --btn: #ff8a80;
+    /* Dark text on the light red fill. */
+    --btn-text: #121417;
+  } /* end of rule */
+} /* end of rule */
+
+/* The Unload form sits right after the state words, on the same line. */
+.unloadform {
+  /* Inline, so it follows the words. */
+  display: inline;
+  /* Room between the words and the button. */
+  margin-left: 0.6rem;
+} /* end of rule */
+
+/* The Unload button: a red outlined pill that fills when pointed at. */
+.unload {
+  /* Use the page font. */
+  font: inherit;
+  /* A little smaller than the table text. */
+  font-size: 0.8rem;
+  /* Room inside the pill. */
+  padding: 0.1rem 0.7rem;
+  /* A solid outline in the button colour: visible without relying on fill. */
+  border: 2px solid var(--btn);
+  /* Pill shape. */
+  border-radius: 999px;
+  /* Empty inside until hovered. */
+  background: transparent;
+  /* Text in the button colour. */
+  color: var(--btn);
+  /* A hand cursor. */
+  cursor: pointer;
+} /* end of rule */
+
+/* Pointed at or keyboard-focused: fill the pill. */
+.unload:hover, .unload:focus-visible {
+  /* Fill with the button colour. */
+  background: var(--btn);
+  /* Text switches to the contrast colour. */
+  color: var(--btn-text);
+} /* end of rule */
+
+/* A clear ring for keyboard users. */
+.unload:focus-visible, .btn-solid:focus-visible, .btn-plain:focus-visible {
+  /* A ring outside the button. */
+  outline: 3px solid var(--text);
+  /* A gap between button and ring. */
+  outline-offset: 2px;
+} /* end of rule */
+
+/* The two choices on the warning page, side by side. */
+.choices {
+  /* In a row. */
+  display: flex;
+  /* Wrap on narrow screens. */
+  flex-wrap: wrap;
+  /* Centre the items vertically. */
+  align-items: center;
+  /* Space between them. */
+  gap: 1rem;
+} /* end of rule */
+
+/* The confirming button: filled with the button colour. */
+.btn-solid {
+  /* Use the page font. */
+  font: inherit;
+  /* Room inside. */
+  padding: 0.4rem 1rem;
+  /* Outline in the button colour. */
+  border: 2px solid var(--btn);
+  /* Pill shape. */
+  border-radius: 999px;
+  /* Filled. */
+  background: var(--btn);
+  /* Contrast text. */
+  color: var(--btn-text);
+  /* A hand cursor. */
+  cursor: pointer;
+} /* end of rule */
+
+/* The safe choice: a plain outlined link that looks like a button. */
+.btn-plain {
+  /* Room inside. */
+  padding: 0.4rem 1rem;
+  /* Outline in the text colour. */
+  border: 2px solid var(--border);
+  /* Pill shape. */
+  border-radius: 999px;
+  /* Text colour. */
+  color: var(--text);
+  /* No underline. */
+  text-decoration: none;
+} /* end of rule */
+
+/* Load button colours: a blue that works on each theme (contrast 6.9:1 on white in light, 8:1 on the dark panel in dark). */
+:root {
+  /* Outline and text colour of the Load button. */
+  --load: #0b57d0;
+  /* Text colour on the filled button. */
+  --load-text: #ffffff;
+} /* end of rule */
+
+/* The same two colours for a chosen dark theme. */
+:root[data-theme="dark"] {
+  /* Lighter blue for dark backgrounds. */
+  --load: #8ab4f8;
+  /* Dark text on the light blue fill. */
+  --load-text: #121417;
+} /* end of rule */
+
+/* The same two colours for the computer's own dark setting when no theme was chosen. */
+@media (prefers-color-scheme: dark) {
+  /* No theme chosen. */
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    /* Lighter blue for dark backgrounds. */
+    --load: #8ab4f8;
+    /* Dark text on the light blue fill. */
+    --load-text: #121417;
+  } /* end of rule */
+} /* end of rule */
+
+/* The Load button: a blue outlined pill that fills when pointed at (the same shape as the Unload button, in another colour). */
+.load {
+  /* Use the page font. */
+  font: inherit;
+  /* A little smaller than the table text. */
+  font-size: 0.8rem;
+  /* Room inside the pill. */
+  padding: 0.1rem 0.7rem;
+  /* A solid outline in the button colour: visible without relying on fill. */
+  border: 2px solid var(--load);
+  /* Pill shape. */
+  border-radius: 999px;
+  /* Empty inside until hovered. */
+  background: transparent;
+  /* Text in the button colour. */
+  color: var(--load);
+  /* A hand cursor. */
+  cursor: pointer;
+} /* end of rule */
+
+/* Pointed at or keyboard-focused: fill the pill. */
+.load:hover, .load:focus-visible {
+  /* Fill with the button colour. */
+  background: var(--load);
+  /* Text switches to the contrast colour. */
+  color: var(--load-text);
+} /* end of rule */
+
+/* A clear ring for keyboard users. */
+.load:focus-visible, .btn-load:focus-visible {
+  /* A ring outside the button. */
+  outline: 3px solid var(--text);
+  /* A gap between button and ring. */
+  outline-offset: 2px;
+} /* end of rule */
+
+/* The confirming button of the load page: filled with the Load colour. */
+.btn-load {
+  /* Use the page font. */
+  font: inherit;
+  /* Room inside. */
+  padding: 0.4rem 1rem;
+  /* Outline in the button colour. */
+  border: 2px solid var(--load);
+  /* Pill shape. */
+  border-radius: 999px;
+  /* Filled. */
+  background: var(--load);
+  /* Contrast text. */
+  color: var(--load-text);
+  /* A hand cursor. */
+  cursor: pointer;
+} /* end of rule */
+
+/* The memory warning: a thick bar on the left plus a warning sign in the text, so colour is never the only signal. */
+.warn {
+  /* A thick bar in the problem colour. */
+  border-left: 6px solid var(--bad);
+  /* Room between the bar and the text. */
+  padding: 0.4rem 0.8rem;
+  /* A light panel behind it. */
+  background: var(--bg);
+} /* end of rule */
+
+/* The facts table of the load page. */
+.facts {
+  /* No double lines. */
+  border-collapse: collapse;
+  /* Room below. */
+  margin: 0.5rem 0;
+} /* end of rule */
+
+/* Cells of the facts table. */
+.facts th, .facts td {
+  /* Text starts on the left. */
+  text-align: left;
+  /* Room around the text. */
+  padding: 0.3rem 1rem 0.3rem 0;
+  /* Align the top lines of long cells. */
+  vertical-align: top;
+} /* end of rule */
+
+/* The state words with their dot get a fixed minimum width, so the Load and Unload buttons all start at the same place. */
+.statelabel {
+  /* A box in the line, so it can have a width. */
+  display: inline-block;
+  /* Wide enough for the dot and the words "Not loaded". */
+  min-width: 8rem;
+} /* end of rule */
+
+/* The hidden attribute must always win over any display rule. */
+[hidden] {
+  /* Not drawn at all. */
+  display: none !important;
+} /* end of rule */
+
+/* The track of the moving bar on the load page. */
+.bar {
+  /* The fill is placed inside this box. */
+  position: relative;
+  /* A thin bar. */
+  height: 0.7rem;
+  /* Never wider than a comfortable reading width. */
+  max-width: 24rem;
+  /* Room above and below. */
+  margin: 0.6rem 0;
+  /* An outline in the Load colour, visible without relying on fill. */
+  border: 2px solid var(--load);
+  /* Rounded ends. */
+  border-radius: 999px;
+  /* The fill must not stick out. */
+  overflow: hidden;
+} /* end of rule */
+
+/* The part of the bar that moves back and forth. */
+.barfill {
+  /* Placed inside the track. */
+  position: absolute;
+  /* From the top... */
+  top: 0;
+  /* ...to the bottom of the track. */
+  bottom: 0;
+  /* A little less than half of the track. */
+  width: 30%;
+  /* Rounded ends. */
+  border-radius: 999px;
+  /* The Load colour. */
+  background: var(--load);
+  /* Slide to and fro for as long as the page waits. */
+  animation: slide 1.4s ease-in-out infinite alternate;
+} /* end of rule */
+
+/* The movement: from the left end to the right end of the track. */
+@keyframes slide {
+  /* Start at the left. */
+  from { left: 0; }
+  /* End at the right (the bar is 30% wide, so 70% is the far end). */
+  to { left: 70%; }
+} /* end of rule */
+
+/* People who asked their computer for less motion get a still, full bar instead. */
+@media (prefers-reduced-motion: reduce) {
+  /* The fill stops moving and fills the track. */
+  .barfill {
+    /* No movement. */
+    animation: none;
+    /* The whole track. */
+    width: 100%;
+  } /* end of rule */
+} /* end of rule */
+
+/* Model names and other code: the same size as the text around them (browsers shrink plain "monospace" text to about 13px, so a named font list and an explicit 1em are used). */
+code {
+  /* A named monospace font first, then the common ones, then the generic one. */
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+  /* Exactly the size of the surrounding text, in headings too. */
+  font-size: 1em;
 } /* end of rule */

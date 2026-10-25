@@ -1,0 +1,117 @@
+{{/* Load page template: one page with six versions, chosen by Kind. The comments are template comments, so they never reach the browser. */}}
+<!DOCTYPE html>
+{{/* lang tells screen readers which language the page is written in. */}}
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<head>{{/* start of the head. */}}
+{{/* Text encoding. */}}
+<meta charset="utf-8">
+{{/* Fit the page to the width of the screen on phones. */}}
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* The title shown on the browser tab. */}}
+<title>Load a model - OllamaControlCenter</title>
+{{/* Our one stylesheet. */}}
+<link rel="stylesheet" href="/app.css">
+</head>{{/* end of the head. */}}
+<body>{{/* start of the visible page. */}}
+{{/* The page content. */}}
+<main>
+{{/* A panel that holds the message. */}}
+<section class="panel">
+{{/* The heading names the model, so there is no doubt which one is meant. */}}
+<h1>Load <code>{{.Model}}</code></h1>
+{{/* Version 1: the model can be loaded and the person must confirm. */}}
+{{if eq .Kind "confirm"}}
+{{/* A warning first, when free memory is short or close. */}}
+{{if eq .Level "short"}}
+{{/* The warning has a symbol and a bold lead, so colour is never the only signal. */}}
+<p class="warn"><strong>⚠ Not enough free memory.</strong> The free memory is less than this model needs. Loading it can slow down or disturb the applications that are running now.</p>
+{{/* The milder warning. */}}
+{{else if eq .Level "tight"}}
+{{/* The same kind of marking. */}}
+<p class="warn"><strong>⚠ Free memory is close to what this model needs.</strong> The real use is higher than the figure below, so other running applications may slow down.</p>
+{{/* End of the warnings. */}}
+{{end}}
+{{/* The facts in a small table. */}}
+<table class="facts">
+{{/* Row 1: free memory. */}}
+<tr><th scope="row">Free memory now</th><td>{{if .AvailText}}{{.AvailText}}{{else}}not known{{if .MemNote}} ({{.MemNote}}){{end}}{{end}}</td></tr>
+{{/* Row 2: memory needed. */}}
+<tr><th scope="row">This model needs at least</th><td>{{.NeedText}} (its size on disk; the real use is higher once the memory for the conversation context is added)</td></tr>
+{{/* Row 3: the default time. */}}
+<tr><th scope="row">Stays loaded after loading</th><td>Ollama's default is {{.DefaultText}} after the last use, then it unloads the model by itself. Your Ollama may be set to another time; the real countdown appears as soon as the model is loaded.</td></tr>
+{{/* End of the facts. */}}
+</table>
+{{/* A hint about the waiting time. */}}
+<p class="muted">Loading a large model can take a minute or more. This page waits until Ollama is done.</p>
+{{/* The advice. */}}
+<p>Only continue if you are happy to use this memory now.</p>
+{{/* The two choices side by side. */}}
+<div class="choices" id="choices">
+{{/* The Yes form sends the model name and the page token to the second step. */}}
+<form method="post" action="/load/confirm" data-loading>
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* The model name. */}}
+<input type="hidden" name="model" value="{{.Model}}">
+{{/* The Yes button. */}}
+<button type="submit" class="btn-load">Yes, load it now</button>
+{{/* End of the Yes form. */}}
+</form>
+{{/* The Cancel link simply goes back; nothing was changed. */}}
+<a class="btn-plain" href="/">Cancel, do not load</a>
+{{/* End of the choices. */}}
+</div>
+{{/* The waiting box: hidden at first; the script shows it when Yes is pressed. Without the script the browser's own spinner is all there is. */}}
+<div id="loading" role="status" aria-live="polite" hidden>
+{{/* The message, with the seconds passed. */}}
+<p><strong>Loading, please wait.</strong> Ollama is reading <code>{{.Model}}</code> into memory. Time passed: <span class="elapsed">0 s</span></p>
+{{/* The moving bar; it is hidden from screen readers because the text says the same. */}}
+<div class="bar" aria-hidden="true"><span class="barfill"></span></div>
+{{/* The honest note. */}}
+<p class="muted">The bar only shows that work is going on. It is not a percentage: Ollama does not report how far the loading has got. Please do not close this page.</p>
+{{/* End of the waiting box. */}}
+</div>
+{{/* Version 2: the model is loaded already. */}}
+{{else if eq .Kind "alreadyloaded"}}
+{{/* Say so. */}}
+<p>This model is already loaded, so there is nothing to load.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 3: the model is not installed. */}}
+{{else if eq .Kind "notinstalled"}}
+{{/* Say so. */}}
+<p>This model is not installed, so it cannot be loaded.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 4: the load worked. */}}
+{{else if eq .Kind "done"}}
+{{/* Say so; it was checked afterwards. */}}
+<p><strong>Done.</strong> Ollama lists this model as loaded.</p>
+{{/* The live timer: it ticks down once a second, and shows the plain text when the script cannot run. */}}
+<p class="muted">Ollama unloads it by itself in: <span class="countdown"{{if .Seconds}} data-seconds="{{.Seconds}}"{{end}}>{{.Remaining}}</span>.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 5: Ollama accepted the request but the model is not listed. */}}
+{{else if eq .Kind "stillnotloaded"}}
+{{/* Say exactly what is known and what is not. */}}
+<p><strong>Not listed yet.</strong> Ollama accepted the request, but the model is not in its loaded list. Reload the monitor page in a moment to check.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 6: something went wrong. */}}
+{{else}}
+{{/* Say what went wrong, in the plain words the program already uses. */}}
+<p><strong>Could not do this.</strong> {{.Detail}}</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* End of the six versions. */}}
+{{end}}
+{{/* End of the panel. */}}
+</section>
+{{/* End of the content. */}}
+</main>
+{{/* The ticking timer needs the monitor's own script; it is included only when there is a timer to tick. */}}
+{{if .Seconds}}<script src="/countdown.js" defer></script>{{end}}
+{{/* The waiting message needs the monitor's own script too, on the warning page only. */}}
+{{if eq .Kind "confirm"}}<script src="/loading.js" defer></script>{{end}}
+</body>{{/* end of the visible page. */}}
+</html>{{/* end of the page. */}}

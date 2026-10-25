@@ -99,12 +99,14 @@ func TestTablePageRealModels(t *testing.T) {
 		} // end of the hidden check
 	} // end of the hidden loop
 	// Exactly one model is loaded and five are not; only table cells are counted, because the help bubbles mention the same words.
-	if n := strings.Count(body, `<td><span class="dot dot-on" aria-hidden="true"></span> Loaded</td>`); n != 1 {
+	if n := strings.Count(body, `<td><span class="statelabel"><span class="dot dot-on" aria-hidden="true"></span> Loaded</span>
+`); n != 1 {
 		// Report the difference.
 		t.Errorf("loaded cells = %d, want 1", n)
 	} // end of the loaded count
 	// Five models are not loaded.
-	if n := strings.Count(body, `<td><span class="dot dot-off" aria-hidden="true"></span> Not loaded</td>`); n != 5 {
+	if n := strings.Count(body, `<td><span class="statelabel"><span class="dot dot-off" aria-hidden="true"></span> Not loaded</span>
+`); n != 5 {
 		// Report the difference.
 		t.Errorf("not-loaded cells = %d, want 5", n)
 	} // end of the not-loaded count

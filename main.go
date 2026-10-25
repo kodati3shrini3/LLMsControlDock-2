@@ -110,9 +110,9 @@ func main() {
 		os.Exit(1)
 	} // end of the check mode
 
-	// Describe the web server: Addr is where to listen (the star reads the flag's value), Handler is the web interface from web.go,
+	// Describe the web server: Addr is where to listen (the star reads the flag's value), Handler is the web interface from web.go wrapped in the Host-name check from guard.go,
 	// and ReadHeaderTimeout drops clients that take more than 5 seconds to send their request headers.
-	server := &http.Server{Addr: *listen, Handler: newWebHandler(addr, defaultCheckTimeout), ReadHeaderTimeout: 5 * time.Second}
+	server := &http.Server{Addr: *listen, Handler: hostGuard(newWebHandler(addr, defaultCheckTimeout), *listen), ReadHeaderTimeout: 5 * time.Second}
 
 	// Tell the person which address we are about to serve on.
 	log.Printf("OllamaControlCenter listening on http://%s (press Ctrl+C to stop)", *listen)

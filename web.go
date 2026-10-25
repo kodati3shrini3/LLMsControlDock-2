@@ -26,8 +26,8 @@ var indexTemplateText string
 //go:embed web/app.css
 var appCSS []byte
 
-// contentSecurityPolicy tells the browser what the page may load: only our own stylesheet, no scripts, no frames, no forms.
-const contentSecurityPolicy = "default-src 'none'; style-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+// contentSecurityPolicy tells the browser what the page may load: only our own stylesheet, no scripts, no frames, and forms that send only to this same page.
+const contentSecurityPolicy = "default-src 'none'; style-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 
 // pageData is everything the page template can show.
 type pageData struct {
@@ -49,6 +49,10 @@ type pageData struct {
 	Table tableView
 	// TableError explains why the lists could not be read, when Ollama answered the version check but not the lists.
 	TableError string
+	// Theme is the saved choice, light or dark; empty means follow the system.
+	Theme string
+	// Token is the page token that every form on the page carries.
+	Token string
 } // end of pageData
 
 // secureHeaders wraps a handler so every reply, including errors, carries the same safety headers.
@@ -74,8 +78,28 @@ func secureHeaders(next http.Handler) http.Handler {
 func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	// Read the template once; Must stops the program at start-up if the template is broken, which a test would catch first.
 	page := template.Must(template.New("index").Parse(indexTemplateText))
-	// Create a router for the two routes.
+	// Create the page token: an unguessable value that every form on the page carries, so only this page can send a form (requirement S2).
+	token := mustToken()
+	// Create a router for the routes.
 	mux := http.NewServeMux()
+	// Route: a POST request for "/theme" saves the chosen theme in a cookie (the checks are in theme.go).
+	mux.HandleFunc("POST /theme", themeHandler(token))
+	// Make the two unload handlers: the first asks "are you sure?", the second unloads (the checks are in unload.go).
+	unloadAsk, unloadConfirm := unloadHandlers(addr, token)
+	// Route: a POST request for "/unload" shows the warning page and changes nothing.
+	mux.HandleFunc("POST /unload", unloadAsk)
+	// Route: a POST request for "/unload/confirm" unloads the model.
+	mux.HandleFunc("POST /unload/confirm", unloadConfirm)
+	// Make the two load handlers: the first shows the memory warning, the second loads (the checks are in load.go).
+	loadAsk, loadConfirm := loadHandlers(addr, token)
+	// Route: a POST request for "/load" shows the memory warning and changes nothing.
+	mux.HandleFunc("POST /load", loadAsk)
+	// Route: a POST request for "/load/confirm" loads the model.
+	mux.HandleFunc("POST /load/confirm", loadConfirm)
+	// Route: a GET request for "/countdown.js" sends the small script that makes the timers tick (only the message pages use it).
+	mux.HandleFunc("GET /countdown.js", countdownHandler)
+	// Route: a GET request for "/loading.js" sends the small script that shows the waiting message while a model loads (only the load warning page uses it).
+	mux.HandleFunc("GET /loading.js", loadingHandler)
 	// Route: a GET request for exactly "/" shows the page; other paths get 404 and other methods get 405 from the router.
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		// Ask Ollama once; the request's own context cancels the check if the browser goes away.
@@ -94,6 +118,10 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 			ElapsedMs: res.Elapsed.Milliseconds(),
 			// The reason, if offline.
 			Reason: res.Reason,
+			// The saved theme choice, from the cookie; empty means follow the system.
+			Theme: themeFromRequest(r),
+			// The page token for the forms.
+			Token: token,
 		} // end of the data
 		// Only an online Ollama can be asked for its model lists.
 		if res.Online {
