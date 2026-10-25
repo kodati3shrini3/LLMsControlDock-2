@@ -1,0 +1,67 @@
+{{/* Comparison page: the latest saved performance test of each model side by side. The comments are template comments, so they never reach the browser. */}}
+<!DOCTYPE html>
+{{/* lang tells screen readers which language the page is written in. */}}
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<head>{{/* start of the head. */}}
+{{/* Text encoding. */}}
+<meta charset="utf-8">
+{{/* Fit the page to the width of the screen on phones. */}}
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* The title shown on the browser tab. */}}
+<title>Compare models - OllamaControlCenter</title>
+{{/* Our one stylesheet. */}}
+<link rel="stylesheet" href="/app.css">
+</head>{{/* end of the head. */}}
+<body>{{/* start of the visible page. */}}
+{{/* The page content. */}}
+<main>
+{{/* A panel that holds the comparison. */}}
+<section class="panel">
+{{/* The page heading. */}}
+<h1>Compare models</h1>
+{{/* Nothing saved yet. */}}
+{{if .Empty}}
+<p>No model has been through a performance test yet. Use the chart icon 📈 before a model name on the monitor page to test one, then come back here.</p>
+{{range .Notes}}<p class="muted">{{.}}</p>{{end}}
+{{else}}
+{{/* What the figures say, in plain words. */}}
+{{if .Findings}}
+<h2>What the figures say</h2>
+<ul>
+{{range .Findings}}<li>{{.}}</li>{{end}}
+</ul>
+{{end}}
+{{/* One table for each kind of model. */}}
+{{range $t := .Tables}}
+<h2>{{$t.Title}}</h2>
+<p class="muted">{{$t.Note}}</p>
+{{/* The scroll box, reachable with Tab so keyboard users can scroll the table sideways. */}}
+<div class="scrollbox" tabindex="0" role="region" aria-label="{{$t.Title}}, scrolls sideways">
+<table class="models comparetable">
+{{/* The column headings, each with its help bubble; the first stays in view. */}}
+<thead><tr>{{range $i, $c := $t.Cols}}<th scope="col"{{if eq $i 0}} class="stickycol"{{end}}>{{template "tipbox" $c}}</th>{{end}}</tr></thead>
+<tbody>
+{{/* One row for each model; a busy test is marked with a symbol and words, never colour alone. */}}
+{{range $r := $t.Rows}}
+<tr>{{range $i, $c := $r.Cells}}{{if eq $i 0}}<th scope="row" class="stickycol">{{$c}}{{if $r.Busy}} <span aria-label="measured on a busy machine" title="measured on a busy machine">⚠</span>{{end}}</th>{{else}}<td>{{$c}}</td>{{end}}{{end}}</tr>
+{{end}}
+</tbody>
+</table>
+</div>
+{{end}}
+{{/* How to read the figures. */}}
+<h2>How to read this</h2>
+<ul>
+{{range .Notes}}<li>{{.}}</li>{{end}}
+</ul>
+{{end}}
+{{/* Where the figures come from. */}}
+{{if .SaveNote}}<p class="muted">{{.SaveNote}}</p>{{end}}
+{{/* The way back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* End of the panel. */}}
+</section>
+{{/* End of the content. */}}
+</main>
+</body>{{/* end of the visible page. */}}
+</html>{{/* end of the page. */}}

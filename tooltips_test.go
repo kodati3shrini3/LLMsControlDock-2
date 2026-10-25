@@ -32,6 +32,8 @@ func allHeadings() []string {
 	out = append(out, gearHeadings...)
 	// The performance page headings.
 	out = append(out, perfHeadings...)
+	// The comparison page headings that are not shared with other pages.
+	out = append(out, compareExtraHeadings...)
 	// Then the four categories, by their display names.
 	for c := categoryEmbedding; c <= categoryUnclassified; c++ {
 		// Add the category's heading text.

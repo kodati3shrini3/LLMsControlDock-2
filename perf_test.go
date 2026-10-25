@@ -1080,6 +1080,8 @@ func TestMain(m *testing.M) {
 	} // end of the folder check
 	// Use it as the configuration folder.
 	userConfigDir = func() (string, error) { return dir, nil }
+	// The program's own place is not used by the tests, so no test can write a folder next to the test program.
+	executablePath = func() (string, error) { return "", errors.New("not used in tests") }
 	// Run the tests.
 	code := m.Run()
 	// Remove the folder.
@@ -1087,3 +1089,48 @@ func TestMain(m *testing.M) {
 	// Leave with the tests' result.
 	os.Exit(code)
 } // end of TestMain
+
+// TestDefaultHistoryPath checks where the saved results go: next to the project when the program runs from its bin folder, next to the program elsewhere, and in the configuration folder when the program's place is unknown.
+func TestDefaultHistoryPath(t *testing.T) {
+	// Put the real lookups back when the test ends.
+	oldExe, oldCfg := executablePath, userConfigDir
+	// Restore them.
+	t.Cleanup(func() { executablePath, userConfigDir = oldExe, oldCfg })
+	// The configuration folder, for the fallback.
+	userConfigDir = func() (string, error) { return "/cfg", nil }
+	// The cases.
+	for _, c := range []struct {
+		// exe is where the program is.
+		exe string
+		// err is the failure of the lookup, when there is one.
+		err error
+		// want is the expected file.
+		want string
+	}{
+		// From the bin folder of the project.
+		{"/home/u/OllamaControlCenter/bin/OllamaControlCenter", nil, "/home/u/OllamaControlCenter/PerformanceCompare/performance.json"},
+		// From any other folder: next to the program.
+		{"/opt/occ/OllamaControlCenter", nil, "/opt/occ/PerformanceCompare/performance.json"},
+		// Unknown place: the configuration folder.
+		{"", errors.New("no path"), "/cfg/OllamaControlCenter/performance.json"},
+	} {
+		// Use this case.
+		executablePath = func() (string, error) { return c.exe, c.err }
+		// Ask.
+		got, note := defaultHistoryPath()
+		// Compare.
+		if filepath.ToSlash(got) != c.want || note != "" {
+			// Report it.
+			t.Errorf("exe %q: path %q note %q, want %q", c.exe, got, note, c.want)
+		} // end of the check
+	} // end of the loop
+	// No program place and no configuration folder: memory only, with a reason.
+	executablePath = func() (string, error) { return "", errors.New("no path") }
+	// No folder either.
+	userConfigDir = func() (string, error) { return "", errors.New("none") }
+	// Ask.
+	if got, note := defaultHistoryPath(); got != "" || note == "" {
+		// Report it.
+		t.Errorf("memory-only case: %q / %q", got, note)
+	} // end of the memory check
+} // end of TestDefaultHistoryPath

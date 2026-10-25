@@ -1084,7 +1084,7 @@ button.btn-plain {
 } /* end of rule */
 
 /* Every icon box is its own anchor: the name is private to each box, so a bubble finds only its own icon. */
-.gearform .tipbox {
+.gearform .tipbox, .comparebar .tipbox {
   /* The name the bubble uses to find this box. */
   anchor-name: --tipicon;
   /* Keep the name inside this box, so the boxes of other rows never get mixed up. */
@@ -1146,4 +1146,78 @@ button.btn-plain {
 .perftable tbody th, .perftable tbody td {
   /* Page colour behind the rows. */
   background: var(--bg);
+} /* end of rule */
+
+
+/* The comparison table: long values such as the busy reason wrap instead of making the table very wide. */
+.comparetable td, .comparetable th {
+  /* Let long values wrap. */
+  white-space: normal;
+  /* A sensible width before wrapping. */
+  min-width: 6rem;
+} /* end of rule */
+
+/* Room between a comparison table and the heading that follows it. */
+.scrollbox + h2 {
+  /* A comfortable gap above the next heading. */
+  margin-top: 1.4rem;
+} /* end of rule */
+
+/* The heading row of the Installed models panel: heading on the left, compare button on the right, wrapping below on a narrow window. */
+.panelhead {
+  /* Side by side. */
+  display: flex;
+  /* Wrap when the window is narrow. */
+  flex-wrap: wrap;
+  /* Level with each other. */
+  align-items: center;
+  /* Heading at the left, button at the right. */
+  justify-content: space-between;
+  /* Space between them when they wrap. */
+  gap: 0.4rem 1rem;
+} /* end of rule */
+
+/* The heading inside that row has no extra space of its own. */
+.panelhead h2 {
+  /* The row supplies the spacing. */
+  margin: 0.2rem 0;
+} /* end of rule */
+
+/* The bar with the compare button needs no outer space in the heading row. */
+.comparebar {
+  /* No outer space. */
+  margin: 0;
+} /* end of rule */
+
+/* The compare button is a little bolder than the other outlined buttons, so it is seen as an action. */
+.comparebtn {
+  /* Bold text. */
+  font-weight: 600;
+  /* Same font as the page, not the browser's button font. */
+  font: inherit;
+  /* Bold again after the font shorthand reset it. */
+  font-weight: 600;
+  /* A hand cursor. */
+  cursor: pointer;
+  /* Transparent background like the link version. */
+  background: transparent;
+} /* end of rule */
+
+/* The compare button is at the right edge of the window, so its bubble is lined up with the button's right edge and opens towards the left. */
+.comparebar .tip-icon {
+  /* No left edge: the right edge decides. */
+  left: auto;
+  /* The bubble's right edge sits on the button's right edge. */
+  right: anchor(right);
+} /* end of rule */
+
+/* On a narrow window the bubble spans the window again. */
+@media (max-width: 40rem) {
+  /* The compare bubble. */
+  .comparebar .tip-icon {
+    /* Near the left edge. */
+    left: 0.5rem;
+    /* Near the right edge. */
+    right: 0.5rem;
+  } /* end of rule */
 } /* end of rule */
