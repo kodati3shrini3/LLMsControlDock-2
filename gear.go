@@ -59,6 +59,8 @@ const gearTimeout = 2 * time.Minute
 type showReply struct {
 	// Parameters is the saved parameters as text, one "name value" pair per line.
 	Parameters string `json:"parameters"`
+	// Modelfile is the model's Modelfile as text (the same text as "ollama show --modelfile"); the Modelfile page shows it, read-only.
+	Modelfile string `json:"modelfile"`
 	// ModelInfo holds the model's own facts; each value stays raw text until it is needed, so a long list inside it costs nothing.
 	ModelInfo map[string]json.RawMessage `json:"model_info"`
 } // end of showReply

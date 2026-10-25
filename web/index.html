@@ -79,7 +79,7 @@
 {{/* Case 4: the table itself. */}}
 {{else}}
 {{/* A hint above the table so people know the dotted headings have help. */}}
-<p class="muted">Point at a dotted heading, or press Tab to reach it, to see what it means. The gear ⚙ opens a model's settings; it appears only for models that are not loaded. The table scrolls sideways.</p>
+<p class="muted">Point at a dotted heading, or press Tab to reach it, to see what it means. The page icon 📄 shows a model's Modelfile, read-only. The gear ⚙ below it opens the model's inference parameters; it appears only for models that are not loaded. The table scrolls sideways.</p>
 {{/* The scroll box: it can be reached with Tab, so keyboard users can scroll the table sideways. */}}
 <div class="scrollbox" tabindex="0" role="region" aria-label="Installed models table, scrolls sideways">
 {{/* The table. */}}
@@ -137,7 +137,24 @@
 <th scope="row" class="stickycol">{{.Name}}</th>
 {{/* The state cell: a dot (solid green when loaded, an empty ring when not) plus the words, so colour is never the only signal. */}}
 <td>
-{{/* The gear opens this model's settings; a loaded model gets an empty slot of the same width, so the state words stay in line. */}}
+{{/* Two small icons stacked in a fixed-width column, centred above each other: the Modelfile page icon on top (for every model) and the gear just below it (only for a model that is not loaded; a loaded model gets an empty slot, so the state words stay in line). */}}
+<span class="iconstack">
+{{/* A small form that sends the model name and the page token to the Modelfile page, which only reads and changes nothing. */}}
+<form class="gearform" method="post" action="/modelfile">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{$.Token}}">
+{{/* The model name. */}}
+<input type="hidden" name="model" value="{{.Name}}">
+{{/* The area that opens the tip. */}}
+<span class="tipbox">
+{{/* The button: the symbol is hidden from screen readers, which read the label and the tip instead. */}}
+<button type="submit" class="gear" aria-label="Modelfile of {{.Name}}" aria-describedby="tipfile-{{.Name}}"><span aria-hidden="true">📄</span></button>
+{{/* The tip. */}}
+<span class="tip tip-icon" role="tooltip" id="tipfile-{{.Name}}">Show the model's Modelfile (read-only)</span>
+{{/* End of the tip area. */}}
+</span>
+{{/* End of the form. */}}
+</form>
 {{if .Loaded}}<span class="gearslot" aria-hidden="true"></span>{{else}}
 {{/* A small form that sends the model name and the page token to the settings page, which changes nothing. */}}
 <form class="gearform" method="post" action="/gear">
@@ -145,12 +162,20 @@
 <input type="hidden" name="token" value="{{$.Token}}">
 {{/* The model name. */}}
 <input type="hidden" name="model" value="{{.Name}}">
-{{/* The button: the symbol is hidden from screen readers, which read the label instead. */}}
-<button type="submit" class="gear" aria-label="Settings for {{.Name}}"><span aria-hidden="true">⚙</span></button>
+{{/* The area that opens the tip: pointing at the gear or reaching it with Tab shows what it is for. */}}
+<span class="tipbox">
+{{/* The button: the symbol is hidden from screen readers, which read the label and the tip instead. */}}
+<button type="submit" class="gear" aria-label="Inference parameters of {{.Name}}" aria-describedby="tipgear-{{.Name}}"><span aria-hidden="true">⚙</span></button>
+{{/* The tip. */}}
+<span class="tip tip-icon" role="tooltip" id="tipgear-{{.Name}}">View the model's Inference parameters</span>
+{{/* End of the tip area. */}}
+</span>
 {{/* End of the form. */}}
 </form>
 {{/* End of the gear. */}}
 {{end}}
+{{/* End of the icon column. */}}
+</span>
 <span class="statelabel"><span class="dot {{if .Loaded}}dot-on{{else}}dot-off{{end}}" aria-hidden="true"></span> {{.StateWord}}</span>
 {{- /* Only a loaded model gets the Unload button; it opens a warning page first, so one click never unloads anything. */ -}}
 {{if .Loaded}}

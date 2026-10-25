@@ -104,6 +104,8 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	mux.HandleFunc("POST /gear/review", gearReview)
 	// Route: a POST request for "/gear/save" saves the size inside the model.
 	mux.HandleFunc("POST /gear/save", gearSave)
+	// Route: a POST request for "/modelfile" shows a model's Modelfile, read-only.
+	mux.HandleFunc("POST /modelfile", modelfileHandler(addr, token))
 	// Route: a GET request for "/countdown.js" sends the small script that makes the timers tick (only the message pages use it).
 	mux.HandleFunc("GET /countdown.js", countdownHandler)
 	// Route: a GET request for "/loading.js" sends the small script that shows the waiting message while a model loads (only the load warning page uses it).

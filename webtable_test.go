@@ -134,8 +134,8 @@ func TestTablePageRealModels(t *testing.T) {
 func TestTableHelpForEveryHeading(t *testing.T) {
 	// Fake Ollama with the six real models.
 	body := pageFor(t, fullOllama(t, realModels, realPsBody))
-	// Ten column bubbles plus two category bubbles.
-	if n := strings.Count(body, `role="tooltip"`); n != 12 {
+	// Ten column bubbles plus two category bubbles; the short tips of the row icons are counted apart.
+	if n := strings.Count(body, `role="tooltip"`) - strings.Count(body, `class="tip tip-icon"`); n != 12 {
 		// Report the difference.
 		t.Errorf("%d bubbles, want 12", n)
 	} // end of the bubble count
@@ -154,10 +154,10 @@ func TestTableHelpForEveryHeading(t *testing.T) {
 	} // end of the column loop
 	// Find every aria-describedby value.
 	refs := regexp.MustCompile(`aria-describedby="([^"]+)"`).FindAllStringSubmatch(body, -1)
-	// There must be one per bubble.
-	if len(refs) != 12 {
+	// There must be one per bubble (the row icons have their own, counted apart).
+	if n := len(refs) - strings.Count(body, `class="tip tip-icon"`); n != 12 {
 		// Report the difference.
-		t.Errorf("%d aria-describedby attributes, want 12", len(refs))
+		t.Errorf("%d aria-describedby attributes, want 12", n)
 	} // end of the reference count
 	// Each one must point at an element that exists.
 	for _, m := range refs {
