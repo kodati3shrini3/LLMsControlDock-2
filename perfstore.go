@@ -45,14 +45,32 @@ type perfStore struct {
 	note string
 } // end of perfStore
 
-// defaultHistoryPath returns the history file in the person's configuration folder, or an empty text and a reason.
+// historyFolderName is the folder, next to the project, that holds the saved performance results.
+const historyFolderName = "PerformanceCompare"
+
+// executablePath finds the running program; a test replaces it.
+var executablePath = os.Executable
+
+// defaultHistoryPath returns the history file: in a folder named PerformanceCompare next to the project (the program normally runs from the project's bin folder, so that is the folder above it), or, when the program's own place cannot be found, in the person's configuration folder; an empty text and a reason mean memory only.
 func defaultHistoryPath() (string, string) {
-	// Ask for the configuration folder.
+	// Where is the running program?
+	if exe, err := executablePath(); err == nil && exe != "" {
+		// The folder that holds it.
+		dir := filepath.Dir(exe)
+		// A program in a folder called bin belongs to the project one level up.
+		if filepath.Base(dir) == "bin" {
+			// Go up one level.
+			dir = filepath.Dir(dir)
+		} // end of the bin check
+		// The results live in their own folder there.
+		return filepath.Join(dir, historyFolderName, "performance.json"), ""
+	} // end of the program check
+	// Ask for the configuration folder instead.
 	dir, err := userConfigDir()
 	// None found.
 	if err != nil || dir == "" {
 		// Memory only.
-		return "", "No configuration folder was found, so results are kept only until the monitor stops."
+		return "", "No folder for the results was found, so they are kept only until the monitor stops."
 	} // end of the lookup check
 	// The file lives in a folder of its own.
 	return filepath.Join(dir, "OllamaControlCenter", "performance.json"), ""

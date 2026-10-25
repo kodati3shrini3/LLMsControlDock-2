@@ -412,6 +412,60 @@ var helpTexts = map[string]tooltip{
 		// What it helps with.
 		Decide: "Whether another model still fits next to it.",
 	}, // end of Memory used
+	// The comparison page: when the test was made.
+	"Tested on": {
+		// What it tells you.
+		Plain: "The date and time of the saved test whose figures are shown.",
+		// A real case.
+		Example: "Only the latest test of each model is shown, so two rows can come from different days.",
+		// What it helps with.
+		Decide: "Whether the figures are recent enough to trust.",
+	}, // end of Tested on
+	// The comparison page: speed against the fastest model.
+	"Speed vs fastest": {
+		// What it tells you.
+		Plain: "How this model compares with the fastest model in the same table.",
+		// A real case from the test machine.
+		Example: "medgemma:latest writes 80 tokens/s and qwen3.6:27b 36, so the second is 2.2× slower.",
+		// What it helps with.
+		Decide: "Which model to pick when speed matters more than size.",
+	}, // end of Speed vs fastest
+	// The comparison page: rough words per second.
+	"Words per second": {
+		// What it tells you.
+		Plain: "A rough reading speed: the answer speed times 0.75, since a word is about three quarters of a token.",
+		// A real case from the test machine.
+		Example: "36 tokens/s is about 27 words per second, faster than a person reads.",
+		// What it helps with.
+		Decide: "Whether answers will feel instant or slow.",
+	}, // end of Words per second
+	// The comparison page: load speed.
+	"Load speed from disk": {
+		// What it tells you.
+		Plain: "The model's size divided by its cold load time: how fast it was brought into memory.",
+		// A real case from the test machine.
+		Example: "qwen3.6:27b: 18.8 GB (gigabytes) in 7.0 s is about 2.7 GB (gigabytes) a second.",
+		// What it helps with.
+		Decide: "How long a model keeps you waiting after it was unloaded.",
+	}, // end of Load speed from disk
+	// The comparison page: speed for each gigabyte of memory.
+	"Speed per GB of memory": {
+		// What it tells you.
+		Plain: "Answer speed divided by the memory the model uses: how much speed each gigabyte buys.",
+		// A real case from the test machine.
+		Example: "medgemma:latest: 80 tokens/s on 3.8 GB (gigabytes) is about 21 tokens/s for each GB (gigabytes).",
+		// What it helps with.
+		Decide: "Which model gives the most speed for the memory it takes.",
+	}, // end of Speed per GB of memory
+	// The comparison page: busy machine.
+	"Machine busy": {
+		// What it tells you.
+		Plain: "Whether the machine looked busy when the test ran. A busy machine makes the figures too low.",
+		// A real case.
+		Example: "A test made while another model was answering shows lower speeds than an idle machine.",
+		// What it helps with.
+		Decide: "Whether to repeat the test when the machine is idle.",
+	}, // end of Machine busy
 	// The performance page: change since the previous run.
 	"Change since the previous run": {
 		// What it tells you.

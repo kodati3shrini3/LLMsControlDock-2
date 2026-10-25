@@ -15,6 +15,9 @@ coverage.txt
 history/
 *.history.json
 
+# Saved performance test results (numbers about this machine): personal to each machine
+PerformanceCompare/
+
 # Local user settings written by the app: personal to each machine
 settings.json
 

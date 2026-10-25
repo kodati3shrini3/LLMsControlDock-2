@@ -63,7 +63,30 @@
 {{/* The Installed models panel. */}}
 <section class="panel" aria-labelledby="installed-title">
 {{/* The panel heading, with the number of models when known. */}}
+{{/* The heading row: the heading on the left and, when there is a table, the compare button on the right. */}}
+<div class="panelhead">
 <h2 id="installed-title">Installed models{{if .HasTable}} ({{.Table.Total}}){{end}}</h2>
+{{if .HasTable}}{{if .Table.Groups}}
+{{/* The compare button: a labelled button above the table, with the number of models that have been tested. */}}
+<div class="comparebar">
+{{/* A small form that opens the comparison page and changes nothing. */}}
+<form method="post" action="/compare">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* The area that opens the tip. */}}
+<span class="tipbox">
+{{/* The button: the symbol is hidden from screen readers, which read the words. */}}
+<button type="submit" class="btn-plain comparebtn" aria-describedby="tipcompare"><span aria-hidden="true">⚖</span> Compare tested models ({{.CompareCount}})</button>
+{{/* The tip. */}}
+<span class="tip tip-icon" role="tooltip" id="tipcompare">Compare models that have already been through a performance test</span>
+{{/* End of the tip area. */}}
+</span>
+{{/* End of the compare form. */}}
+</form>
+{{/* End of the compare button bar. */}}
+</div>
+{{end}}{{end}}
+</div>
 {{/* Case 1: Ollama answered but the lists could not be read; say why in plain words. */}}
 {{if .TableError}}
 {{/* The cross and the word carry the meaning, the colour only supports it. */}}
@@ -79,7 +102,7 @@
 {{/* Case 4: the table itself. */}}
 {{else}}
 {{/* A hint above the table so people know the dotted headings have help. */}}
-<p class="muted">Point at a dotted heading, or press Tab to reach it, to see what it means. The page icon 📄 shows a model's Modelfile, read-only. The gear ⚙ below it opens the model's inference parameters; it appears only for models that are not loaded. The chart icon 📈 before a model name opens its performance page (a model that is loaded may be in use, so it has none). The table scrolls sideways.</p>
+<p class="muted">Point at a dotted heading, or press Tab to reach it, to see what it means. The page icon 📄 shows a model's Modelfile, read-only. The gear ⚙ below it opens the model's inference parameters; it appears only for models that are not loaded. The chart icon 📈 before a model name opens its performance page (a model that is loaded may be in use, so it has none). The button Compare tested models, at the top right of this panel, puts the tested models side by side. The table scrolls sideways.</p>
 {{/* The scroll box: it can be reached with Tab, so keyboard users can scroll the table sideways. */}}
 <div class="scrollbox" tabindex="0" role="region" aria-label="Installed models table, scrolls sideways">
 {{/* The table. */}}
