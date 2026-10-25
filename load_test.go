@@ -179,10 +179,10 @@ func TestLoadButtonOnlyOnNotLoadedRows(t *testing.T) {
 		// Report the problem.
 		t.Errorf("a loaded model has a Load button")
 	} // end of the other check
-	// The main page itself must stay free of scripts and keep the strict policy.
-	if strings.Contains(body, "<script") {
+	// The main page may load the monitor's own script file and nothing else: exactly one script tag, with no inline code.
+	if n := strings.Count(body, "<script"); n != 1 || !strings.Contains(body, `<script src="/countdown.js" defer></script>`) {
 		// Report the problem.
-		t.Errorf("the main page contains a script")
+		t.Errorf("the main page has %d script tags, want only the countdown.js one", n)
 	} // end of the script check
 } // end of TestLoadButtonOnlyOnNotLoadedRows
 
@@ -510,20 +510,33 @@ func TestUnloadWarningHasLiveTimer(t *testing.T) {
 	} // end of the policy check
 } // end of TestUnloadWarningHasLiveTimer
 
-// TestMainPolicyStaysStrict checks the main page keeps the policy without scripts.
-func TestMainPolicyStaysStrict(t *testing.T) {
+// TestMainPolicyAllowsOnlyOwnScript checks the main page policy allows the monitor's own script and requests to its own address, and nothing inline or from elsewhere.
+func TestMainPolicyAllowsOnlyOwnScript(t *testing.T) {
 	// A fake with nothing loaded.
 	f := &loadFake{}
 	// Build the rig.
 	rig := loadRig(t, f, 16e9)
 	// Fetch the page and its headers.
 	_, header, _ := get(t, rig.h, http.MethodGet, "/")
-	// No script rule at all.
-	if csp := header.Get("Content-Security-Policy"); strings.Contains(csp, "script-src") {
-		// Report the problem.
-		t.Errorf("the main page policy allows scripts: %s", csp)
-	} // end of the policy check
-} // end of TestMainPolicyStaysStrict
+	// The policy as sent.
+	csp := header.Get("Content-Security-Policy")
+	// It must allow scripts and requests from this address only.
+	for _, want := range []string{"default-src 'none'", "script-src 'self'", "connect-src 'self'"} {
+		// Look for it.
+		if !strings.Contains(csp, want) {
+			// Report the problem.
+			t.Errorf("the main page policy lacks %q: %s", want, csp)
+		} // end of the check
+	} // end of the loop
+	// It must never allow inline code or code from other sites.
+	for _, bad := range []string{"unsafe-inline", "unsafe-eval", "http:", "https:", "*"} {
+		// Look for it.
+		if strings.Contains(csp, bad) {
+			// Report the problem.
+			t.Errorf("the main page policy contains %q: %s", bad, csp)
+		} // end of the check
+	} // end of the loop
+} // end of TestMainPolicyAllowsOnlyOwnScript
 
 // TestCountdownScriptIsServed checks the script file is sent as JavaScript.
 func TestCountdownScriptIsServed(t *testing.T) {

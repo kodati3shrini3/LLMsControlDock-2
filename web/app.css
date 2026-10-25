@@ -743,6 +743,36 @@ h2 {
   min-width: 8rem;
 } /* end of rule */
 
+/* The line under the state words that holds the unload timer; it is its own line, so it adds no width to the table. */
+.timerline {
+  /* A block, so it starts on a new line under the words. */
+  display: block;
+  /* A little air above it, not more. */
+  margin-top: 0.1rem;
+  /* Start under the dot of the state words. */
+  margin-left: 0;
+} /* end of rule */
+
+/* The unload timer itself: italic, in the same font and size as the text around it. */
+.timer {
+  /* Italic, not bold (the element is a strong one, so the weight is set back to normal). */
+  font-style: italic;
+  /* Normal weight. */
+  font-weight: normal;
+} /* end of rule */
+
+/* Square brackets are drawn by the stylesheet, so the timer text stays plain. */
+.timer::before {
+  /* The opening bracket. */
+  content: "[";
+} /* end of rule */
+
+/* The closing bracket. */
+.timer::after {
+  /* The closing bracket. */
+  content: "]";
+} /* end of rule */
+
 /* The hidden attribute must always win over any display rule. */
 [hidden] {
   /* Not drawn at all. */

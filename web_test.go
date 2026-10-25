@@ -157,20 +157,25 @@ func TestPageEscapesUntrustedText(t *testing.T) {
 	} // end of the escaped check
 } // end of TestPageEscapesUntrustedText
 
-// TestPageHasNoInlineCode checks the page works under the safety policy: no scripts, no style tags, no style attributes.
+// TestPageHasNoInlineCode checks the page works under the safety policy: no inline scripts (only the monitor's own script file), no style tags, no style attributes.
 func TestPageHasNoInlineCode(t *testing.T) {
 	// A fake Ollama that is online.
 	srv := fakeOllama(t, replyWith(http.StatusOK, `{"version":"0.34.4"}`))
 	// Ask the page.
 	_, _, body := get(t, handlerFor(t, srv.URL), http.MethodGet, "/")
 	// None of these may appear.
-	for _, bad := range []string{"<script", "<style", " style=", " onclick=", " onload="} {
+	for _, bad := range []string{"<script>", "<style", " style=", " onclick=", " onload="} {
 		// Look for it.
 		if strings.Contains(body, bad) {
 			// Report the problem.
 			t.Errorf("page contains %q, which the safety policy would block", bad)
 		} // end of the check
 	} // end of the loop
+	// Every script tag must load the monitor's own file; the policy blocks everything else.
+	if n, ok := strings.Count(body, "<script"), strings.Count(body, `<script src="/countdown.js" defer></script>`); n != ok {
+		// Report the problem.
+		t.Errorf("page has %d script tags but only %d load /countdown.js", n, ok)
+	} // end of the script check
 	// Comments written in the template must not reach the browser.
 	if strings.Contains(body, "template comments") || strings.Contains(body, "{{") {
 		// Report the problem.
@@ -201,8 +206,20 @@ func TestSecurityHeaders(t *testing.T) {
 	for _, path := range []string{"/", "/app.css", "/nothing-here"} {
 		// Ask for it.
 		_, hdr, _ := get(t, h, http.MethodGet, path)
+		// The page that shows the table is the only one that may run the monitor's own script; every other reply keeps the strict policy.
+		wantNow := map[string]string{}
+		// Copy the table.
+		for k, v := range want {
+			// Copy one entry.
+			wantNow[k] = v
+		} // end of the copy
+		// The fake Ollama answers every address, so the page shows a table and gets the script policy.
+		if path == "/" {
+			// Swap the policy.
+			wantNow["Content-Security-Policy"] = contentSecurityPolicyMainPage
+		} // end of the page case
 		// Check every header.
-		for name, value := range want {
+		for name, value := range wantNow {
 			// Compare.
 			if got := hdr.Get(name); got != value {
 				// Report the difference.
