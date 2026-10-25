@@ -20,7 +20,7 @@ var installedColumns = []string{"Model", "State", "Size on disk", "Family", "Par
 var loadedColumns = []string{"Model", "Size (as reported)", "Memory on GPU", "Loaded context length", "Time until unload"}
 
 // gearHeadings are the headings on the settings page and the Load page that have a help bubble, in the order they appear; a test checks each has a text.
-var gearHeadings = []string{"Context size", "Model maximum", "Smallest allowed", "Saved in the model", "Other saved settings", "Keep-alive time"}
+var gearHeadings = []string{"Set in the model", "Ollama's default", "Allowed values", "Context size", "Temperature", "Top-k", "Top-p", "Min-p", "Repeat penalty", "Repeat window", "Seed", "Answer length limit", "Stop words", "Keep-alive time"}
 
 // helpTexts holds every tooltip, keyed by the exact heading text it belongs to.
 // The wording was checked against Ollama's documentation; "Max context length" and "Embedding length" are not described there.
@@ -202,42 +202,114 @@ var helpTexts = map[string]tooltip{
 		// What it helps with.
 		Decide: "How much memory to spend against how long a text it can handle.",
 	}, // end of Context size
-	// The model's own limit.
-	"Model maximum": {
-		// What it means.
-		Plain: "The largest context size this model was built for. This page refuses anything above it.",
-		// A real case.
-		Example: "medgemma:latest: 131072. qwen3.6:27b: 262144.",
-		// What it helps with.
-		Decide: "The top of the range you can choose.",
-	}, // end of Model maximum
-	// This monitor's own lowest value.
-	"Smallest allowed": {
-		// What it means.
-		Plain: "The lowest context size this monitor lets you save. Ollama itself sets no lowest value.",
-		// A real case.
-		Example: "512. Ollama accepted a size of 1 in a test, which would make the model unusable.",
-		// What it helps with.
-		Decide: "It stops a value that would break the model.",
-	}, // end of Smallest allowed
 	// What is stored in the model.
-	"Saved in the model": {
+	"Set in the model": {
 		// What it means.
 		Plain: "Settings stored inside the model in Ollama. Programs that do not send their own value use them.",
 		// A real case.
 		Example: "After saving 8192, the next load of the model starts at 8192.",
 		// What it helps with.
 		Decide: "What every program gets when it loads this model.",
-	}, // end of Saved in the model
-	// The other stored settings.
-	"Other saved settings": {
+	}, // end of Set in the model
+	// The default column.
+	"Ollama's default": {
 		// What it means.
-		Plain: "Other settings stored in the model, such as stop words. They are shown here and kept as they are.",
+		Plain: "The value Ollama uses for this setting when the model has none saved and a program sends none.",
 		// A real case.
-		Example: "medgemma:latest has the stop word end_of_turn.",
+		Example: "Temperature 0.8 and top-k 40. The context size is chosen by Ollama when the model loads.",
 		// What it helps with.
-		Decide: "What the model already does before you change anything.",
-	}, // end of Other saved settings
+		Decide: "Whether changing the setting would change anything at all.",
+	}, // end of Ollama's default
+	// The allowed range column.
+	"Allowed values": {
+		// What it means.
+		Plain: "The range this monitor accepts. Ollama sets no range itself, so these limits protect the model from bad values.",
+		// A real case.
+		Example: "Temperature 0 to 2. The context size goes up to what the model supports.",
+		// What it helps with.
+		Decide: "What you can type before the monitor refuses it.",
+	}, // end of Allowed values
+	// The temperature setting.
+	"Temperature": {
+		// What it means.
+		Plain: "How random the answers are. Low is predictable, high is more varied.",
+		// A real case.
+		Example: "0.2 suits code and facts; 1 suits chat and stories.",
+		// What it helps with.
+		Decide: "How exact or how creative you want the answers.",
+	}, // end of Temperature
+	// The top-k setting.
+	"Top-k": {
+		// What it means.
+		Plain: "Each next word is chosen only from the K likeliest words. Smaller is safer.",
+		// A real case.
+		Example: "40 is Ollama's default; 1 always takes the single likeliest word.",
+		// What it helps with.
+		Decide: "How much variety to allow in the choice of words.",
+	}, // end of Top-k
+	// The top-p setting.
+	"Top-p": {
+		// What it means.
+		Plain: "Each next word comes from the likeliest words whose chances add up to this share.",
+		// A real case.
+		Example: "0.9 keeps the likeliest words that together make up 90% (percent).",
+		// What it helps with.
+		Decide: "Lower is more focused, higher is more varied.",
+	}, // end of Top-p
+	// The min-p setting.
+	"Min-p": {
+		// What it means.
+		Plain: "Drops words that are far less likely than the best one. 0 switches it off.",
+		// A real case.
+		Example: "0.05 drops words below 5% (percent) of the best word's chance.",
+		// What it helps with.
+		Decide: "A way to cut odd words while keeping variety.",
+	}, // end of Min-p
+	// The repeat penalty setting.
+	"Repeat penalty": {
+		// What it means.
+		Plain: "How strongly repeating itself is discouraged. 1 means no penalty.",
+		// A real case.
+		Example: "1.1 is a mild penalty; 1.5 is strong and can make text odd.",
+		// What it helps with.
+		Decide: "Raise it a little if the model loops or repeats.",
+	}, // end of Repeat penalty
+	// The repeat window setting.
+	"Repeat window": {
+		// What it means.
+		Plain: "How many recent tokens (word pieces) are checked for repeats. 0 is off, -1 is the whole context size.",
+		// A real case.
+		Example: "64 is Ollama's default.",
+		// What it helps with.
+		Decide: "How far back a repeat is noticed.",
+	}, // end of Repeat window
+	// The seed setting.
+	"Seed": {
+		// What it means.
+		Plain: "A starting number for the random choices. The same seed gives the same answer.",
+		// A real case.
+		Example: "With seed 42 the same question gives the same text each time.",
+		// What it helps with.
+		Decide: "Set it only when you need repeatable answers.",
+	}, // end of Seed
+	// The answer length setting.
+	"Answer length limit": {
+		// What it means.
+		Plain: "The most tokens (word pieces) one answer may have. -1 means no limit.",
+		// A real case.
+		Example: "512 stops every answer after about 380 words.",
+		// What it helps with.
+		Decide: "Stops runaway answers; too small cuts answers short.",
+	}, // end of Answer length limit
+	// The stop words setting.
+	"Stop words": {
+		// What it means.
+		Plain: "Text that makes the model stop writing when it produces it. You can give several.",
+		// A real case.
+		Example: "medgemma:latest stops at the text end_of_turn.",
+		// What it helps with.
+		Decide: "Changing it can make answers end too early or never.",
+	}, // end of Stop words
 	// The keep-alive time on the Load page.
 	"Keep-alive time": {
 		// What it means.

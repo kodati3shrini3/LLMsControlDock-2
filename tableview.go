@@ -24,9 +24,32 @@ type tipView struct {
 type columnView struct {
 	// Title is the heading text.
 	Title string
+	// Lines is the heading split into the lines it is drawn on (one line for most headings).
+	Lines []string
 	// Tip is the help bubble.
 	Tip tipView
 } // end of columnView
+
+// headingLines splits the three long column headings into two lines, to save width; every other heading stays on one line. The full title is still used for the help text and for the terminal view.
+func headingLines(title string) []string {
+	// The three headings and where they break.
+	switch title {
+	// Size on disk.
+	case "Size on disk":
+		// Two lines.
+		return []string{"Size", "on disk"}
+	// Max context length.
+	case "Max context length":
+		// Two lines.
+		return []string{"Max context", "length"}
+	// Embedding length.
+	case "Embedding length":
+		// Two lines.
+		return []string{"Embedding", "length"}
+	} // end of the switch
+	// Everything else is one line.
+	return []string{title}
+} // end of headingLines
 
 // rowView is one model row: its name (the sticky first column) and the nine other cells.
 type rowView struct {
@@ -150,7 +173,7 @@ func buildTableViewAt(installed []installedModel, loaded []loadedModel, now time
 	// One heading per column, in the fixed order.
 	for i, title := range installedColumns {
 		// Add the heading with its bubble.
-		view.Columns = append(view.Columns, columnView{Title: title, Tip: makeTip(fmt.Sprintf("tip-col-%d", i), title)})
+		view.Columns = append(view.Columns, columnView{Title: title, Lines: headingLines(title), Tip: makeTip(fmt.Sprintf("tip-col-%d", i), title)})
 	} // end of the column loop
 	// One section per non-empty category.
 	for gi, g := range groups {
