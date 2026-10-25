@@ -79,7 +79,7 @@
 {{/* Case 4: the table itself. */}}
 {{else}}
 {{/* A hint above the table so people know the dotted headings have help. */}}
-<p class="muted">Point at a dotted heading, or press Tab to reach it, to see what it means. The table scrolls sideways.</p>
+<p class="muted">Point at a dotted heading, or press Tab to reach it, to see what it means. The gear ⚙ opens a model's settings; it appears only for models that are not loaded. The table scrolls sideways.</p>
 {{/* The scroll box: it can be reached with Tab, so keyboard users can scroll the table sideways. */}}
 <div class="scrollbox" tabindex="0" role="region" aria-label="Installed models table, scrolls sideways">
 {{/* The table. */}}
@@ -136,7 +136,22 @@
 {{/* The model name is the row heading and stays visible while scrolling. */}}
 <th scope="row" class="stickycol">{{.Name}}</th>
 {{/* The state cell: a dot (solid green when loaded, an empty ring when not) plus the words, so colour is never the only signal. */}}
-<td><span class="statelabel"><span class="dot {{if .Loaded}}dot-on{{else}}dot-off{{end}}" aria-hidden="true"></span> {{.StateWord}}</span>
+<td>
+{{/* The gear opens this model's settings; a loaded model gets an empty slot of the same width, so the state words stay in line. */}}
+{{if .Loaded}}<span class="gearslot" aria-hidden="true"></span>{{else}}
+{{/* A small form that sends the model name and the page token to the settings page, which changes nothing. */}}
+<form class="gearform" method="post" action="/gear">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{$.Token}}">
+{{/* The model name. */}}
+<input type="hidden" name="model" value="{{.Name}}">
+{{/* The button: the symbol is hidden from screen readers, which read the label instead. */}}
+<button type="submit" class="gear" aria-label="Settings for {{.Name}}"><span aria-hidden="true">⚙</span></button>
+{{/* End of the form. */}}
+</form>
+{{/* End of the gear. */}}
+{{end}}
+<span class="statelabel"><span class="dot {{if .Loaded}}dot-on{{else}}dot-off{{end}}" aria-hidden="true"></span> {{.StateWord}}</span>
 {{- /* Only a loaded model gets the Unload button; it opens a warning page first, so one click never unloads anything. */ -}}
 {{if .Loaded}}
 {{/* A small form that sends the model name and the page token to the warning page. */}}

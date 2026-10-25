@@ -89,8 +89,8 @@ func (f *loadFake) start(t *testing.T) *httptest.Server {
 				// Stop here.
 				return
 			} // end of the refusal
-			// A request without keep_alive loads; the model name is between the quotes after "model":.
-			if !f.ignore && !strings.Contains(string(b), "keep_alive") {
+			// Every request except a keep_alive of 0 loads; the model name is between the quotes after "model":.
+			if !f.ignore && !strings.Contains(string(b), `"keep_alive":0`) {
 				// Take the name out of the body.
 				name := regexp.MustCompile(`"model":"([^"]*)"`).FindStringSubmatch(string(b))[1]
 				// Add it to the loaded list.

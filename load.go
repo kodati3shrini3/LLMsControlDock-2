@@ -39,10 +39,75 @@ const defaultKeepText = "5 minutes"
 // tightFactor decides when free memory counts as "close": less than this many times the model's size.
 const tightFactor = 1.25
 
+// keepChoice is one entry of the "stay loaded for" list on the load page.
+type keepChoice struct {
+	// Value is what the form sends; an empty value means "use Ollama's own default".
+	Value string
+	// Label is what the person reads.
+	Label string
+} // end of keepChoice
+
+// keepChoices is the fixed list the load page offers; nothing outside it is ever sent to Ollama.
+var keepChoices = []keepChoice{
+	// Ollama's own default time.
+	{"", "Ollama's default (" + defaultKeepText + ")"},
+	// Five minutes.
+	{"5m", "5 minutes"},
+	// Half an hour.
+	{"30m", "30 minutes"},
+	// One hour.
+	{"1h", "1 hour"},
+	// One day.
+	{"24h", "24 hours"},
+	// Never unload by itself: Ollama takes a negative number for this.
+	{"-1", "Until I unload it (never unloads by itself)"},
+} // end of keepChoices
+
+// keepAliveValue turns the form's choice into the value sent to Ollama: nil means "send nothing", and ok is false for a choice that is not in the list.
+func keepAliveValue(choice string) (value any, ok bool) {
+	// Go through the fixed list.
+	for _, c := range keepChoices {
+		// Only an exact match counts.
+		if c.Value != choice {
+			// Next choice.
+			continue
+		} // end of the match check
+		// The default: send nothing.
+		if choice == "" {
+			// No keep-alive field.
+			return nil, true
+		} // end of the default case
+		// Never unload: a negative number.
+		if choice == "-1" {
+			// The number.
+			return -1, true
+		} // end of the forever case
+		// A time such as 5m.
+		return choice, true
+	} // end of the loop
+	// Not in the list.
+	return nil, false
+} // end of keepAliveValue
+
 // loadModel asks Ollama to load one model now, without a prompt and without a keep-alive setting, so Ollama's own default time applies; it returns which request worked.
 func loadModel(ctx context.Context, base *url.URL, name string, timeout time.Duration) (string, error) {
+	// No keep-alive field.
+	return loadModelKeep(ctx, base, name, nil, timeout)
+} // end of loadModel
+
+// loadModelKeep is loadModel with an optional keep-alive value (nil means none); it returns which request worked.
+func loadModelKeep(ctx context.Context, base *url.URL, name string, keep any, timeout time.Duration) (string, error) {
+	// The body of the generate request.
+	body := map[string]any{"model": name}
+	// The same for the embedding fallback, which also needs some input.
+	embedBody := map[string]any{"model": name, "input": "load"}
+	// Add the keep-alive value when there is one.
+	if keep != nil {
+		// To both bodies.
+		body["keep_alive"], embedBody["keep_alive"] = keep, keep
+	} // end of the keep-alive case
 	// Chat and text models are loaded through /api/generate with no prompt (the documented way to preload).
-	status, err := postJSON(ctx, base, "api/generate", timeout, map[string]any{"model": name})
+	status, err := postJSON(ctx, base, "api/generate", timeout, body)
 	// No answer at all.
 	if err != nil {
 		// Pass the safe error on.
@@ -56,7 +121,7 @@ func loadModel(ctx context.Context, base *url.URL, name string, timeout time.Dur
 	// Status 400 is what a model that cannot generate text (an embedding model, for example) answers; try the embedding request instead.
 	if status == http.StatusBadRequest {
 		// The one-word input is only there because an embedding request needs some input.
-		status2, err2 := postJSON(ctx, base, "api/embed", timeout, map[string]any{"model": name, "input": "load"})
+		status2, err2 := postJSON(ctx, base, "api/embed", timeout, embedBody)
 		// No answer at all.
 		if err2 != nil {
 			// Pass the safe error on.
@@ -139,6 +204,10 @@ type loadPage struct {
 	Level string
 	// DefaultText is the default time the model stays loaded.
 	DefaultText string
+	// KeepOptions is the list of "stay loaded for" choices.
+	KeepOptions []keepChoice
+	// KeepTip is the help bubble of the keep-alive heading.
+	KeepTip tipView
 	// Remaining is the time left before Ollama unloads the model by itself (done page).
 	Remaining string
 	// Seconds is the same time in seconds, for the ticking timer; 0 means no ticking timer.
@@ -188,11 +257,15 @@ func memoryFacts(u *url.URL, need int64) (avail, note, level string) {
 // loadHandlers builds the two handlers: the first shows the memory warning (it changes nothing), the second does the load.
 func loadHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.HandlerFunc) {
 	// Read the template once; Must stops the program at start-up if the template is broken, which a test would catch first.
-	page := template.Must(template.New("load").Parse(loadTemplateText))
+	page := template.Must(template.New("load").Parse(loadTemplateText + tipsTemplateText))
+	// The help bubble of the keep-alive heading never changes, so build it once.
+	keepTip := makeTip("tip-keep", "Keep-alive time")
 	// show builds the page in memory first, so a template error produces a clean 500 and not a half page.
 	show := func(w http.ResponseWriter, r *http.Request, status int, data loadPage) {
 		// Add what every version of the page needs.
 		data.Theme, data.Token, data.DefaultText = themeFromRequest(r), token, defaultKeepText
+		// The choices and the bubble for the keep-alive row.
+		data.KeepOptions, data.KeepTip = keepChoices, keepTip
 		// Build the page.
 		var buf bytes.Buffer
 		// Run the template.
@@ -287,13 +360,22 @@ func loadHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.Hand
 			// Stop here.
 			return
 		} // end of the form checks
+		// Only a choice from the fixed list is accepted; a missing choice means Ollama's default.
+		keep, keepOK := keepAliveValue(r.PostFormValue("keep"))
+		// Anything else is refused before any model is touched.
+		if !keepOK {
+			// Refuse.
+			http.Error(w, "bad keep-alive choice", http.StatusBadRequest)
+			// Stop here.
+			return
+		} // end of the keep-alive check
 		// Run the model checks again: things may have changed since the warning page.
 		if _, ok := check(w, r, name); !ok {
 			// A page was already shown.
 			return
 		} // end of the model checks
 		// Ask Ollama to load it; this call returns when loading is finished, which can take a while.
-		if _, err := loadModel(r.Context(), addr.URL, name, loadTimeout); err != nil {
+		if _, err := loadModelKeep(r.Context(), addr.URL, name, keep, loadTimeout); err != nil {
 			// Show the plain reason.
 			show(w, r, http.StatusBadGateway, loadPage{Kind: "error", Model: name, Detail: err.Error()})
 			// Stop here.

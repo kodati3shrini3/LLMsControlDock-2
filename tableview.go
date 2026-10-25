@@ -12,6 +12,8 @@ import ( // import lists the standard-library packages this file uses.
 
 // tipView is one help bubble as the page template needs it.
 type tipView struct {
+	// Title is the heading text the bubble belongs to (used where the heading is drawn from the bubble data).
+	Title string
 	// ID is the element name that the heading points at with aria-describedby (so screen readers read the bubble too).
 	ID string
 	// Plain, Example, Decide and AlsoKnown are the four parts from tooltips.go.
@@ -71,7 +73,7 @@ func makeTip(id, heading string) tipView {
 	// A heading without a text gives empty parts; a test makes sure that never happens.
 	t, _ := helpFor(heading)
 	// Build the view.
-	return tipView{ID: id, Plain: t.Plain, Example: t.Example, Decide: t.Decide, AlsoKnown: t.AlsoKnown}
+	return tipView{Title: heading, ID: id, Plain: t.Plain, Example: t.Example, Decide: t.Decide, AlsoKnown: t.AlsoKnown}
 } // end of makeTip
 
 // countText says "1 model" or "N models".

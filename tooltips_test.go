@@ -12,7 +12,7 @@ import ( // import lists the packages this test file uses.
 	"unicode/utf8"
 ) // end of imports
 
-// allHeadings lists every heading that must have a tooltip: both tables' columns plus the four categories, without repeats.
+// allHeadings lists every heading that must have a tooltip: both tables' columns, the settings headings and the four categories, without repeats.
 func allHeadings() []string {
 	// Remember which headings were added already.
 	seen := map[string]bool{}
@@ -28,6 +28,8 @@ func allHeadings() []string {
 			out = append(out, h)
 		} // end of the repeat check
 	} // end of the column loop
+	// Then the headings of the settings page and the Load page.
+	out = append(out, gearHeadings...)
 	// Then the four categories, by their display names.
 	for c := categoryEmbedding; c <= categoryUnclassified; c++ {
 		// Add the category's heading text.

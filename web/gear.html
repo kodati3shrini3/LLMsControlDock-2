@@ -1,0 +1,165 @@
+{{/* Settings page template: one page with several versions, chosen by Kind. The comments are template comments, so they never reach the browser. */}}
+<!DOCTYPE html>
+{{/* lang tells screen readers which language the page is written in. */}}
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<head>{{/* start of the head. */}}
+{{/* Text encoding. */}}
+<meta charset="utf-8">
+{{/* Fit the page to the width of the screen on phones. */}}
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* The title shown on the browser tab. */}}
+<title>Model settings - OllamaControlCenter</title>
+{{/* Our one stylesheet. */}}
+<link rel="stylesheet" href="/app.css">
+</head>{{/* end of the head. */}}
+<body>{{/* start of the visible page. */}}
+{{/* The page content. */}}
+<main>
+{{/* A panel that holds the message. */}}
+<section class="panel">
+{{/* The heading names the model, so there is no doubt which one is meant. */}}
+<h1>Settings for <code>{{.Model}}</code></h1>
+{{/* Version 1: the settings and the form. */}}
+{{if eq .Kind "settings"}}
+{{/* A refused value is explained first, with a symbol and a bold lead, so colour is never the only signal. */}}
+{{if .Problem}}
+{{/* The reason. */}}
+<p class="warn" role="alert"><strong>⚠ Not saved.</strong> {{.Problem}}</p>
+{{/* End of the problem note. */}}
+{{end}}
+{{/* A saved value above the model's limit is pointed out. */}}
+{{if .AboveMax}}
+{{/* The note. */}}
+<p class="warn"><strong>⚠ The saved size is above what this model supports.</strong> Saving a valid size below fixes it.</p>
+{{/* End of the above-limit note. */}}
+{{end}}
+{{/* What these settings are. */}}
+<p class="muted">{{template "tipbox" .Tips.saved}}: these settings are stored inside the model in Ollama, so every program that loads it without a value of its own uses them. The model must not be loaded now.</p>
+{{/* The facts, each heading with its help bubble. */}}
+<table class="facts">
+{{/* Row 1: the saved context size. */}}
+<tr><th scope="row">{{template "tipbox" .Tips.ctx}}</th><td>{{.SavedText}}</td></tr>
+{{/* Row 2: the model maximum. */}}
+<tr><th scope="row">{{template "tipbox" .Tips.max}}</th><td>{{if .Max}}{{.Max}} tokens (word pieces){{else}}not reported{{end}}</td></tr>
+{{/* Row 3: the smallest size allowed. */}}
+<tr><th scope="row">{{template "tipbox" .Tips.min}}</th><td>{{.Min}} tokens (word pieces); this is this monitor's own limit</td></tr>
+{{/* Row 4: the other saved settings. */}}
+<tr><th scope="row">{{template "tipbox" .Tips.other}}</th><td>{{if .Others}}{{range $i, $o := .Others}}{{if $i}}, {{end}}<code>{{$o}}</code>{{end}}{{else}}none{{end}}. They are kept as they are.</td></tr>
+{{/* End of the facts. */}}
+</table>
+{{/* The form, only when a safe limit is known. */}}
+{{if .CanSave}}
+{{/* The form goes to the review step, which changes nothing yet. */}}
+<form method="post" action="/gear/review">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* The model name. */}}
+<input type="hidden" name="model" value="{{.Model}}">
+{{/* The label and the number field; the browser also checks the range, and the monitor checks it again. */}}
+<p><label for="num_ctx">New context size (tokens):</label> <input class="numfield" id="num_ctx" name="num_ctx" type="number" inputmode="numeric" min="{{.Min}}" max="{{.Max}}" step="1" required value="{{.Typed}}" list="presets"></p>
+{{/* The suggestions; they appear when the field is clicked. */}}
+<datalist id="presets">{{range .Presets}}<option value="{{.}}"></option>{{end}}</datalist>
+{{/* The rules in plain words. */}}
+<p class="muted">Click the field to see suggestions. A saved size cannot be removed, only changed. To go back to the largest size, choose the model maximum.</p>
+{{/* The button. */}}
+<p><button type="submit" class="btn-load">Review the change</button></p>
+{{/* End of the form. */}}
+</form>
+{{/* No safe limit is known: no form. */}}
+{{else}}
+{{/* Say why. */}}
+<p class="muted">Nothing can be saved here because Ollama does not report this model's maximum context size, so no safe limit can be checked.</p>
+{{/* End of the form case. */}}
+{{end}}
+{{/* A pointer to the other setting. */}}
+<p class="muted">How long a model stays loaded is chosen on the Load page each time you load it.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 2: the review step. */}}
+{{else if eq .Kind "review"}}
+{{/* The warning, with a symbol and a bold lead. */}}
+<p class="warn"><strong>⚠ This changes the model itself.</strong> Every program that loads this model without a size of its own will use the new one.</p>
+{{/* The change. */}}
+<table class="facts">
+{{/* Before. */}}
+<tr><th scope="row">Context size now</th><td>{{.SavedText}}</td></tr>
+{{/* After. */}}
+<tr><th scope="row">Context size after saving</th><td><strong>{{.NewValue}}</strong> tokens (word pieces)</td></tr>
+{{/* End of the change. */}}
+</table>
+{{/* What is and is not affected. */}}
+<ul>
+{{/* A bigger size needs more memory. */}}
+<li>A bigger size needs more memory when the model loads; a smaller one needs less.</li>
+{{/* The weights stay. */}}
+<li>The model's weights are not changed, and its other saved settings are kept.</li>
+{{/* No removal. */}}
+<li>You can change it again later, but a saved size cannot be removed.</li>
+{{/* End of the list. */}}
+</ul>
+{{/* The two choices side by side. */}}
+<div class="choices">
+{{/* The Yes form sends the values to the save step. */}}
+<form method="post" action="/gear/save">
+{{/* The page token. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* The model name. */}}
+<input type="hidden" name="model" value="{{.Model}}">
+{{/* The size to save. */}}
+<input type="hidden" name="num_ctx" value="{{.NewValue}}">
+{{/* The Yes button. */}}
+<button type="submit" class="btn-load">Yes, save it into the model</button>
+{{/* End of the Yes form. */}}
+</form>
+{{/* The Cancel link simply goes back; nothing was changed. */}}
+<a class="btn-plain" href="/">Cancel, do not change</a>
+{{/* End of the choices. */}}
+</div>
+{{/* Version 3: saved and checked. */}}
+{{else if eq .Kind "done"}}
+{{/* Say so; it was checked afterwards. */}}
+<p><strong>Saved.</strong> Ollama now reports a context size of {{.AfterText}} for this model, and its other saved settings are unchanged (both checked).</p>
+{{/* What happens next. */}}
+<p class="muted">The next load of this model uses it. After loading, the Loaded table shows the context size actually used.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 4: the same value was already saved. */}}
+{{else if eq .Kind "nochange"}}
+{{/* Say so. */}}
+<p>Nothing to change: a context size of {{.NewValue}} is already saved.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 5: the model is loaded. */}}
+{{else if eq .Kind "loaded"}}
+{{/* Say what to do. */}}
+<p>This model is loaded now, and a loaded model keeps the settings it was loaded with. Unload it first, then change its settings.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 6: the model is not installed. */}}
+{{else if eq .Kind "notinstalled"}}
+{{/* Say so. */}}
+<p>This model is not installed, so it has no settings to change.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 7: Ollama accepted the change but reports something else. */}}
+{{else if eq .Kind "mismatch"}}
+{{/* Say exactly what is known and what is not. */}}
+<p><strong>Please check.</strong> {{.Detail}}</p>
+{{/* What Ollama reports. */}}
+<p class="muted">Ollama now reports a context size of {{if .AfterText}}{{.AfterText}}{{else}}nothing{{end}}; you asked for {{.NewValue}}.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 8: something went wrong. */}}
+{{else}}
+{{/* Say what went wrong, in the plain words the program already uses. */}}
+<p><strong>Could not do this.</strong> {{.Detail}}</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* End of the versions. */}}
+{{end}}
+{{/* End of the panel. */}}
+</section>
+{{/* End of the content. */}}
+</main>
+</body>{{/* end of the visible page. */}}
+</html>{{/* end of the page. */}}

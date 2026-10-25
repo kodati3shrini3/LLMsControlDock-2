@@ -38,7 +38,11 @@
 {{/* Row 2: memory needed. */}}
 <tr><th scope="row">This model needs at least</th><td>{{.NeedText}} (its size on disk; the real use is higher once the memory for the conversation context is added)</td></tr>
 {{/* Row 3: the default time. */}}
-<tr><th scope="row">Stays loaded after loading</th><td>Ollama's default is {{.DefaultText}} after the last use, then it unloads the model by itself. Your Ollama may be set to another time; the real countdown appears as soon as the model is loaded.</td></tr>
+<tr><th scope="row">{{template "tipbox" .KeepTip}}</th><td>
+{{/* The choice; it belongs to the Yes form below through its id, so it is sent with it. */}}
+<select class="keepselect" name="keep" form="loadform" aria-label="How long the model stays loaded after its last use">{{range .KeepOptions}}<option value="{{.Value}}">{{.Label}}</option>{{end}}</select>
+{{/* The default in words; the real countdown appears as soon as the model is loaded. */}}
+<br>Ollama's default is {{.DefaultText}} after the last use, then it unloads the model by itself. Your Ollama may be set to another time; the real countdown appears as soon as the model is loaded.</td></tr>
 {{/* End of the facts. */}}
 </table>
 {{/* A hint about the waiting time. */}}
@@ -48,7 +52,7 @@
 {{/* The two choices side by side. */}}
 <div class="choices" id="choices">
 {{/* The Yes form sends the model name and the page token to the second step. */}}
-<form method="post" action="/load/confirm" data-loading>
+<form id="loadform" method="post" action="/load/confirm" data-loading>
 {{/* The page token proves the form comes from this monitor. */}}
 <input type="hidden" name="token" value="{{.Token}}">
 {{/* The model name. */}}
