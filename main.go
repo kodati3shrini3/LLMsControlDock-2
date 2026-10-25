@@ -2,11 +2,11 @@
 package main
 
 import ( // import lists the standard-library packages this file uses.
-	// context supplies the (empty) context the check function needs.
+	// context supplies the (empty) context the fetch functions need.
 	"context"
 	// flag reads command-line options such as -listen.
 	"flag"
-	// fmt writes formatted text, here into the web reply and the check line.
+	// fmt writes formatted text, here into the web reply and the terminal output.
 	"fmt"
 	// log prints timestamped messages to the terminal.
 	"log"
@@ -40,6 +40,34 @@ func formatCheck(res checkResult) string {
 	return fmt.Sprintf("OFFLINE  %s  %d ms", res.Reason, res.Elapsed.Milliseconds())
 } // end of formatCheck
 
+// runModels fetches both lists, prints the report, and returns the exit code (0 = printed, 1 = Ollama could not be read).
+func runModels(addr ollamaAddress) int {
+	// An empty context with no deadline; each request has its own timeout.
+	ctx := context.Background()
+	// Fetch the installed models.
+	installed, err := fetchInstalled(ctx, addr.URL, defaultCheckTimeout)
+	// A failure here means Ollama could not be read.
+	if err != nil {
+		// Print one OFFLINE line with the plain reason, like -check does.
+		fmt.Println("OFFLINE  " + err.Error())
+		// Exit code 1 means failure.
+		return 1
+	} // end of the installed check
+	// Fetch the loaded models.
+	loaded, err := fetchLoaded(ctx, addr.URL, defaultCheckTimeout)
+	// A failure here also means Ollama could not be read.
+	if err != nil {
+		// Print one OFFLINE line with the plain reason.
+		fmt.Println("OFFLINE  " + err.Error())
+		// Exit code 1 means failure.
+		return 1
+	} // end of the loaded check
+	// Print the whole report; time.Now() is the clock used for the "time until unload" column.
+	fmt.Println(renderReport(installed, loaded, time.Now()))
+	// Exit code 0 means success.
+	return 0
+} // end of runModels
+
 // main is where every Go program starts running.
 func main() {
 	// Define a -listen option: its name, its default value, and the help text shown by -h.
@@ -48,8 +76,16 @@ func main() {
 	ollamaFlag := flag.String("ollama-url", "", "address of the Ollama server; overrides the OCC_OLLAMA_URL environment variable (default http://127.0.0.1:11434)")
 	// Define a -check switch: false unless given on the command line.
 	checkFlag := flag.Bool("check", false, "check Ollama once, print one status line, and exit (0 = online, 1 = offline)")
+	// Define a -models switch: false unless given on the command line.
+	modelsFlag := flag.Bool("models", false, "print the installed and loaded models as tables, and exit (0 = printed, 1 = Ollama not reachable)")
 	// Read the command line now, so the variables above receive their values.
 	flag.Parse()
+
+	// The two one-shot modes cannot be combined; ask the person to choose one.
+	if *checkFlag && *modelsFlag {
+		// log.Fatal prints the message and exits with code 1.
+		log.Fatal("use either -check or -models, not both")
+	} // end of the combination check
 
 	// Choose the Ollama address by precedence: option, then environment variable, then default.
 	addr, err := resolve(*ollamaFlag, os.Getenv(envOllamaURL))
@@ -60,6 +96,12 @@ func main() {
 	} // end of the address check
 	// Print the address (any password shown as xxxxx) and which layer supplied it.
 	log.Printf("Ollama address: %s (from %s)", addr.URL.Redacted(), addr.Source)
+
+	// In -models mode, print both tables and leave without starting the web page.
+	if *modelsFlag {
+		// Run it and leave with its exit code.
+		os.Exit(runModels(addr))
+	} // end of the models mode
 
 	// In -check mode, knock once, print the result, and leave without starting the web page.
 	if *checkFlag {
