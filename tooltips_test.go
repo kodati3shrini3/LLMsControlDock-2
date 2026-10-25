@@ -73,7 +73,7 @@ func TestTooltipHeadingsMatchTheTables(t *testing.T) {
 		cols []string
 		// line is the printed header line.
 		line string
-	}{
+	}{ // the cases follow
 		// The Installed table.
 		"installed": {installedColumns, installedHeader},
 		// The Loaded table.
@@ -130,7 +130,7 @@ func TestTooltipPartsAreFilledAndShort(t *testing.T) {
 			text string
 			// limit is the longest allowed length.
 			limit int
-		}{
+		}{ // the cases follow
 			// The plain-words part.
 			{"Plain", tip.Plain, maxPlain},
 			// The example part.

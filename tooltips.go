@@ -14,7 +14,7 @@ type tooltip struct {
 } // end of tooltip
 
 // installedColumns are the ten column titles of the Installed table, in order; a test checks they match render.go.
-var installedColumns = []string{"Model", "Abilities", "Size on disk", "Family", "Parameters", "Quantization", "Last modified", "State", "Max context length", "Embedding length"}
+var installedColumns = []string{"Model", "State", "Size on disk", "Family", "Parameters", "Quantization", "Max context length", "Embedding length", "Last modified", "Abilities"}
 
 // loadedColumns are the five column titles of the Loaded table, in order; a test checks they match render.go.
 var loadedColumns = []string{"Model", "Size (as reported)", "Memory on GPU", "Loaded context length", "Time until unload"}

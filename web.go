@@ -43,6 +43,12 @@ type pageData struct {
 	ElapsedMs int64
 	// Reason explains why Ollama is offline.
 	Reason string
+	// HasTable is true when the model lists were read and the table can be drawn.
+	HasTable bool
+	// Table is the Installed table, filled only when HasTable is true.
+	Table tableView
+	// TableError explains why the lists could not be read, when Ollama answered the version check but not the lists.
+	TableError string
 } // end of pageData
 
 // secureHeaders wraps a handler so every reply, including errors, carries the same safety headers.
@@ -89,6 +95,28 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 			// The reason, if offline.
 			Reason: res.Reason,
 		} // end of the data
+		// Only an online Ollama can be asked for its model lists.
+		if res.Online {
+			// Read the installed models; the request's context cancels the call if the browser goes away.
+			installed, err := fetchInstalled(r.Context(), addr.URL, timeout)
+			// Read the loaded models only if the first call worked.
+			var loaded []loadedModel
+			// Skip the second call after a failure.
+			if err == nil {
+				// Read the loaded models.
+				loaded, err = fetchLoaded(r.Context(), addr.URL, timeout)
+			} // end of the second call
+			// A failure is shown in the page, using the same safe wording as the terminal.
+			if err != nil {
+				// Keep the plain reason.
+				data.TableError = err.Error()
+			} else { // the other case
+				// Build the table and switch it on.
+				data.Table = buildTableView(installed, loaded)
+				// The table can be drawn now.
+				data.HasTable = true
+			} // end of the error check
+		} // end of the online check
 		// Build the whole page in memory first, so a template error produces a clean 500 and not a half page.
 		var buf bytes.Buffer
 		// Run the template.

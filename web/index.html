@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 {{/* lang tells screen readers which language the page is written in. */}}
 <html lang="en">
-<head>
+<head>{{/* start of the head. */}}
 {{/* Use UTF-8 so the symbols in the status line display correctly. */}}
 <meta charset="utf-8">
 {{/* Make the page scale to the screen width on phones and small windows. */}}
@@ -13,15 +13,15 @@
 <title>OllamaControlCenter</title>
 {{/* Load our own stylesheet; the safety policy allows only styles from this same address. */}}
 <link rel="stylesheet" href="/app.css">
-</head>
-<body>
+</head>{{/* end of the head. */}}
+<body>{{/* start of the visible page. */}}
 {{/* The page header. */}}
 <header>
 {{/* The main heading. */}}
 <h1>OllamaControlCenter</h1>
 {{/* Show which Ollama is being watched and which setting supplied the address; a password in it is already hidden. */}}
 <p class="muted">Watching Ollama at <code>{{.Address}}</code> (from {{.AddressSource}})</p>
-</header>
+</header>{{/* end of the header. */}}
 {{/* The main content area. */}}
 <main>
 {{/* The status panel; aria-live asks screen readers to announce changes. */}}
@@ -40,7 +40,122 @@
 {{end}}
 {{/* End of the status panel. */}}
 </section>
+{{/* The Installed models panel. */}}
+<section class="panel" aria-labelledby="installed-title">
+{{/* The panel heading, with the number of models when known. */}}
+<h2 id="installed-title">Installed models{{if .HasTable}} ({{.Table.Total}}){{end}}</h2>
+{{/* Case 1: Ollama answered but the lists could not be read; say why in plain words. */}}
+{{if .TableError}}
+{{/* The cross and the word carry the meaning, the colour only supports it. */}}
+<p class="status bad"><span class="symbol" aria-hidden="true">✖</span> <strong>Could not read the model lists</strong> <span class="muted">{{.TableError}}</span></p>
+{{/* Case 2: no table because Ollama did not answer; the status panel above has the reason. */}}
+{{else if not .HasTable}}
+{{/* A plain note. */}}
+<p class="muted">The model tables appear when Ollama answers.</p>
+{{/* Case 3: Ollama answered and has no models. */}}
+{{else if not .Table.Groups}}
+{{/* A plain note. */}}
+<p class="muted">No models are installed.</p>
+{{/* Case 4: the table itself. */}}
+{{else}}
+{{/* A hint above the table so people know the dotted headings have help. */}}
+<p class="muted">Point at a dotted heading, or press Tab to reach it, to see what it means. The table scrolls sideways.</p>
+{{/* The scroll box: it can be reached with Tab, so keyboard users can scroll the table sideways. */}}
+<div class="scrollbox" tabindex="0" role="region" aria-label="Installed models table, scrolls sideways">
+{{/* The table. */}}
+<table class="models">
+{{/* The header row. */}}
+<thead>
+<tr>{{/* start of a table row. */}}
+{{/* One heading cell per column; $i is the column number. */}}
+{{range $i, $c := .Table.Columns}}
+{{/* The first column stays visible while the table scrolls sideways. */}}
+<th scope="col"{{if eq $i 0}} class="stickycol"{{end}}>
+{{/* The area that opens the bubble when the pointer is over it or the focus is inside it. */}}
+<div class="tipbox">
+{{/* The heading text; tabindex 0 lets the keyboard reach it, aria-describedby ties it to its bubble. */}}
+<span class="help" tabindex="0" aria-describedby="{{$c.Tip.ID}}">{{$c.Title}}</span>
+{{/* The bubble; it is fixed to the window, so the scroll box never cuts it off. */}}
+<span class="tip" role="tooltip" id="{{$c.Tip.ID}}">{{template "tip" $c.Tip}}</span>
+{{/* End of the bubble area. */}}
+</div>
+{{/* End of the heading cell. */}}
+</th>
+{{/* End of the column loop. */}}
+{{end}}
+{{/* End of the header row. */}}
+</tr>
+{{/* End of the table head. */}}
+</thead>
+{{/* The table body. */}}
+<tbody>
+{{/* One section per category. */}}
+{{range $gi, $g := .Table.Groups}}
+{{/* The category heading row: one cell across all columns. */}}
+<tr class="grouprow">
+{{/* The cell spans every column. */}}
+<th scope="colgroup" colspan="10">
+{{/* The bubble area stays at the left edge while the table scrolls. */}}
+<div class="tipbox catbox">
+{{/* The category name, reachable by keyboard. */}}
+<span class="help" tabindex="0" aria-describedby="{{$g.Tip.ID}}"><strong>{{$g.Heading}}</strong></span>
+{{/* The number of models in this category. */}}
+<span class="muted">({{$g.CountText}})</span>
+{{/* The category's bubble. */}}
+<span class="tip" role="tooltip" id="{{$g.Tip.ID}}">{{template "tip" $g.Tip}}</span>
+{{/* End of the bubble area. */}}
+</div>
+{{/* End of the heading cell. */}}
+</th>
+{{/* End of the category heading row. */}}
+</tr>
+{{/* One row per model in this category. */}}
+{{range $g.Rows}}
+{{/* A model row. */}}
+<tr>{{/* start of a table row. */}}
+{{/* The model name is the row heading and stays visible while scrolling. */}}
+<th scope="row" class="stickycol">{{.Name}}</th>
+{{/* The state cell: a dot (solid green when loaded, an empty ring when not) plus the words, so colour is never the only signal. */}}
+<td><span class="dot {{if .Loaded}}dot-on{{else}}dot-off{{end}}" aria-hidden="true"></span> {{.StateWord}}</td>
+{{/* The other eight cells; the first of the nine is the state text, which the cell above already shows. */}}
+{{range slice .Cells 1}}
+{{/* One cell. */}}
+<td>{{.}}</td>
+{{/* End of the cells. */}}
+{{end}}
+{{/* End of the model row. */}}
+</tr>
+{{/* End of the model loop. */}}
+{{end}}
+{{/* End of the category loop. */}}
+{{end}}
+{{/* End of the table body. */}}
+</tbody>
+{{/* End of the table. */}}
+</table>
+{{/* End of the scroll box. */}}
+</div>
+{{/* End of the four cases. */}}
+{{end}}
+{{/* End of the Installed models panel. */}}
+</section>
 {{/* End of the main content. */}}
 </main>
-</body>
-</html>
+</body>{{/* end of the visible page. */}}
+</html>{{/* end of the page. */}}
+{{/* The help bubble content: three labelled parts, and the task names when there are any. */}}
+{{define "tip"}}
+{{/* What the heading means. */}}
+<span class="tip-part"><strong>In plain words:</strong> {{.Plain}}</span>
+{{/* A real example. */}}
+<span class="tip-part"><strong>Example:</strong> {{.Example}}</span>
+{{/* What it helps you decide. */}}
+<span class="tip-part"><strong>Helps you decide:</strong> {{.Decide}}</span>
+{{/* Task names, only for categories. */}}
+{{if .AlsoKnown}}
+{{/* The common names. */}}
+<span class="tip-part"><strong>Also known as:</strong> {{.AlsoKnown}}</span>
+{{/* End of the task-name check. */}}
+{{end}}
+{{/* End of the bubble content. */}}
+{{end}}

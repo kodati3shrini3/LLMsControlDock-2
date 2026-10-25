@@ -94,7 +94,7 @@ func renderInstalled(groups []categoryGroup) string {
 	// Create the column aligner: no minimum width, 2 spaces between columns, spaces as padding.
 	w := tabwriter.NewWriter(&buf, 0, 0, 2, ' ', 0)
 	// The ten column titles; tabs separate the columns.
-	fmt.Fprintln(w, "Model\tAbilities\tSize on disk\tFamily\tParameters\tQuantization\tLast modified\tState\tMax context length\tEmbedding length")
+	fmt.Fprintln(w, "Model\tState\tSize on disk\tFamily\tParameters\tQuantization\tMax context length\tEmbedding length\tLast modified\tAbilities")
 	// Go through every non-empty category.
 	for _, g := range groups {
 		// A heading row: the title, then empty cells so the columns stay in one block and keep their alignment.
@@ -107,8 +107,8 @@ func renderInstalled(groups []categoryGroup) string {
 			fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 				// The model name, never shortened.
 				m.Name,
-				// Ollama's own words for the abilities.
-				orDash(strings.Join(m.Capabilities, ", ")),
+				// Loaded or not, symbol plus words.
+				stateText(row.Loaded),
 				// Size on disk.
 				formatSize(m.Size),
 				// Family as reported.
@@ -117,14 +117,14 @@ func renderInstalled(groups []categoryGroup) string {
 				orDash(m.Details.ParameterSize),
 				// Quantization level as reported.
 				orDash(m.Details.QuantizationLevel),
-				// Last modified, in UTC.
-				formatTime(m.ModifiedAt),
-				// Loaded or not, symbol plus words.
-				stateText(row.Loaded),
 				// Largest context the model supports.
 				formatCount(m.Details.ContextLength),
 				// Width of the model's vectors.
-				formatCount(m.Details.EmbeddingLength)) // end of the row
+				formatCount(m.Details.EmbeddingLength),
+				// Last modified, in UTC.
+				formatTime(m.ModifiedAt),
+				// Ollama's own words for the abilities.
+				orDash(strings.Join(m.Capabilities, ", "))) // end of the row
 		} // end of the model loop
 	} // end of the group loop
 	// Write everything out; Flush runs the alignment.

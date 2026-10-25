@@ -14,9 +14,17 @@
   --bad: #a4161a;
   /* Border colour (contrast 3.2:1 against the page, enough for outlines). */
   --border: #8a9099;
+  /* Colour of the dot for a loaded model (contrast 5:1 on the page). */
+  --dot-on: #1a7f37;
+  /* Category row background: a soft steel blue band (text contrast 10.7:1). */
+  --cat-bg: #dbe7f5;
+  /* Category row text colour: deep navy. */
+  --cat-text: #12304f;
+  /* Category row accent bar on the left edge (contrast 6.4:1 on the page). */
+  --cat-accent: #1f5fa8;
   /* Tell the browser to draw its own controls in light colours. */
   color-scheme: light;
-}
+} /* end of rule */
 
 /* When the computer is set to a dark theme, replace the colours; the layout stays the same. */
 @media (prefers-color-scheme: dark) {
@@ -36,10 +44,18 @@
     --bad: #ff9a9a;
     /* Border colour (contrast 3.8:1). */
     --border: #6b727c;
+    /* Colour of the dot for a loaded model (contrast 8:1 on the page). */
+    --dot-on: #3fb950;
+    /* Category row background: a deep slate blue band (text contrast 10.1:1). */
+    --cat-bg: #1f3550;
+    /* Category row text colour: pale blue. */
+    --cat-text: #dbe9fb;
+    /* Category row accent bar on the left edge (contrast 8.4:1 on the page). */
+    --cat-accent: #7fb2f0;
     /* Tell the browser to draw its own controls in dark colours. */
     color-scheme: dark;
-  }
-}
+  } /* end of rule */
+} /* end of rule */
 
 /* Page-wide basics: the system font, our colours, and comfortable line spacing. */
 body {
@@ -57,7 +73,7 @@ body {
   max-width: 80rem;
   /* Padding that also gives a 16px side gutter on phones. */
   padding: 1rem;
-}
+} /* end of rule */
 
 /* The main heading. */
 h1 {
@@ -65,7 +81,7 @@ h1 {
   font-size: 1.6rem;
   /* Tighten the space below. */
   margin: 0 0 0.25rem;
-}
+} /* end of rule */
 
 /* Section headings. */
 h2 {
@@ -73,13 +89,13 @@ h2 {
   font-size: 1.15rem;
   /* Tighten the space above and below. */
   margin: 0 0 0.5rem;
-}
+} /* end of rule */
 
 /* Secondary text such as the address line. */
 .muted {
   /* Use the secondary colour. */
   color: var(--muted);
-}
+} /* end of rule */
 
 /* A boxed area with a visible outline, so it is clear without colour. */
 .panel {
@@ -93,7 +109,7 @@ h2 {
   padding: 0.75rem 1rem;
   /* Space between boxes. */
   margin: 1rem 0;
-}
+} /* end of rule */
 
 /* The status line. */
 .status {
@@ -101,31 +117,31 @@ h2 {
   font-size: 1.2rem;
   /* No extra space around the paragraph. */
   margin: 0;
-}
+} /* end of rule */
 
 /* The online line colour; the tick and the word say it too. */
 .status.ok {
   /* Colour from the variables. */
   color: var(--ok);
-}
+} /* end of rule */
 
 /* The offline line colour; the cross and the word say it too. */
 .status.bad {
   /* Colour from the variables. */
   color: var(--bad);
-}
+} /* end of rule */
 
 /* The status symbol. */
 .symbol {
   /* Make the symbol bold so it stands out. */
   font-weight: 700;
-}
+} /* end of rule */
 
 /* The explanation text next to the status keeps the secondary colour and normal size. */
 .status .muted {
   /* Back to normal size. */
   font-size: 1rem;
-}
+} /* end of rule */
 
 /* Show a clear outline on anything reached with the keyboard. */
 :focus-visible {
@@ -133,4 +149,202 @@ h2 {
   outline: 3px solid var(--text);
   /* Space between the element and its outline. */
   outline-offset: 2px;
-}
+} /* end of rule */
+
+/* The scroll box around the table: it scrolls sideways when the table is wider than the window. */
+.scrollbox {
+  /* Scroll sideways when needed. */
+  overflow-x: auto;
+  /* The same solid outline as the other boxes. */
+  border: 2px solid var(--border);
+  /* Slightly rounded corners. */
+  border-radius: 0.5rem;
+  /* Page colour behind the table, so rows stand out from the panel. */
+  background: var(--bg);
+  /* No extra room is needed: bubbles are fixed to the window and are never cut off by the box. */
+  padding-bottom: 0;
+} /* end of rule */
+
+/* The table itself. */
+.models {
+  /* Cells share borders instead of doubling them. */
+  border-collapse: collapse;
+  /* Keep each row on one line, so the table scrolls sideways instead of squeezing. */
+  white-space: nowrap;
+  /* At least as wide as the box. */
+  min-width: 100%;
+} /* end of rule */
+
+/* Every cell and heading. */
+.models th,
+.models td { /* ...and every data cell. */
+  /* Space inside the cell. */
+  padding: 0.4rem 0.75rem;
+  /* A thin line under every row so rows are easy to follow without colour. */
+  border-bottom: 1px solid var(--border);
+  /* Text starts at the left edge of the cell. */
+  text-align: left;
+  /* Align to the top when a cell is taller than its neighbours. */
+  vertical-align: top;
+} /* end of rule */
+
+/* The column headings. */
+.models thead th {
+  /* Panel colour so the heading row differs from the rows. */
+  background: var(--panel);
+  /* A heavier line under the heading row. */
+  border-bottom: 2px solid var(--border);
+} /* end of rule */
+
+/* The first column stays visible while the table scrolls sideways. */
+.stickycol {
+  /* Stick to the left edge of the scroll box. */
+  position: sticky;
+  /* Zero distance from the left edge. */
+  left: 0;
+  /* Solid colour so scrolled cells do not show through. */
+  background: var(--bg);
+  /* A line on the right so the edge is visible without colour. */
+  border-right: 2px solid var(--border);
+  /* Above the cells that scroll underneath. */
+  z-index: 2;
+} /* end of rule */
+
+/* The corner cell (first heading) gets the heading colour and sits above everything else. */
+.models thead .stickycol {
+  /* Heading colour. */
+  background: var(--panel);
+  /* Above the sticky cells below it. */
+  z-index: 4;
+} /* end of rule */
+
+/* The category heading rows. */
+.grouprow th {
+  /* A coloured band so each section stands out. */
+  background: var(--cat-bg);
+  /* Text colour that reads well on the band. */
+  color: var(--cat-text);
+  /* Normal weight; the name inside is bold. */
+  font-weight: 400;
+  /* A heavier line above each section. */
+  border-top: 2px solid var(--border);
+  /* A thick accent bar on the left edge, so the band is clear even without telling colours apart. */
+  border-left: 6px solid var(--cat-accent);
+} /* end of rule */
+
+/* The model count next to a category name uses the band's text colour, not the grey one. */
+.grouprow .muted {
+  /* Same colour as the category name. */
+  color: var(--cat-text);
+} /* end of rule */
+
+/* The area around a heading that opens its bubble. */
+.tipbox {
+  /* The bubble is placed relative to this box. */
+  position: relative;
+  /* Only as wide as its content, so the pointer must be on the heading. */
+  display: inline-block;
+} /* end of rule */
+
+/* The category heading box stays at the left edge while the table scrolls sideways. */
+.catbox {
+  /* Stick to the left edge of the scroll box. */
+  position: sticky;
+  /* Zero distance from the left edge. */
+  left: 0.75rem;
+  /* Above scrolling cells. */
+  z-index: 3;
+} /* end of rule */
+
+/* A heading that has help: a dotted underline is the cue. */
+.help {
+  /* A dotted line under the text. */
+  text-decoration: underline dotted;
+  /* Keep the line a little away from the letters. */
+  text-underline-offset: 0.25em;
+  /* A help cursor when the pointer is over it. */
+  cursor: help;
+} /* end of rule */
+
+/* The bubble: hidden until the heading is pointed at or focused. */
+.tip {
+  /* Not shown by default; a screen reader can still read it through aria-describedby. */
+  display: none;
+  /* Fixed to the window, so the scroll box can never cut the bubble off; with no top value it stays right under its heading. */
+  position: fixed;
+  /* Centre the bubble across the window: start at the middle... */
+  left: 50%;
+  /* ...and move back by half of its own width. */
+  transform: translateX(-50%);
+  /* A comfortable reading width that still fits small windows. */
+  width: min(26rem, 92vw);
+  /* Wrap long text, even though the table does not wrap. */
+  white-space: normal;
+  /* Same colours as panels, so both themes work. */
+  background: var(--panel);
+  /* Text colour from the variables. */
+  color: var(--text);
+  /* A solid outline, visible without colour. */
+  border: 2px solid var(--border);
+  /* Slightly rounded corners. */
+  border-radius: 0.5rem;
+  /* Space inside the bubble. */
+  padding: 0.6rem 0.8rem;
+  /* Normal weight, even inside a heading. */
+  font-weight: 400;
+  /* A little smaller than body text. */
+  font-size: 0.9rem;
+  /* Text starts at the left, even inside a centred cell. */
+  text-align: left;
+  /* Above every cell, including the sticky ones. */
+  z-index: 10;
+} /* end of rule */
+
+/* Show the bubble when the pointer is over the area or when the keyboard focus is inside it. */
+.tipbox:hover > .tip,
+.tipbox:focus-within > .tip { /* ...or when the focus is inside it. */
+  /* Show it as a block. */
+  display: block;
+} /* end of rule */
+
+/* Each part of the bubble on its own line. */
+.tip-part {
+  /* One part per line. */
+  display: block;
+  /* A little room between parts. */
+  margin: 0.15rem 0;
+} /* end of rule */
+
+/* The state dot: a round shape with a dark border, drawn in CSS so no picture is downloaded. */
+.dot {
+  /* Sits in the line of text like a letter. */
+  display: inline-block;
+  /* A small circle, sized with the text. */
+  width: 0.85em;
+  /* Same height as width, so it is round. */
+  height: 0.85em;
+  /* Make it a circle. */
+  border-radius: 50%;
+  /* A solid dark border so the dot is visible on both themes. */
+  border: 2px solid var(--text);
+  /* The border counts inside the size. */
+  box-sizing: border-box;
+  /* Line it up with the middle of the text. */
+  vertical-align: -0.1em;
+  /* A little room before the words. */
+  margin-right: 0.4em;
+} /* end of rule */
+
+/* A loaded model: a solid green dot. */
+.dot-on {
+  /* The green from the variables. */
+  background: var(--dot-on);
+} /* end of rule */
+
+/* A model that is not loaded: an empty ring with a softer border, a different shape as well as a different colour. */
+.dot-off {
+  /* Nothing inside the ring. */
+  background: transparent;
+  /* A softer border than the loaded dot. */
+  border-color: var(--muted);
+} /* end of rule */

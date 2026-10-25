@@ -259,7 +259,7 @@ func TestRoutes(t *testing.T) {
 		path string
 		// want is the expected status.
 		want int
-	}{
+	}{ // the cases follow
 		// An unknown path.
 		{"unknown path", http.MethodGet, "/nothing-here", http.StatusNotFound},
 		// A change request to the page.
