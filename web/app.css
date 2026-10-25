@@ -1,0 +1,136 @@
+/* Colours are defined once as variables; the light set is the default. */
+:root {
+  /* Page background. */
+  --bg: #ffffff;
+  /* Panel background, slightly different from the page. */
+  --panel: #f4f6f8;
+  /* Main text colour (contrast 17:1 on the page background). */
+  --text: #1a1a1a;
+  /* Secondary text colour (contrast 8:1). */
+  --muted: #4a4f57;
+  /* Colour for the online line (contrast 6.6:1). */
+  --ok: #0b6b2f;
+  /* Colour for the offline line (contrast 7.7:1). */
+  --bad: #a4161a;
+  /* Border colour (contrast 3.2:1 against the page, enough for outlines). */
+  --border: #8a9099;
+  /* Tell the browser to draw its own controls in light colours. */
+  color-scheme: light;
+}
+
+/* When the computer is set to a dark theme, replace the colours; the layout stays the same. */
+@media (prefers-color-scheme: dark) {
+  /* The dark set of colours. */
+  :root {
+    /* Page background. */
+    --bg: #121417;
+    /* Panel background. */
+    --panel: #1b1f24;
+    /* Main text colour (contrast 15.6:1). */
+    --text: #ececec;
+    /* Secondary text colour (contrast 9.8:1). */
+    --muted: #b8bdc5;
+    /* Colour for the online line (contrast 10.9:1). */
+    --ok: #6fdc97;
+    /* Colour for the offline line (contrast 9.1:1). */
+    --bad: #ff9a9a;
+    /* Border colour (contrast 3.8:1). */
+    --border: #6b727c;
+    /* Tell the browser to draw its own controls in dark colours. */
+    color-scheme: dark;
+  }
+}
+
+/* Page-wide basics: the system font, our colours, and comfortable line spacing. */
+body {
+  /* Use the font the operating system already has, so nothing is downloaded. */
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Page background from the variables. */
+  background: var(--bg);
+  /* Text colour from the variables. */
+  color: var(--text);
+  /* Space lines out for readability. */
+  line-height: 1.5;
+  /* Keep the content away from the window edges. */
+  margin: 0 auto;
+  /* Limit the line length on very wide screens. */
+  max-width: 80rem;
+  /* Padding that also gives a 16px side gutter on phones. */
+  padding: 1rem;
+}
+
+/* The main heading. */
+h1 {
+  /* A little smaller than the browser default. */
+  font-size: 1.6rem;
+  /* Tighten the space below. */
+  margin: 0 0 0.25rem;
+}
+
+/* Section headings. */
+h2 {
+  /* Smaller than the page heading. */
+  font-size: 1.15rem;
+  /* Tighten the space above and below. */
+  margin: 0 0 0.5rem;
+}
+
+/* Secondary text such as the address line. */
+.muted {
+  /* Use the secondary colour. */
+  color: var(--muted);
+}
+
+/* A boxed area with a visible outline, so it is clear without colour. */
+.panel {
+  /* Panel background from the variables. */
+  background: var(--panel);
+  /* A solid outline, which keeps the box visible for people who cannot tell colours apart. */
+  border: 2px solid var(--border);
+  /* Slightly rounded corners. */
+  border-radius: 0.5rem;
+  /* Space inside the box. */
+  padding: 0.75rem 1rem;
+  /* Space between boxes. */
+  margin: 1rem 0;
+}
+
+/* The status line. */
+.status {
+  /* Larger than normal text so it is the first thing seen. */
+  font-size: 1.2rem;
+  /* No extra space around the paragraph. */
+  margin: 0;
+}
+
+/* The online line colour; the tick and the word say it too. */
+.status.ok {
+  /* Colour from the variables. */
+  color: var(--ok);
+}
+
+/* The offline line colour; the cross and the word say it too. */
+.status.bad {
+  /* Colour from the variables. */
+  color: var(--bad);
+}
+
+/* The status symbol. */
+.symbol {
+  /* Make the symbol bold so it stands out. */
+  font-weight: 700;
+}
+
+/* The explanation text next to the status keeps the secondary colour and normal size. */
+.status .muted {
+  /* Back to normal size. */
+  font-size: 1rem;
+}
+
+/* Show a clear outline on anything reached with the keyboard. */
+:focus-visible {
+  /* A thick outline in the text colour. */
+  outline: 3px solid var(--text);
+  /* Space between the element and its outline. */
+  outline-offset: 2px;
+}

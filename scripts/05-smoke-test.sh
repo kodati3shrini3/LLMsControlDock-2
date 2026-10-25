@@ -155,13 +155,13 @@ echo "== Checks =="
 check_status "GET / returns 200" 200 "$BASE_URL/"
 # Fetch the body of the normal visit; the shell drops the trailing newline for us
 BODY="$(curl -s "$BASE_URL/")"
-# The body must be exactly our message
-if [ "$BODY" = "OllamaControlCenter is running" ]; then
+# The body must be the monitor page (since Step 5a, "/" is the HTML page and no longer the plain hello text)
+if [[ "$BODY" == *"<title>OllamaControlCenter</title>"* ]]; then
   # Record a pass
-  record_result ok "GET / body is the expected message"
+  record_result ok "GET / is the monitor page"
 else
-  # Record a failure and show what came back
-  record_result bad "GET / body is the expected message (got: $BODY)"
+  # Record a failure and show the start of what came back
+  record_result bad "GET / is the monitor page (got: ${BODY:0:80})"
 # End of the body check
 fi
 # An unknown path must return 404
