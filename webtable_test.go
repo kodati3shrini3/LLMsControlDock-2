@@ -114,10 +114,10 @@ func TestTablePageRealModels(t *testing.T) {
 	i1 := strings.Index(body, "<strong>Search and similarity (embedding)</strong>")
 	// The multimodal heading position.
 	i2 := strings.Index(body, "<strong>Chat with images or audio (multimodal)</strong>")
-	// The first embedding model, found as a row heading (the help bubbles also mention model names).
-	i3 := strings.Index(body, `class="stickycol">hf.co/NeoRoth`)
+	// The first embedding model, found as a table row (the help bubbles also mention model names).
+	i3 := strings.Index(body, `<tr data-model="hf.co/NeoRoth`)
 	// The second embedding model, found the same way.
-	i4 := strings.Index(body, `class="stickycol">rjmalagon/gte-qwen2`)
+	i4 := strings.Index(body, `<tr data-model="rjmalagon/gte-qwen2`)
 	// All four positions must be in this order.
 	if !(i1 < i3 && i3 < i4 && i4 < i2) {
 		// Report the order found.

@@ -106,6 +106,18 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	mux.HandleFunc("POST /gear/save", gearSave)
 	// Route: a POST request for "/modelfile" shows a model's Modelfile, read-only.
 	mux.HandleFunc("POST /modelfile", modelfileHandler(addr, token))
+	// Make the four performance handlers: the start page, the test run, and the two steps of clearing the saved results (the checks are in perfpage.go); the history lives in the person's configuration folder.
+	histPath, histNote := defaultHistoryPath()
+	// Open the saved results.
+	perfStart, perfRun, perfClearAsk, perfClearDo := perfHandlers(addr, token, openPerfStore(histPath, histNote))
+	// Route: a POST request for "/performance" shows the performance page and changes nothing.
+	mux.HandleFunc("POST /performance", perfStart)
+	// Route: a POST request for "/performance/run" runs the test.
+	mux.HandleFunc("POST /performance/run", perfRun)
+	// Route: a POST request for "/performance/clear" asks whether to remove the saved results.
+	mux.HandleFunc("POST /performance/clear", perfClearAsk)
+	// Route: a POST request for "/performance/clear/confirm" removes them.
+	mux.HandleFunc("POST /performance/clear/confirm", perfClearDo)
 	// Route: a GET request for "/countdown.js" sends the small script that makes the timers tick (only the message pages use it).
 	mux.HandleFunc("GET /countdown.js", countdownHandler)
 	// Route: a GET request for "/loading.js" sends the small script that shows the waiting message while a model loads (only the load warning page uses it).

@@ -22,6 +22,9 @@ var loadedColumns = []string{"Model", "Size (as reported)", "Memory on GPU", "Lo
 // gearHeadings are the headings on the settings page and the Load page that have a help bubble, in the order they appear; a test checks each has a text.
 var gearHeadings = []string{"Set in the model", "Ollama's default", "Allowed values", "Context size", "Temperature", "Top-k", "Top-p", "Min-p", "Repeat penalty", "Repeat window", "Seed", "Answer length limit", "Stop words", "Keep-alive time"}
 
+// perfHeadings are the indicator names on the performance page that have a help bubble; a test checks each has a text.
+var perfHeadings = []string{"Answer speed", "Prompt reading speed", "Load time", "Total time", "Time to first word", "Tokens counted", "Embedding time", "Vector length", "Processor split", "Memory used", "Change since the previous run", "CPU cores", "CPU load", "Memory free", "Swap in use", "Other models loaded", "GPU"}
+
 // helpTexts holds every tooltip, keyed by the exact heading text it belongs to.
 // The wording was checked against Ollama's documentation; "Max context length" and "Embedding length" are not described there.
 var helpTexts = map[string]tooltip{
@@ -319,6 +322,159 @@ var helpTexts = map[string]tooltip{
 		// What it helps with.
 		Decide: "Fast answers against memory kept free for other work.",
 	}, // end of Keep-alive time
+	// The performance page: speed of the answer.
+	"Answer speed": {
+		// What it tells you.
+		Plain: "How fast the model writes, in tokens per second. A token is a piece of a word.",
+		// A real case from the test machine.
+		Example: "medgemma:latest writes about 80 tokens a second, qwen3.6:27b about 36.",
+		// What it helps with.
+		Decide: "Whether the model feels quick enough for the work you give it.",
+	}, // end of Answer speed
+	// The performance page: speed of reading the prompt.
+	"Prompt reading speed": {
+		// What it tells you.
+		Plain: "How fast the model reads your question or document before it starts to answer, in tokens per second.",
+		// A real case from the test machine.
+		Example: "With a short prompt, medgemma:latest read about 640 tokens a second and qwen3.6:27b about 168.",
+		// What it helps with.
+		Decide: "Whether long documents will make you wait.",
+	}, // end of Prompt reading speed
+	// The performance page: load time.
+	"Load time": {
+		// What it tells you.
+		Plain: "The time to bring the model from disk into memory. It is near zero when the model is already loaded.",
+		// A real case from the test machine.
+		Example: "qwen3.6:27b needed 7.0 s to load, medgemma:latest 3.7 s.",
+		// What it helps with.
+		Decide: "Whether to keep the model loaded longer between uses.",
+	}, // end of Load time
+	// The performance page: total time.
+	"Total time": {
+		// What it tells you.
+		Plain: "The whole request from start to finish, with the model already loaded.",
+		// A real case from the test machine.
+		Example: "A 64-token answer took 1.9 s with qwen3.6:27b and 0.78 s with medgemma:latest.",
+		// What it helps with.
+		Decide: "How long a typical short request takes.",
+	}, // end of Total time
+	// The performance page: time to first word.
+	"Time to first word": {
+		// What it tells you.
+		Plain: "How long you wait before the first text appears. Warm means the model was loaded; cold includes loading it.",
+		// A real case from the test machine.
+		Example: "medgemma:latest started writing after 0.03 s when warm.",
+		// What it helps with.
+		Decide: "Whether the model feels responsive in a chat.",
+	}, // end of Time to first word
+	// The performance page: tokens counted.
+	"Tokens counted": {
+		// What it tells you.
+		Plain: "How many tokens the test prompt had and how many the model wrote. The test is the same every time.",
+		// A real case.
+		Example: "About 200 tokens in and at most 64 out.",
+		// What it helps with.
+		Decide: "Whether two runs can be compared fairly: the same prompt version means yes.",
+	}, // end of Tokens counted
+	// The performance page: embedding time.
+	"Embedding time": {
+		// What it tells you.
+		Plain: "How long the model needs to turn the fixed text into numbers, with the model already loaded.",
+		// A real case from the test machine.
+		Example: "rjmalagon/gte-qwen2-instruct needed 0.043 s for a short text.",
+		// What it helps with.
+		Decide: "Whether it is fast enough to prepare many documents for search.",
+	}, // end of Embedding time
+	// The performance page: vector length.
+	"Vector length": {
+		// What it tells you.
+		Plain: "How many numbers the model produces for one text. It belongs to the model, not to the machine.",
+		// A real case from the test machine.
+		Example: "rjmalagon/gte-qwen2-instruct gives 1536 numbers.",
+		// What it helps with.
+		Decide: "Whether it fits the search system that will store the numbers.",
+	}, // end of Vector length
+	// The performance page: processor split.
+	"Processor split": {
+		// What it tells you.
+		Plain: "How much of the model sits in the graphics card's memory, and how much is left to the processor and main memory.",
+		// A real case from the test machine.
+		Example: "qwen3.6:27b ran 100% on the graphics card.",
+		// What it helps with.
+		Decide: "A processor share explains slow answers; a smaller model may fit on the graphics card.",
+	}, // end of Processor split
+	// The performance page: memory used.
+	"Memory used": {
+		// What it tells you.
+		Plain: "The memory Ollama reports for the loaded model.",
+		// A real case from the test machine.
+		Example: "qwen3.6:27b: 18.8 GB (gigabytes).",
+		// What it helps with.
+		Decide: "Whether another model still fits next to it.",
+	}, // end of Memory used
+	// The performance page: change since the previous run.
+	"Change since the previous run": {
+		// What it tells you.
+		Plain: "How much a figure moved compared with the last test of the same model, as a percentage.",
+		// A real case.
+		Example: "38 tokens/s before and 31 tokens/s now is -18%, which is slower.",
+		// What it helps with.
+		Decide: "Whether a setting, an update or a busy machine made the model faster or slower.",
+	}, // end of Change since the previous run
+	// The performance page: processor cores.
+	"CPU cores": {
+		// What it tells you.
+		Plain: "How many processor cores the computer has.",
+		// A real case from the test machine.
+		Example: "20 on this computer.",
+		// What it helps with.
+		Decide: "How much room the processor has when part of a model spills onto it.",
+	}, // end of CPU cores
+	// The performance page: processor load.
+	"CPU load": {
+		// What it tells you.
+		Plain: "How busy the processor was during the last minute. Compare it with the number of cores.",
+		// A real case from the test machine.
+		Example: "A load of 1.8 on 20 cores is quiet.",
+		// What it helps with.
+		Decide: "Whether other work disturbed the test.",
+	}, // end of CPU load
+	// The performance page: free memory.
+	"Memory free": {
+		// What it tells you.
+		Plain: "The memory the system could still hand out, before the test and with the model loaded.",
+		// A real case from the test machine.
+		Example: "About 114 GB (gigabytes) before and 105 GB (gigabytes) with medgemma:latest loaded.",
+		// What it helps with.
+		Decide: "Whether the machine was short of memory.",
+	}, // end of Memory free
+	// The performance page: swap.
+	"Swap in use": {
+		// What it tells you.
+		Plain: "Memory that spilled over to the disk, which is far slower than real memory.",
+		// A real case from the test machine.
+		Example: "0 GB (gigabytes) in use on this computer.",
+		// What it helps with.
+		Decide: "Why a run was very slow.",
+	}, // end of Swap in use
+	// The performance page: other models in memory.
+	"Other models loaded": {
+		// What it tells you.
+		Plain: "Models that were already in memory when the test started. They share the machine with the tested model.",
+		// A real case from the test machine.
+		Example: "None during the first experiments.",
+		// What it helps with.
+		Decide: "Whether the figures are fair.",
+	}, // end of Other models loaded
+	// The performance page: graphics card.
+	"GPU": {
+		// What it tells you.
+		Plain: "The graphics card the monitor could see, and how busy it was then. Shared memory shows as not reported.",
+		// A real case from the test machine.
+		Example: "The NVIDIA graphics card in this computer was 0% busy before the test.",
+		// What it helps with.
+		Decide: "Whether the graphics card was shared with other work.",
+	}, // end of GPU
 } // end of helpTexts
 
 // helpFor returns the tooltip for a heading, and false when there is none.

@@ -30,6 +30,8 @@ func allHeadings() []string {
 	} // end of the column loop
 	// Then the headings of the settings page and the Load page.
 	out = append(out, gearHeadings...)
+	// The performance page headings.
+	out = append(out, perfHeadings...)
 	// Then the four categories, by their display names.
 	for c := categoryEmbedding; c <= categoryUnclassified; c++ {
 		// Add the category's heading text.

@@ -1233,8 +1233,8 @@ func TestMainPageGearOnlyForNotLoaded(t *testing.T) {
 		// Report the problem.
 		t.Errorf("a loaded model has a gear")
 	} // end of the loaded check
-	// The loaded row has the empty slot.
-	if strings.Count(body, `class="gearslot"`) != 1 {
+	// The loaded row has two empty slots: one where the performance icon would be, one where the gear would be.
+	if strings.Count(body, `class="gearslot"`) != 2 {
 		// Report the problem.
 		t.Errorf("the loaded row has no empty gear slot")
 	} // end of the slot check
