@@ -1,0 +1,190 @@
+{{/* Performance page template: one page with several versions, chosen by Kind. The comments are template comments, so they never reach the browser. */}}
+{{/* A table of results: the first column holds the indicator (with its help bubble when it has one), the others hold the values. */}}
+{{define "perfgroup"}}
+{{/* The heading of the table, with a bubble when it has one. */}}
+<h2>{{if .Tip.ID}}{{template "tipbox" .Tip}}{{else}}{{.Title}}{{end}}</h2>
+{{/* A sentence under the heading. */}}
+{{if .Note}}<p class="muted">{{.Note}}</p>{{end}}
+{{/* The table, only when it has rows. */}}
+{{if .Rows}}
+<table class="settingtable perftable">
+{{/* The column headings. */}}
+<thead><tr><th scope="col">Indicator</th>{{range .Cols}}<th scope="col">{{.}}</th>{{end}}</tr></thead>
+{{/* The body. */}}
+<tbody>
+{{/* One row for each indicator. */}}
+{{range $r := .Rows}}
+{{/* The row: the first cell names the indicator. */}}
+<tr><th scope="row">{{if $r.Tip.ID}}{{template "tipbox" $r.Tip}}{{else}}{{$r.Label}}{{end}}</th>{{range $i, $c := $r.Cells}}<td data-label="{{index $.Cols $i}}">{{$c}}</td>{{end}}</tr>
+{{/* End of the rows. */}}
+{{end}}
+{{/* End of the body. */}}
+</tbody>
+</table>
+{{/* End of the rows check. */}}
+{{end}}
+{{/* End of the group. */}}
+{{end}}
+{{/* The history table of one model. */}}
+{{define "perfclear"}}
+{{if .HistoryCount}}
+{{/* A small form that sends the model name and the page token to the clear question. */}}
+<form method="post" action="/performance/clear">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="model" value="{{.Model}}">
+<button type="submit" class="btn-plain">Clear all saved results ({{.HistoryCount}})…</button>
+</form>
+{{end}}
+{{end}}
+{{define "perfhistory"}}
+{{/* Only when there are saved runs. */}}
+{{if .HistoryRows}}
+<h2>Saved tests of this model</h2>
+<table class="settingtable perftable">
+{{/* The headings. */}}
+<thead><tr>{{range .HistoryCols}}<th scope="col">{{.}}</th>{{end}}</tr></thead>
+{{/* The body. */}}
+<tbody>
+{{/* One row for each saved run, newest first. */}}
+{{range $row := .HistoryRows}}
+<tr>{{range $i, $c := $row}}<td data-label="{{index $.HistoryCols $i}}">{{$c}}</td>{{end}}</tr>
+{{/* End of the rows. */}}
+{{end}}
+{{/* End of the body. */}}
+</tbody>
+</table>
+{{/* No saved run. */}}
+{{else}}
+<p class="muted">No test of this model is saved yet.</p>
+{{/* End of the check. */}}
+{{end}}
+{{/* Where the numbers are kept, and the button that clears them. */}}
+{{if .SaveNote}}<p class="muted">{{.SaveNote}}</p>{{end}}
+{{end}}
+<!DOCTYPE html>
+{{/* lang tells screen readers which language the page is written in. */}}
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<head>{{/* start of the head. */}}
+{{/* Text encoding. */}}
+<meta charset="utf-8">
+{{/* Fit the page to the width of the screen on phones. */}}
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* The title shown on the browser tab. */}}
+<title>Performance - OllamaControlCenter</title>
+{{/* Our one stylesheet. */}}
+<link rel="stylesheet" href="/app.css">
+{{/* The waiting-message script, only on the start page. */}}
+{{if eq .Kind "start"}}<script src="/loading.js" defer></script>{{end}}
+</head>{{/* end of the head. */}}
+<body>{{/* start of the visible page. */}}
+{{/* The page content. */}}
+<main>
+{{/* A panel that holds the message. */}}
+<section class="panel">
+{{/* The heading names the model, so there is no doubt which one is meant. */}}
+<h1>Performance of <code>{{.Model}}</code></h1>
+{{/* Version 1: the start page. */}}
+{{if eq .Kind "start"}}
+{{/* The caution, with a symbol and a bold lead, so colour is never the only signal. */}}
+<p class="warn" role="note"><strong>⚠ Caution: do not run this while the model is in use.</strong> The test makes the model {{if .Embedding}}work through a text{{else}}write text{{end}}. If a person or a program is using it, the test can slow their work down or wait in line behind it, and your numbers will come out too low. It can also use extra memory, and on a full machine Ollama may unload another model to make room. Run it when Ollama is idle.</p>
+{{/* A second warning when the machine looks busy right now. */}}
+{{if .BusyReason}}
+<p class="warn" role="alert"><strong>⚠ The machine looks busy right now:</strong> {{.BusyReason}}. The figures of a test would be unreliable.</p>
+{{end}}
+{{/* What the test does. */}}
+<p>What the test does, in order:</p>
+<ol>
+<li>One warm-up request loads the model from disk. Its load time is reported as the cold figure.</li>
+<li>Three timed requests follow with the model in memory; each result is the median of the three.</li>
+<li>The monitor reads what Ollama reports about the loaded model, and what the machine looks like.</li>
+<li>The model is unloaded again, so memory is left as it was found.</li>
+</ol>
+<p class="muted">The test uses the same fixed prompt every time ({{if .Embedding}}an embedding model gets the same text{{else}}about 200 tokens; each answer is capped at 64 tokens{{end}}). Time needed: {{.Duration}}. Only numbers are saved, never any text.</p>
+{{/* The two choices side by side. */}}
+<div class="choices" id="choices">
+{{/* The Run form sends the model name and the page token to the second step. */}}
+<form id="perfform" method="post" action="/performance/run" data-loading>
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="model" value="{{.Model}}">
+<button type="submit" class="btn-load">Run the performance test</button>
+</form>
+{{/* The Cancel link simply goes back; nothing was changed. */}}
+<a class="btn-plain" href="/">Back to the monitor</a>
+</div>
+{{/* The waiting box: hidden at first; the script shows it when Run is pressed. */}}
+<div id="loading" role="status" aria-live="polite" hidden>
+<p><strong>Testing, please wait.</strong> Ollama is working on <code>{{.Model}}</code>. Time passed: <span class="elapsed">0 s</span></p>
+<div class="bar" aria-hidden="true"><span class="barfill"></span></div>
+<p class="muted">The bar only shows that work is going on. It is not a percentage. Please do not close this page and do not use the model meanwhile.</p>
+</div>
+{{/* The saved tests. */}}
+{{template "perfhistory" .}}
+{{/* The clear button on its own row. */}}
+<div class="choices">{{template "perfclear" .}}</div>
+{{/* Version 2: the result. */}}
+{{else if eq .Kind "result"}}
+{{/* The warnings. */}}
+{{if .BusyReason}}
+<p class="warn" role="alert"><strong>⚠ The machine looked busy before the test:</strong> {{.BusyReason}}. Treat these figures with care.</p>
+{{end}}
+{{if .LeftLoaded}}
+<p class="warn" role="alert"><strong>⚠ The model could not be unloaded again.</strong> It is still in memory; use the Unload button on the monitor page.</p>
+{{end}}
+{{/* The four tables. */}}
+{{range .Groups}}{{template "perfgroup" .}}{{end}}
+{{/* The saved tests, with the clear button. */}}
+{{template "perfhistory" .}}
+{{/* The links. */}}
+<div class="choices">
+{{template "perfclear" .}}
+<form method="post" action="/performance">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="model" value="{{.Model}}">
+<button type="submit" class="btn-plain">Performance page of this model</button>
+</form>
+<a class="btn-plain" href="/">Back to the monitor</a>
+</div>
+{{/* Version 3: the model is loaded, so no test. */}}
+{{else if eq .Kind "loaded"}}
+<p>This model is loaded now and may be in use, so the test is not run. Unload it first (or wait until nobody uses it), then run the test.</p>
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 4: not installed. */}}
+{{else if eq .Kind "notinstalled"}}
+<p>This model is not installed, so it cannot be tested.</p>
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 5: Ollama does not say what the model can do. */}}
+{{else if eq .Kind "unsupported"}}
+<p>Ollama does not report that this model can write text or make embeddings, so the test cannot judge its speed.</p>
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 6: another test is running. */}}
+{{else if eq .Kind "running"}}
+<p><strong>Another performance test is running.</strong> Two tests at once would disturb each other's figures. Wait until it has finished, then try again.</p>
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 7: ask before clearing. */}}
+{{else if eq .Kind "clearask"}}
+<p class="warn"><strong>⚠ This removes all {{.HistoryCount}} saved test results, for every model.</strong> It cannot be undone.</p>
+<div class="choices">
+<form method="post" action="/performance/clear/confirm">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="model" value="{{.Model}}">
+<button type="submit" class="btn-load">Yes, remove them all</button>
+</form>
+<a class="btn-plain" href="/">Cancel, keep them</a>
+</div>
+{{/* Version 8: cleared. */}}
+{{else if eq .Kind "cleared"}}
+<p><strong>Done.</strong> All saved test results were removed.</p>
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 9: something went wrong. */}}
+{{else}}
+<p><strong>Could not do this.</strong> {{.Detail}}</p>
+{{if .LeftLoaded}}<p class="warn" role="alert"><strong>⚠ The model could not be unloaded again.</strong> It may still be in memory; use the Unload button on the monitor page.</p>{{end}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* End of the versions. */}}
+{{end}}
+{{/* End of the panel. */}}
+</section>
+{{/* End of the content. */}}
+</main>
+</body>{{/* end of the visible page. */}}
+</html>{{/* end of the page. */}}

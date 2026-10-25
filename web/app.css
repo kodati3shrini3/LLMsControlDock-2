@@ -791,6 +791,18 @@ h2 {
   width: max-content;
   /* Never wider than the normal bubble. */
   max-width: min(26rem, 92vw);
+  /* The bubble is tied to its own icon box, so it follows the icon when the page scrolls and stays on the screen (a plain fixed bubble stays where the icon was before scrolling). */
+  position-anchor: --tipicon;
+  /* Its bottom edge sits on the top edge of the icon, so it opens upwards... */
+  bottom: anchor(top);
+  /* ...and its left edge lines up with the icon (the icons are at the left edge of the window). */
+  left: anchor(left);
+  /* No centring shift: the older rule moved it left by half its width. */
+  transform: none;
+  /* A little gap between the bubble and the icon. */
+  margin: 0 0 0.25rem 0;
+  /* If there is no room above (the icon is at the top of the window), open downwards instead. */
+  position-try-fallbacks: flip-block;
 } /* end of rule */
 
 /* The Modelfile text: a monospace box that keeps every line break and space and scrolls sideways instead of cutting lines. */
@@ -1033,4 +1045,105 @@ code {
   font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, "DejaVu Sans Mono", monospace;
   /* Exactly the size of the surrounding text, in headings too. */
   font-size: 1em;
+} /* end of rule */
+
+/* Performance pages: every table uses the same column widths so stacked tables line up. */
+.perftable {
+  /* Fixed layout so widths come from the header cells only. */
+  table-layout: fixed;
+  /* Use the full width of the panel. */
+  width: 100%;
+} /* end of rule */
+
+/* First column (indicator names). */
+.perftable th:nth-child(1) {
+  /* About a quarter of the width. */
+  width: 24%;
+} /* end of rule */
+
+/* Second column (result). */
+.perftable th:nth-child(2) {
+  /* About a third of the width. */
+  width: 32%;
+} /* end of rule */
+
+/* Space above the second-level headings on the performance pages. */
+.panel h2 + table, .panel table + h2 {
+  /* A little air. */
+  margin-top: 0.75rem;
+} /* end of rule */
+
+/* A button that is drawn like a plain link button keeps the page font. */
+button.btn-plain {
+  /* Same font as the page. */
+  font: inherit;
+  /* A hand cursor. */
+  cursor: pointer;
+  /* Transparent background like the link version. */
+  background: transparent;
+} /* end of rule */
+
+/* Every icon box is its own anchor: the name is private to each box, so a bubble finds only its own icon. */
+.gearform .tipbox {
+  /* The name the bubble uses to find this box. */
+  anchor-name: --tipicon;
+  /* Keep the name inside this box, so the boxes of other rows never get mixed up. */
+  anchor-scope: --tipicon;
+} /* end of rule */
+
+/* On a narrow window the bubble spans the window width instead, so it is never cut at the right edge. */
+@media (max-width: 40rem) {
+  /* The icon bubble. */
+  .tip-icon {
+    /* Start near the left edge. */
+    left: 0.5rem;
+    /* End near the right edge. */
+    right: 0.5rem;
+    /* Let the two edges decide the width. */
+    width: auto;
+    /* No upper limit other than the window. */
+    max-width: none;
+  } /* end of rule */
+} /* end of rule */
+
+/* The column headings of the performance tables look like the headings on the main page: the panel colour behind them. */
+.settingtable thead th {
+  /* Panel colour so the heading row differs from the rows. */
+  background: var(--panel);
+} /* end of rule */
+
+/* A model name cell that is pointed at (or has the keyboard focus) rises above the category bands, so its bubble is never hidden under them. */
+.stickycol:hover, .stickycol:focus-within {
+  /* Above the category heading box (3) and the corner cell (4). */
+  z-index: 6;
+} /* end of rule */
+
+/* Buttons and links in a row are exactly the same size and sit on one line. */
+.choices form {
+  /* No outer space, so the form does not push the row out of line. */
+  margin: 0;
+} /* end of rule */
+
+/* Link buttons and real buttons share one box model. */
+.choices .btn-plain, .choices .btn-load {
+  /* Same box for a link and a button. */
+  display: inline-block;
+  /* Same height rule. */
+  box-sizing: border-box;
+  /* Same line height. */
+  line-height: 1.4;
+  /* No outer space. */
+  margin: 0;
+} /* end of rule */
+
+/* The performance tables are drawn like the table on the main page: an outline, white rows and a grey heading row. */
+.perftable {
+  /* The outline in the border colour, like the main table's frame. */
+  border: 2px solid var(--border);
+} /* end of rule */
+
+/* The rows are in the page colour, so the grey heading row stands out from them. */
+.perftable tbody th, .perftable tbody td {
+  /* Page colour behind the rows. */
+  background: var(--bg);
 } /* end of rule */

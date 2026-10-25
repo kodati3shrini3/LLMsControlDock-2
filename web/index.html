@@ -79,7 +79,7 @@
 {{/* Case 4: the table itself. */}}
 {{else}}
 {{/* A hint above the table so people know the dotted headings have help. */}}
-<p class="muted">Point at a dotted heading, or press Tab to reach it, to see what it means. The page icon 📄 shows a model's Modelfile, read-only. The gear ⚙ below it opens the model's inference parameters; it appears only for models that are not loaded. The table scrolls sideways.</p>
+<p class="muted">Point at a dotted heading, or press Tab to reach it, to see what it means. The page icon 📄 shows a model's Modelfile, read-only. The gear ⚙ below it opens the model's inference parameters; it appears only for models that are not loaded. The chart icon 📈 before a model name opens its performance page (a model that is loaded may be in use, so it has none). The table scrolls sideways.</p>
 {{/* The scroll box: it can be reached with Tab, so keyboard users can scroll the table sideways. */}}
 <div class="scrollbox" tabindex="0" role="region" aria-label="Installed models table, scrolls sideways">
 {{/* The table. */}}
@@ -134,7 +134,28 @@
 {{/* A model row; the name and loaded flag let the script compare this page with a fresh copy. */}}
 <tr data-model="{{.Name}}" data-loaded="{{if .Loaded}}1{{else}}0{{end}}">{{/* start of a table row. */}}
 {{/* The model name is the row heading and stays visible while scrolling. */}}
-<th scope="row" class="stickycol">{{.Name}}</th>
+<th scope="row" class="stickycol">
+{{/* The performance icon comes before the name; a loaded model may be in use, so it gets an empty slot of the same width instead, and the names stay in line. */}}
+{{if .Loaded}}<span class="gearslot" aria-hidden="true"></span>{{else}}
+{{/* A small form that sends the model name and the page token to the performance page, which changes nothing. */}}
+<form class="gearform" method="post" action="/performance">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{$.Token}}">
+{{/* The model name. */}}
+<input type="hidden" name="model" value="{{.Name}}">
+{{/* The area that opens the tip: pointing at the icon or reaching it with Tab shows what it is for. */}}
+<span class="tipbox">
+{{/* The button: the symbol is hidden from screen readers, which read the label and the tip instead. */}}
+<button type="submit" class="gear" aria-label="Performance of {{.Name}}" aria-describedby="tipperf-{{.Name}}"><span aria-hidden="true">📈</span></button>
+{{/* The tip. */}}
+<span class="tip tip-icon" role="tooltip" id="tipperf-{{.Name}}">Performance: see how fast this model runs on this machine</span>
+{{/* End of the tip area. */}}
+</span>
+{{/* End of the form. */}}
+</form>
+{{/* End of the performance icon. */}}
+{{end}}
+{{.Name}}</th>
 {{/* The state cell: a dot (solid green when loaded, an empty ring when not) plus the words, so colour is never the only signal. */}}
 <td>
 {{/* Two small icons stacked in a fixed-width column, centred above each other: the Modelfile page icon on top (for every model) and the gear just below it (only for a model that is not loaded; a loaded model gets an empty slot, so the state words stay in line). */}}
