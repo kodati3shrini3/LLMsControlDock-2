@@ -4,6 +4,8 @@ package main
 import ( // import lists the standard-library packages this file uses.
 	// context supplies the (empty) context the fetch functions need.
 	"context"
+	// errors tells a normal shutdown from a real failure.
+	"errors"
 	// flag reads command-line options such as -listen.
 	"flag"
 	// fmt writes formatted text to the terminal.
@@ -116,8 +118,36 @@ func main() {
 
 	// Tell the person which address we are about to serve on.
 	log.Printf("OllamaControlCenter listening on http://%s (press Ctrl+C to stop)", *listen)
+	// Closed when the shutdown that the Stop button started has finished.
+	stopped := make(chan struct{})
+	// The Stop button's last step: shut the web server down, waiting at most 5 seconds for requests that are still running.
+	stopRequest = func() {
+		// In the background, so the request that asked for it can finish.
+		go func() {
+			// A time limit for the polite shutdown.
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			// Release the timer at the end.
+			defer cancel()
+			// Ask politely first.
+			if err := server.Shutdown(ctx); err != nil {
+				// Requests that would not finish are cut off.
+				server.Close()
+			} // end of the shutdown check
+			// Tell main that it can leave.
+			close(stopped)
+		}() // end of the goroutine
+	} // end of stopRequest
 	// Start serving; this call blocks (waits) until the server stops or fails, for example if the port is taken.
 	err = server.ListenAndServe()
-	// If we get here the server has stopped; log.Fatal prints the reason and exits with an error code.
+	// A shutdown asked for by the Stop button is a normal end, not an error.
+	if errors.Is(err, http.ErrServerClosed) {
+		// Wait until the shutdown has finished.
+		<-stopped
+		// Say why the program ends.
+		log.Printf("OllamaControlCenter stopped from its page")
+		// Leave with the success code.
+		return
+	} // end of the normal stop
+	// If we get here the server has stopped for another reason; log.Fatal prints it and exits with an error code.
 	log.Fatal(err)
 } // end of main

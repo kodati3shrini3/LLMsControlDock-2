@@ -1084,7 +1084,7 @@ button.btn-plain {
 } /* end of rule */
 
 /* Every icon box is its own anchor: the name is private to each box, so a bubble finds only its own icon. */
-.gearform .tipbox, .comparebar .tipbox {
+.gearform .tipbox, .comparebar .tipbox, .controls .tipbox {
   /* The name the bubble uses to find this box. */
   anchor-name: --tipicon;
   /* Keep the name inside this box, so the boxes of other rows never get mixed up. */
@@ -1220,4 +1220,163 @@ button.btn-plain {
     /* Near the right edge. */
     right: 0.5rem;
   } /* end of rule */
+} /* end of rule */
+
+/* The right side of the header: the controls and the theme switch side by side, wrapping on a narrow window. */
+.headright {
+  /* Side by side. */
+  display: flex;
+  /* Wrap when the window is narrow. */
+  flex-wrap: wrap;
+  /* Level with each other. */
+  align-items: center;
+  /* Push them to the right edge. */
+  justify-content: flex-end;
+  /* Space between them. */
+  gap: 0.5rem 1rem;
+} /* end of rule */
+
+/* The monitor controls in one row. */
+.controls {
+  /* Side by side. */
+  display: flex;
+  /* Wrap when the window is narrow. */
+  flex-wrap: wrap;
+  /* Level with each other. */
+  align-items: center;
+  /* Space between the buttons. */
+  gap: 0.5rem;
+} /* end of rule */
+
+/* The forms inside the controls take no space of their own. */
+.controls form {
+  /* No outer space. */
+  margin: 0;
+} /* end of rule */
+
+/* The control buttons are small, in the page font. */
+.ctlbtn {
+  /* Same font as the page. */
+  font: inherit;
+  /* A little smaller than body text. */
+  font-size: 0.9rem;
+  /* A hand cursor. */
+  cursor: pointer;
+  /* A link and a button share one box model. */
+  display: inline-block;
+  /* Same box rule. */
+  box-sizing: border-box;
+  /* Same line height. */
+  line-height: 1.4;
+  /* Room inside. */
+  padding: 0.25rem 0.8rem;
+} /* end of rule */
+
+/* The tips of the controls are at the right edge of the window, so each bubble is lined up with its button's right edge and opens towards the left. */
+.controls .tip-icon {
+  /* No left edge: the right edge decides. */
+  left: auto;
+  /* The bubble's right edge sits on the button's right edge. */
+  right: anchor(right);
+} /* end of rule */
+
+/* On a narrow window the bubbles span the window again. */
+@media (max-width: 40rem) {
+  /* The control bubbles. */
+  .controls .tip-icon {
+    /* Near the left edge. */
+    left: 0.5rem;
+    /* Near the right edge. */
+    right: 0.5rem;
+  } /* end of rule */
+} /* end of rule */
+
+/* The small icons inside the control buttons and the status line: they take the text colour, so every computer and both themes show them alike. */
+.ico {
+  /* Sit level with the letters. */
+  vertical-align: -2px;
+  /* A small gap before the words. */
+  margin-right: 0.15rem;
+} /* end of rule */
+
+/* The compare button is blue like the category bands, so it stands out as a feature button; both themes use their own variables. */
+.comparebtn {
+  /* The soft blue of the category bands. */
+  background: var(--cat-bg);
+  /* Dark blue text in light mode, pale blue in dark mode: readable on the fill. */
+  color: var(--cat-text);
+  /* A blue outline. */
+  border-color: var(--cat-accent);
+} /* end of rule */
+
+/* The scale in the compare button is a little bigger than the other icons, with more room before the words. */
+.ico-big {
+  /* More room before the words. */
+  margin-right: 0.35rem;
+  /* Sits level with the words. */
+  vertical-align: -5px;
+} /* end of rule */
+
+/* The icons inside the round icon buttons of the table need no gap and sit in the middle of the line. */
+.gear .ico {
+  /* No gap: there are no words next to them. */
+  margin-right: 0;
+  /* Level with the middle of the line. */
+  vertical-align: middle;
+} /* end of rule */
+
+/* The key above the models table: icon, bold name and a short explanation, in columns that wrap. */
+.legend {
+  /* No bullets. */
+  list-style: none;
+  /* A little room below. */
+  margin: 0 0 0.8rem;
+  /* No inner space. */
+  padding: 0;
+  /* Columns of at least 15rem, as many as fit. */
+  display: grid;
+  /* The column rule. */
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  /* Space between rows and columns. */
+  gap: 0.5rem 1rem;
+} /* end of rule */
+
+/* One entry of the key: icon at the left, words at the right. */
+.legend li {
+  /* Side by side. */
+  display: flex;
+  /* The icon lines up with the first line. */
+  align-items: flex-start;
+  /* Space between icon and words. */
+  gap: 0.55rem;
+  /* A comfortable line height. */
+  line-height: 1.35;
+} /* end of rule */
+
+/* The icon column has a fixed width so the words line up. */
+.legend .sym {
+  /* Never shrinks. */
+  flex: none;
+  /* A fixed width. */
+  min-width: 1.6rem;
+  /* Centred. */
+  text-align: center;
+} /* end of rule */
+
+/* The icons of the key sit level with the first line. */
+.legend .ico {
+  /* No gap. */
+  margin-right: 0;
+  /* A little lower to line up with the text. */
+  vertical-align: -4px;
+} /* end of rule */
+
+/* The key's sample of a dotted heading, drawn the same way as the real ones. */
+.dotsample {
+  /* A dotted underline like the table headings. */
+  text-decoration: underline dotted;
+  /* A little offset so the dots are clear. */
+  text-underline-offset: 3px;
+  /* Bold like a heading. */
+  font-weight: 600;
 } /* end of rule */

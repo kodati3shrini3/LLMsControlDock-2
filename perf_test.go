@@ -1050,7 +1050,7 @@ func TestMainPagePerformanceIcon(t *testing.T) {
 	// The cell of the row heading.
 	cell := row[:strings.Index(row, "</th>")]
 	// Everything must be in the cell, and the name must come last.
-	for _, want := range []string{`action="/performance"`, `aria-label="Performance of embed:1b"`, `id="tipperf-embed:1b"`, "Performance: see how fast this model runs on this machine", "📈"} {
+	for _, want := range []string{`action="/performance"`, `aria-label="Performance of embed:1b"`, `id="tipperf-embed:1b"`, "Performance: see how fast this model runs on this machine", `<svg class="ico"`} {
 		// Look for it.
 		if !strings.Contains(cell, want) {
 			// Report the gap.
@@ -1058,7 +1058,7 @@ func TestMainPagePerformanceIcon(t *testing.T) {
 		} // end of the check
 	} // end of the loop
 	// The name comes after the icon.
-	if !strings.HasSuffix(strings.TrimSpace(cell), "embed:1b") || strings.Index(cell, "📈") > strings.LastIndex(cell, "embed:1b") {
+	if !strings.HasSuffix(strings.TrimSpace(cell), "embed:1b") || strings.Index(cell, `<svg class="ico"`) > strings.LastIndex(cell, "embed:1b") {
 		// Report the problem.
 		t.Errorf("the icon is not before the name")
 	} // end of the order check

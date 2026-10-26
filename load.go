@@ -374,6 +374,8 @@ func loadHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.Hand
 			// A page was already shown.
 			return
 		} // end of the model checks
+		// Tell the Stop page that a load is running; Ollama finishes it by itself, so nothing needs undoing.
+		defer activeWork.begin("loading of "+name+" (Ollama finishes the load by itself)", nil)()
 		// Ask Ollama to load it; this call returns when loading is finished, which can take a while.
 		if _, err := loadModelKeep(r.Context(), addr.URL, name, keep, loadTimeout); err != nil {
 			// Show the plain reason.
