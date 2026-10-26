@@ -55,6 +55,12 @@ type pageData struct {
 	Token string
 	// CompareCount is how many models have a saved performance test that can be compared.
 	CompareCount int
+	// Paused is true when the person paused the automatic updates (a cookie remembers it).
+	Paused bool
+	// RefreshSeconds is how often the page updates itself while it is being watched.
+	RefreshSeconds int
+	// UpdatedAt is the time of day this page was made, so a person can see how fresh it is.
+	UpdatedAt string
 } // end of pageData
 
 // secureHeaders wraps a handler so every reply, including errors, carries the same safety headers.
@@ -125,6 +131,14 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	mux.HandleFunc("POST /performance/clear/confirm", perfClearDo)
 	// Route: a POST request for "/compare" shows the comparison of the tested models and changes nothing.
 	mux.HandleFunc("POST /compare", compareHandler(addr, token, perfHistory))
+	// Route: a POST request for "/watch" pauses or resumes the automatic updates of the page.
+	mux.HandleFunc("POST /watch", watchHandler(token))
+	// The two steps of stopping the monitor.
+	stopAsk, stopConfirm := stopHandlers(token)
+	// Route: a POST request for "/stop" asks whether to stop the monitor and changes nothing.
+	mux.HandleFunc("POST /stop", stopAsk)
+	// Route: a POST request for "/stop/confirm" sends the last page and stops the monitor.
+	mux.HandleFunc("POST /stop/confirm", stopConfirm)
 	// Route: a GET request for "/countdown.js" sends the small script that makes the timers tick (only the message pages use it).
 	mux.HandleFunc("GET /countdown.js", countdownHandler)
 	// Route: a GET request for "/loading.js" sends the small script that shows the waiting message while a model loads (only the load warning page uses it).
@@ -153,6 +167,12 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 			Token: token,
 			// How many models can be compared.
 			CompareCount: perfHistory.testedModels(),
+			// Whether the automatic updates are paused.
+			Paused: watchPaused(r),
+			// The update interval.
+			RefreshSeconds: watchRefreshSeconds,
+			// When this page was made.
+			UpdatedAt: time.Now().Format("15:04:05 MST"),
 		} // end of the data
 		// Only an online Ollama can be asked for its model lists.
 		if res.Online {

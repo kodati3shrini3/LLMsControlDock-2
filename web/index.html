@@ -13,6 +13,8 @@
 <title>OllamaControlCenter</title>
 {{/* Load our own stylesheet; the safety policy allows only styles from this same address. */}}
 <link rel="stylesheet" href="/app.css">
+{{/* While the page is being watched it reloads itself; Pause removes this line. It needs no script. */}}
+{{if not .Paused}}<meta http-equiv="refresh" content="{{.RefreshSeconds}}">{{end}}
 </head>{{/* end of the head. */}}
 <body>{{/* start of the visible page. */}}
 {{/* The page header. */}}
@@ -23,7 +25,49 @@
 <h1>OllamaControlCenter</h1>
 {{/* Show which Ollama is being watched and which setting supplied the address; a password in it is already hidden. */}}
 <p class="muted">Watching Ollama at <code>{{.Address}}</code> (from {{.AddressSource}})</p>
+{{/* Says whether the page updates by itself, and how fresh it is; the symbol and the words carry the meaning. */}}
+<p class="muted" id="watchline">{{if .Paused}}<svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg> Paused: the page does not update by itself. Page made at {{.UpdatedAt}}.{{else}}<svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg> Watching: the page updates itself every {{.RefreshSeconds}} seconds. Page made at {{.UpdatedAt}}.{{end}}</p>
 {{/* End of the title block. */}}
+</div>
+{{/* The right side of the header: the monitor controls, then the theme switch. */}}
+<div class="headright">
+{{/* The monitor controls: pause or resume, refresh, and stop. */}}
+<div class="controls" role="group" aria-label="Monitor controls">
+{{/* Pause or Resume: one small form that sends the page token and the wanted action. */}}
+<form method="post" action="/watch">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* The area that opens the tip. */}}
+<span class="tipbox">
+{{/* While watching the button pauses; while paused it resumes. */}}
+{{if .Paused}}
+<button type="submit" name="action" value="resume" class="btn-plain ctlbtn" aria-describedby="tipwatch"><svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg> Resume</button>
+<span class="tip tip-icon" role="tooltip" id="tipwatch">Make the page update itself every {{.RefreshSeconds}} seconds again</span>
+{{else}}
+<button type="submit" name="action" value="pause" class="btn-plain ctlbtn" aria-describedby="tipwatch"><svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg> Pause</button>
+<span class="tip tip-icon" role="tooltip" id="tipwatch">Stop the page from updating by itself; it keeps showing what it shows now until you resume or refresh</span>
+{{end}}
+{{/* End of the tip area. */}}
+</span>
+{{/* End of the pause form. */}}
+</form>
+{{/* Refresh: a plain link to the page, which asks Ollama once, right now. */}}
+<span class="tipbox">
+<a class="btn-plain ctlbtn" href="/" aria-describedby="tiprefresh"><svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 8a5 5 0 1 1-1.6-3.7"/><path d="M13 2.5V5h-2.5"/></svg> Refresh</a>
+<span class="tip tip-icon" role="tooltip" id="tiprefresh">Check Ollama once, right now</span>
+</span>
+{{/* Stop: a small form that goes to the question page; nothing is stopped yet. */}}
+<form method="post" action="/stop">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* The area that opens the tip. */}}
+<span class="tipbox">
+<button type="submit" class="unload ctlbtn" aria-describedby="tipstop"><svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><rect x="3" y="3" width="10" height="10" rx="1.5"/></svg> Stop</button>
+<span class="tip tip-icon" role="tooltip" id="tipstop">Stop this OllamaControlCenter monitor program (it asks first; Ollama and its models are not touched)</span>
+</span>
+{{/* End of the stop form. */}}
+</form>
+{{/* End of the controls. */}}
 </div>
 {{/* The theme form on the right: it sends the choice to the monitor, which saves it in a cookie. */}}
 <form class="themeform" method="post" action="/theme">
@@ -41,6 +85,8 @@
 <button type="submit" name="theme" value="light" class="switch to-light" aria-label="Switch to light theme"><span class="knob" aria-hidden="true">☾</span></button>
 {{/* End of the theme form. */}}
 </form>
+{{/* End of the right side of the header. */}}
+</div>
 </header>{{/* end of the header. */}}
 {{/* The main content area. */}}
 <main>
@@ -76,7 +122,7 @@
 {{/* The area that opens the tip. */}}
 <span class="tipbox">
 {{/* The button: the symbol is hidden from screen readers, which read the words. */}}
-<button type="submit" class="btn-plain comparebtn" aria-describedby="tipcompare"><span aria-hidden="true">⚖</span> Compare tested models ({{.CompareCount}})</button>
+<button type="submit" class="btn-plain comparebtn" aria-describedby="tipcompare"><svg class="ico ico-big" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M7 21h10"/><path d="M4 7h16"/><path d="M4 7l-2.5 7a3.5 3.5 0 0 0 5 0z"/><path d="M20 7l-2.5 7a3.5 3.5 0 0 0 5 0z"/></svg> Compare tested models ({{.CompareCount}})</button>
 {{/* The tip. */}}
 <span class="tip tip-icon" role="tooltip" id="tipcompare">Compare models that have already been through a performance test</span>
 {{/* End of the tip area. */}}
@@ -102,7 +148,15 @@
 {{/* Case 4: the table itself. */}}
 {{else}}
 {{/* A hint above the table so people know the dotted headings have help. */}}
-<p class="muted">Point at a dotted heading, or press Tab to reach it, to see what it means. The page icon 📄 shows a model's Modelfile, read-only. The gear ⚙ below it opens the model's inference parameters; it appears only for models that are not loaded. The chart icon 📈 before a model name opens its performance page (a model that is loaded may be in use, so it has none). The button Compare tested models, at the top right of this panel, puts the tested models side by side. The table scrolls sideways.</p>
+{{/* A key above the table: what each symbol and the dotted headings do. */}}
+<ul class="legend muted" aria-label="How to read this table">
+<li><span class="sym"><span class="dotsample">Aa</span></span><span><strong>Dotted headings</strong>: point at one, or press Tab, to see what it means</span></li>
+<li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M7 8l-4 4 4 4"/><path d="M17 8l4 4-4 4"/></svg></span><span><strong>Sideways scroll</strong>: the table scrolls sideways</span></li>
+<li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></span><span><strong>Modelfile</strong>: shows a model&#39;s Modelfile, read-only</span></li>
+<li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg></span><span><strong>Inference parameters</strong>: view and modify them; only for models that are not loaded</span></li>
+<li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></span><span><strong>Performance</strong>: before a model name; only for models that are not loaded</span></li>
+<li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M7 21h10"/><path d="M4 7h16"/><path d="M4 7l-2.5 7a3.5 3.5 0 0 0 5 0z"/><path d="M20 7l-2.5 7a3.5 3.5 0 0 0 5 0z"/></svg></span><span><strong>Compare tested models</strong>: the button at the top right of this panel</span></li>
+</ul>
 {{/* The scroll box: it can be reached with Tab, so keyboard users can scroll the table sideways. */}}
 <div class="scrollbox" tabindex="0" role="region" aria-label="Installed models table, scrolls sideways">
 {{/* The table. */}}
@@ -169,7 +223,7 @@
 {{/* The area that opens the tip: pointing at the icon or reaching it with Tab shows what it is for. */}}
 <span class="tipbox">
 {{/* The button: the symbol is hidden from screen readers, which read the label and the tip instead. */}}
-<button type="submit" class="gear" aria-label="Performance of {{.Name}}" aria-describedby="tipperf-{{.Name}}"><span aria-hidden="true">📈</span></button>
+<button type="submit" class="gear" aria-label="Performance of {{.Name}}" aria-describedby="tipperf-{{.Name}}"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></button>
 {{/* The tip. */}}
 <span class="tip tip-icon" role="tooltip" id="tipperf-{{.Name}}">Performance: see how fast this model runs on this machine</span>
 {{/* End of the tip area. */}}
@@ -192,7 +246,7 @@
 {{/* The area that opens the tip. */}}
 <span class="tipbox">
 {{/* The button: the symbol is hidden from screen readers, which read the label and the tip instead. */}}
-<button type="submit" class="gear" aria-label="Modelfile of {{.Name}}" aria-describedby="tipfile-{{.Name}}"><span aria-hidden="true">📄</span></button>
+<button type="submit" class="gear" aria-label="Modelfile of {{.Name}}" aria-describedby="tipfile-{{.Name}}"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></button>
 {{/* The tip. */}}
 <span class="tip tip-icon" role="tooltip" id="tipfile-{{.Name}}">Show the model's Modelfile (read-only)</span>
 {{/* End of the tip area. */}}
@@ -209,9 +263,9 @@
 {{/* The area that opens the tip: pointing at the gear or reaching it with Tab shows what it is for. */}}
 <span class="tipbox">
 {{/* The button: the symbol is hidden from screen readers, which read the label and the tip instead. */}}
-<button type="submit" class="gear" aria-label="Inference parameters of {{.Name}}" aria-describedby="tipgear-{{.Name}}"><span aria-hidden="true">⚙</span></button>
+<button type="submit" class="gear" aria-label="Inference parameters of {{.Name}}" aria-describedby="tipgear-{{.Name}}"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg></button>
 {{/* The tip. */}}
-<span class="tip tip-icon" role="tooltip" id="tipgear-{{.Name}}">View the model's Inference parameters</span>
+<span class="tip tip-icon" role="tooltip" id="tipgear-{{.Name}}">View and modify the model's Inference parameters</span>
 {{/* End of the tip area. */}}
 </span>
 {{/* End of the form. */}}

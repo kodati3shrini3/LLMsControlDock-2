@@ -2,6 +2,8 @@
 package main
 
 import ( // import lists the standard-library packages this file uses.
+	// context carries the time limit of the clean-up.
+	"context"
 	// bytes builds the page in memory before it is sent.
 	"bytes"
 	// embed stores the page template inside the executable.
@@ -588,6 +590,13 @@ func perfHandlers(addr ollamaAddress, token string, store *perfStore) (http.Hand
 		} // end of the lock check
 		// Release it when done.
 		defer runLock.Unlock()
+		// Tell the Stop page that a test is running, and how to undo it: unload the model the test loaded.
+		defer activeWork.begin("a performance test of "+name+" (Stop cancels it and unloads the model first)", func(ctx context.Context) {
+			// Ask Ollama to unload the model; the answer does not matter here.
+			unloadModel(ctx, addr.URL, name, defaultCheckTimeout)
+			// Wait until it is really gone, within the time limit.
+			waitUntilGone(ctx, addr.URL, name, defaultCheckTimeout)
+		})()
 		// The Ollama version, for the record.
 		version := checkOllama(r.Context(), addr.URL, defaultCheckTimeout).Version
 		// Run the test.

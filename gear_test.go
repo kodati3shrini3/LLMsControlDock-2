@@ -1221,7 +1221,7 @@ func TestMainPageGearOnlyForNotLoaded(t *testing.T) {
 	// Fetch the page.
 	_, _, body := get(t, rig.h, http.MethodGet, "/")
 	// The not-loaded model has a gear form with an accessible name.
-	for _, want := range []string{`action="/gear"`, `aria-label="Inference parameters of embed:1b"`, `class="gear"`, `id="tipgear-embed:1b"`, `View the model's Inference parameters`} {
+	for _, want := range []string{`action="/gear"`, `aria-label="Inference parameters of embed:1b"`, `class="gear"`, `id="tipgear-embed:1b"`, `View and modify the model's Inference parameters`} {
 		// Look for it.
 		if !strings.Contains(body, want) {
 			// Report the gap.
@@ -1243,8 +1243,8 @@ func TestMainPageGearOnlyForNotLoaded(t *testing.T) {
 		// Report the problem.
 		t.Errorf("gear position: %d %d", i, j)
 	} // end of the order check
-	// The hint line explains the gear.
-	if !strings.Contains(body, "appears only for models that are not loaded") {
+	// The key above the table explains the parameters icon.
+	if !strings.Contains(body, "only for models that are not loaded") {
 		// Report the problem.
 		t.Errorf("no hint about the gear")
 	} // end of the hint check
