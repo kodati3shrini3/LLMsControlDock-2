@@ -121,8 +121,12 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	perfHistory := openPerfStore(histPath, histNote)
 	// The deleted models are remembered in a small file next to the history (kept out of GitHub by .gitignore).
 	deletedList := openDeletedStore(deletedPathFor(histPath))
-	// The five delete and restore handlers.
-	delAsk, delConfirm, delForce, restoreInfo, restoreForget := deleteHandlers(addr, token, deletedList)
+	// The folder for the snapshots of deleted models' parameters ("history" next to the program, kept out of GitHub by .gitignore).
+	histDir, histDirNote := defaultHistoryDir()
+	// The snapshot store.
+	historyDir := &historyStore{dir: histDir, note: histDirNote}
+	// The six delete and restore handlers.
+	delAsk, delConfirm, delForce, restoreInfo, restoreForget, restoreHistory := deleteHandlers(addr, token, deletedList, historyDir)
 	// The first delete step: shows the warning, changes nothing.
 	mux.HandleFunc("POST /delete", delAsk)
 	// The second step for a model that is not loaded.
@@ -133,6 +137,8 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	mux.HandleFunc("POST /restore", restoreInfo)
 	// Remove a greyed row.
 	mux.HandleFunc("POST /restore/forget", restoreForget)
+	// The read-only list of parameter snapshots of a deleted model.
+	mux.HandleFunc("POST /restore/history", restoreHistory)
 	// The four handlers of the performance pages.
 	perfStart, perfRun, perfClearAsk, perfClearDo := perfHandlers(addr, token, perfHistory)
 	// Route: a POST request for "/performance" shows the performance page and changes nothing.
