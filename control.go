@@ -197,6 +197,8 @@ func watchHandler(token string) http.HandlerFunc {
 type controlPage struct {
 	// Theme is the colour scheme asked for in the cookie, or empty.
 	Theme string
+	// Size is the saved text size, medium, or empty for the browser's own size.
+	Size string
 	// Token is the page token for the confirm form.
 	Token string
 	// Kind is stopask (the question) or stopped (the last page).
@@ -243,6 +245,8 @@ func stopHandlers(token string) (http.HandlerFunc, http.HandlerFunc) {
 	show := func(w http.ResponseWriter, r *http.Request, data controlPage) {
 		// What every version needs.
 		data.Theme, data.Token = themeFromRequest(r), token
+		// The saved text size, from the cookie; empty means the browser's own size.
+		data.Size = sizeFromRequest(r)
 		// Build the page.
 		var buf bytes.Buffer
 		// Run the template.

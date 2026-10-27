@@ -61,6 +61,8 @@ type cmpTable struct {
 type comparePage struct {
 	// Theme is the colour scheme asked for in the address, or empty.
 	Theme string
+	// Size is the saved text size, medium, or empty for the browser's own size.
+	Size string
 	// Token is the page token for the "Back" form.
 	Token string
 	// Tables are the comparison tables (text models, embedding models).
@@ -552,6 +554,8 @@ func compareHandler(addr ollamaAddress, token string, store *perfStore) http.Han
 		data := buildCompare(runs, skipped, installed, err == nil)
 		// Add what every page needs.
 		data.Theme, data.Token = themeFromRequest(r), token
+		// The saved text size, from the cookie; empty means the browser's own size.
+		data.Size = sizeFromRequest(r)
 		// Where the figures live.
 		path, note := store.where()
 		// A file, or the reason there is none.

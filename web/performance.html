@@ -25,6 +25,33 @@
 {{end}}
 {{/* End of the group. */}}
 {{end}}
+{{/* The table of what is saved, one line per model, with the year and the time zone in the dates. */}}
+{{define "impact"}}
+<table class="settingtable">
+<thead><tr><th>Model</th><th>Tests saved</th><th>First test</th><th>Latest test</th><th>Latest speed</th></tr></thead>
+<tbody>
+{{range .Summaries}}
+<tr><td><code>{{.Model}}</code>{{if .This}} <span class="muted">(this model)</span>{{end}}</td><td>{{.Tests}}</td><td>{{.First}}</td><td>{{.Latest}}</td><td>{{.Speed}}</td></tr>
+{{end}}
+</tbody>
+</table>
+{{end}}
+{{/* Before removal: whether a safety copy will be kept. */}}
+{{define "copyplan"}}
+{{if .CopyPlanBad}}
+<p class="warn" role="alert"><strong>⚠ No copy can be kept.</strong> {{.CopyPlan}}</p>
+{{else}}
+<p class="goodnote">{{.CopyPlan}}</p>
+{{end}}
+{{end}}
+{{/* After removal: where the safety copy is, or why there is none. */}}
+{{define "copydone"}}
+{{if .CopyFile}}
+<p class="goodnote">A copy of the removed results was saved as <code>{{.CopyFile}}</code>.</p>
+{{else if .CopyErr}}
+<p class="warn" role="alert"><strong>⚠ No copy was kept.</strong> {{.CopyErr}}</p>
+{{end}}
+{{end}}
 {{/* The history table of one model. */}}
 {{define "perfclear"}}
 {{if .HistoryCount}}
@@ -63,7 +90,7 @@
 {{end}}
 <!DOCTYPE html>
 {{/* lang tells screen readers which language the page is written in. */}}
-<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}{{if .Size}} data-size="{{.Size}}"{{end}}>
 <head>{{/* start of the head. */}}
 {{/* Text encoding. */}}
 <meta charset="utf-8">
@@ -160,20 +187,90 @@
 {{else if eq .Kind "running"}}
 <p><strong>Another performance test is running.</strong> Two tests at once would disturb each other's figures. Wait until it has finished, then try again.</p>
 <p><a class="btn-plain" href="/">Back to the monitor</a></p>
-{{/* Version 7: ask before clearing. */}}
+{{/* Version 7: ask before clearing everything; it shows what would be lost. */}}
 {{else if eq .Kind "clearask"}}
-<p class="warn"><strong>⚠ This removes all {{.HistoryCount}} saved test results, for every model.</strong> It cannot be undone.</p>
+{{/* Nothing saved: nothing to remove. */}}
+{{if not .HistoryCount}}
+<p>There are no saved test results to remove.</p>
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Something is saved. */}}
+{{else}}
+{{/* The loss, in a red box. */}}
+<div class="lossbox"><strong>⚠ You are about to permanently remove all {{.HistoryCount}} saved test results, for every model.</strong> It cannot be undone.</div>
+{{/* What exactly is saved. */}}
+<h2>What you lose</h2>
+{{template "impact" .}}
+{{/* What stops working. */}}
+<h2>What stops working</h2>
+<ul>
+{{if .CompareNow}}
+<li><strong>Compare tested models</strong> becomes empty (now: {{.CompareNow}} {{if eq .CompareNow 1}}model{{else}}models{{end}}) until each model is tested again.</li>
+{{end}}
+<li>Every model needs a new performance test, which loads it into memory again.</li>
+</ul>
+{{/* What is safe. */}}
+<p class="muted">Not affected: the models themselves, their settings, and the delete history.</p>
+{{/* Whether a copy is kept. */}}
+{{template "copyplan" .}}
+{{/* The choices: the safe one first, the destructive one last. */}}
 <div class="choices">
+<a class="btn-load" href="/">Cancel, keep them</a>
+{{/* The smaller removal. */}}
+<form method="post" action="/performance/clear/model">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="model" value="{{.Model}}">
+{{if .RemoveCount}}<button type="submit" class="btn-plain">Remove only {{.Model}} ({{.RemoveCount}} {{if eq .RemoveCount 1}}result{{else}}results{{end}})</button>{{end}}
+</form>
+{{/* The removal of everything. */}}
 <form method="post" action="/performance/clear/confirm">
 <input type="hidden" name="token" value="{{.Token}}">
 <input type="hidden" name="model" value="{{.Model}}">
-<button type="submit" class="btn-load">Yes, remove them all</button>
+<button type="submit" class="btn-solid">Yes, remove all {{.HistoryCount}} results</button>
 </form>
-<a class="btn-plain" href="/">Cancel, keep them</a>
 </div>
-{{/* Version 8: cleared. */}}
+{{/* End of the saved check. */}}
+{{end}}
+{{/* Version 8: everything cleared. */}}
 {{else if eq .Kind "cleared"}}
 <p><strong>Done.</strong> All saved test results were removed.</p>
+{{template "copydone" .}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 7b: ask before clearing one model's results. */}}
+{{else if eq .Kind "clearoneask"}}
+{{/* The loss, in a red box. */}}
+<div class="lossbox"><strong>⚠ You are about to permanently remove the {{.RemoveCount}} saved test {{if eq .RemoveCount 1}}result{{else}}results{{end}} of <code>{{.Model}}</code>.</strong> It cannot be undone.{{if .OtherCount}} The {{.OtherCount}} {{if eq .OtherCount 1}}result{{else}}results{{end}} of other models stay.{{end}}</div>
+{{/* What exactly is saved for this model. */}}
+<h2>What you lose</h2>
+{{template "impact" .}}
+{{/* What stops working. */}}
+<h2>What stops working</h2>
+<ul>
+{{if .InCompare}}
+<li><code>{{.Model}}</code> leaves the list in <strong>Compare tested models</strong> until it is tested again.</li>
+{{end}}
+<li>Its saved test history shows empty until the model is tested again, which loads it into memory.</li>
+</ul>
+{{/* What is safe. */}}
+<p class="muted">Not affected: the model itself, its settings, the delete history and the results of other models.</p>
+{{/* Whether a copy is kept. */}}
+{{template "copyplan" .}}
+{{/* The choices: the safe one first. */}}
+<div class="choices">
+<a class="btn-load" href="/">Cancel, keep them</a>
+<form method="post" action="/performance/clear/model/confirm">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="model" value="{{.Model}}">
+<button type="submit" class="btn-solid">Yes, remove these {{.RemoveCount}} {{if eq .RemoveCount 1}}result{{else}}results{{end}}</button>
+</form>
+</div>
+{{/* Version 8b: one model's results were removed. */}}
+{{else if eq .Kind "clearonedone"}}
+<p><strong>Done.</strong> The {{.RemoveCount}} saved test {{if eq .RemoveCount 1}}result{{else}}results{{end}} of <code>{{.Model}}</code> {{if eq .RemoveCount 1}}was{{else}}were{{end}} removed.</p>
+{{template "copydone" .}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 8c: nothing saved for this model. */}}
+{{else if eq .Kind "clearonenone"}}
+<p>There are no saved test results for <code>{{.Model}}</code>.</p>
 <p><a class="btn-plain" href="/">Back to the monitor</a></p>
 {{/* Version 9: something went wrong. */}}
 {{else}}

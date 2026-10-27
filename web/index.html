@@ -1,7 +1,7 @@
 {{/* Page template: the comments in this file are template comments, so they never reach the browser. */}}
 <!DOCTYPE html>
 {{/* lang tells screen readers which language the page is written in. */}}
-<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}{{if .Size}} data-size="{{.Size}}"{{end}}>
 <head>{{/* start of the head. */}}
 {{/* Use UTF-8 so the symbols in the status line display correctly. */}}
 <meta charset="utf-8">
@@ -23,6 +23,8 @@
 <div>
 {{/* The main heading. */}}
 <h1>OllamaControlCenter</h1>
+{{/* A quiet line under the title: who is behind the program, with a link that opens in a new window. */}}
+<p class="brandline">by <a href="{{.HeaderURL}}" target="_blank" rel="noopener noreferrer">{{.CompanyName}}<span class="sr-only"> (opens in a new window)</span></a> &middot; {{.CompanyAILine}}</p>
 {{/* Show which Ollama is being watched and which setting supplied the address; a password in it is already hidden. */}}
 <p class="muted">Watching Ollama at <code>{{.Address}}</code> (from {{.AddressSource}})</p>
 {{/* Says whether the page updates by itself, and how fresh it is; the symbol and the words carry the meaning. */}}
@@ -69,6 +71,44 @@
 </form>
 {{/* End of the controls. */}}
 </div>
+{{/* The two look switches are stacked: the text size on top, the theme below it. */}}
+<div class="lookstack">
+{{/* The text size form: it sends the choice to the monitor, which saves it in a cookie; Large is the browser's own size, Medium is 81 percent of it. */}}
+<form class="themeform" method="post" action="/textsize">
+{{/* The page token proves the form comes from this page. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* A small Auto button, shown only while Medium is saved, to go back to following the browser's text size. */}}
+{{if .Size}}
+{{/* Its own help bubble, which works from the keyboard as well as the mouse. */}}
+<span class="tipbox">
+{{/* The button sends the word auto, which deletes the cookie. */}}
+<button type="submit" name="size" value="auto" class="autobtn" aria-describedby="tipsizeauto" aria-label="Follow the browser's text size">Auto</button>
+{{/* The bubble. */}}
+<span class="tip tip-icon" role="tooltip" id="tipsizeauto">Go back to your browser's own text size</span>
+{{/* End of the Auto box. */}}
+</span>
+{{/* End of the Auto button. */}}
+{{end}}
+{{/* The label and the switch share one help bubble. */}}
+<span class="tipbox">
+{{/* A short label, "Text" (not "Aa", which the key box already uses for dotted headings); the bubble explains the two sizes. */}}
+<span class="sizelabel" aria-hidden="true">Text</span>
+{{/* Medium is saved: the knob shows M on the left; a click goes back to Large. */}}
+{{if eq .Size "medium"}}
+<button type="submit" name="size" value="large" class="switch" aria-describedby="tipsize" aria-label="Text size is Medium; switch to Large"><span class="knob knob-letter" aria-hidden="true">M</span></button>
+{{/* The bubble for Medium. */}}
+<span class="tip tip-icon" role="tooltip" id="tipsize">Text size: now Medium (M), 81% of your browser's text size. Click for Large (L), your browser's own size.</span>
+{{/* Large is in use: the knob shows L on the right; a click goes to Medium. */}}
+{{else}}
+<button type="submit" name="size" value="medium" class="switch switch-right" aria-describedby="tipsize" aria-label="Text size is Large; switch to Medium"><span class="knob knob-letter" aria-hidden="true">L</span></button>
+{{/* The bubble for Large. */}}
+<span class="tip tip-icon" role="tooltip" id="tipsize">Text size: now Large (L), your browser's own text size. Click for Medium (M), 81% of it.</span>
+{{/* End of the size choice. */}}
+{{end}}
+{{/* End of the label and switch box. */}}
+</span>
+{{/* End of the text size form. */}}
+</form>
 {{/* The theme form on the right: it sends the choice to the monitor, which saves it in a cookie. */}}
 <form class="themeform" method="post" action="/theme">
 {{/* The page token proves the form comes from this page. */}}
@@ -85,6 +125,8 @@
 <button type="submit" name="theme" value="light" class="switch to-light" aria-label="Switch to light theme"><span class="knob" aria-hidden="true">☾</span></button>
 {{/* End of the theme form. */}}
 </form>
+{{/* End of the stacked switches. */}}
+</div>
 {{/* End of the right side of the header. */}}
 </div>
 </header>{{/* end of the header. */}}
@@ -156,7 +198,7 @@
 <li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg></span><span><strong>Inference parameters</strong>: view and modify them; only for models that are not loaded</span></li>
 <li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></span><span><strong>Performance</strong>: before a model name; only for models that are not loaded</span></li>
 <li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></span><span><strong>Delete</strong>: removes a model from this computer; asks first</span></li>
-<li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/></svg></span><span><strong>Restore</strong>: on a greyed, deleted row; shows how to download the model again</span></li>
+<li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/></svg></span><span><strong>Restore</strong>: on a greyed, deleted row; how to download it again, and the parameters it had</span></li>
 <li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M7 21h10"/><path d="M4 7h16"/><path d="M4 7l-2.5 7a3.5 3.5 0 0 0 5 0z"/><path d="M20 7l-2.5 7a3.5 3.5 0 0 0 5 0z"/></svg></span><span><strong>Compare tested models</strong>: the button at the top right of this panel</span></li>
 </ul>
 {{/* The scroll box: it can be reached with Tab, so keyboard users can scroll the table sideways. */}}
@@ -364,7 +406,7 @@
 {{/* The button. */}}
 <button type="submit" class="gear gear-restore" aria-label="Restore {{.Name}}" aria-describedby="tiprestore-{{.Name}}"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/></svg></button>
 {{/* The tip. */}}
-<span class="tip tip-icon" role="tooltip" id="tiprestore-{{.Name}}">Restore: how to download this model again</span>
+<span class="tip tip-icon" role="tooltip" id="tiprestore-{{.Name}}">Restore: how to download this model again, and the parameters it had</span>
 {{/* End of the tip area. */}}
 </span>
 {{/* End of the form. */}}
@@ -390,6 +432,26 @@
 </section>
 {{/* End of the main content. */}}
 </main>
+{{/* The footer bar: the company, its tagline, a way to the About page and a way to the company website. */}}
+<footer class="brandbar" aria-label="About this program and its developer">
+{{/* The logo and the words on the left; the logo carries the company name for screen readers. */}}
+<div class="brandwho">
+{{/* The miniature logo, served from this program. */}}
+<img class="brandlogo" src="/termgate-logo.png" width="89" height="48" alt="termGate Consulting logo">
+{{/* The tagline and the AI line. */}}
+<span>{{.CompanyTagline}} {{.CompanyAILine}}</span>
+{{/* End of the words. */}}
+</div>
+{{/* The two buttons on the right. */}}
+<div class="brandbtns">
+{{/* The About page of this program. */}}
+<a class="brandbtn" href="/about">About this program</a>
+{{/* The company website, in a new window with no link back and no referrer. */}}
+<a class="brandbtn brandbtn-main" href="{{.FooterURL}}" target="_blank" rel="noopener noreferrer">Visit termgate.com &#8599;<span class="sr-only"> (opens in a new window)</span></a>
+{{/* End of the buttons. */}}
+</div>
+{{/* End of the footer bar. */}}
+</footer>
 {{/* The monitor's own script ticks the timers and asks the monitor for fresh figures every few seconds; it is loaded only when a table is shown. */}}
 {{if .HasTable}}<script src="/countdown.js" defer></script>{{end}}
 </body>{{/* end of the visible page. */}}

@@ -87,7 +87,7 @@ type deletedRow struct {
 	Name string
 	// SizeText is the size it had, in words.
 	SizeText string
-	// WhenText is the deletion time in words, in the computer's own time zone.
+	// WhenText is the deletion time in words, with the year and the computer's own time zone.
 	WhenText string
 } // end of deletedRow
 
@@ -103,7 +103,7 @@ func deletedRows(items []deletedModel, installed []installedModel) []deletedRow 
 			continue
 		} // end of the installed check
 		// Add the row.
-		rows = append(rows, deletedRow{Name: d.Name, SizeText: formatSize(d.Size), WhenText: d.DeletedAt.Local().Format("2 Jan 15:04")})
+		rows = append(rows, deletedRow{Name: d.Name, SizeText: formatSize(d.Size), WhenText: d.DeletedAt.Local().Format("2 Jan 2006 15:04 MST")})
 	} // end of the loop
 	// Hand back.
 	return rows

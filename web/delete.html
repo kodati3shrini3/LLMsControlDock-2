@@ -1,7 +1,7 @@
 {{/* Delete page template: one page with several versions, chosen by Kind. The comments are template comments, so they never reach the browser. */}}
 <!DOCTYPE html>
 {{/* lang tells screen readers which language the page is written in. */}}
-<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}{{if .Size}} data-size="{{.Size}}"{{end}}>
 <head>{{/* start of the head. */}}
 {{/* Text encoding. */}}
 <meta charset="utf-8">
@@ -27,6 +27,8 @@
 {{if .LibText}}<p class="{{if eq .LibClass "ok"}}goodnote{{else}}warn{{end}}" role="{{if eq .LibClass "ok"}}status{{else}}alert{{end}}">{{.LibText}}</p>{{end}}
 {{/* The loss of tuning gets its own box, because it is the part people forget. */}}
 <div class="lossbox" role="alert"><strong>You lose your tuning.</strong> Inference parameters you changed here are deleted with the model. A restored model comes back with the default parameters, so you must tune it again.</div>
+{{/* What will be kept about the model's inference parameters. */}}
+{{if .SnapText}}<p class="{{if eq .SnapClass "ok"}}goodnote{{else}}warn{{end}}">{{.SnapText}}</p>{{end}}
 {{/* The consequences, one by one. */}}
 <ul>
 {{/* Disk space. */}}
@@ -67,6 +69,8 @@
 {{if .LibText}}<p class="{{if eq .LibClass "ok"}}goodnote{{else}}warn{{end}}" role="{{if eq .LibClass "ok"}}status{{else}}alert{{end}}">{{.LibText}}</p>{{end}}
 {{/* The loss of tuning gets its own box, because it is the part people forget. */}}
 <div class="lossbox" role="alert"><strong>You lose your tuning.</strong> Inference parameters you changed here are deleted with the model. A restored model comes back with the default parameters, so you must tune it again.</div>
+{{/* What will be kept about the model's inference parameters. */}}
+{{if .SnapText}}<p class="{{if eq .SnapClass "ok"}}goodnote{{else}}warn{{end}}">{{.SnapText}}</p>{{end}}
 {{/* What the monitor can and cannot see. */}}
 <p>This monitor cannot see whether an application is using it at this moment. Deleting a model that is in use can make that application fail or behave unexpectedly.</p>
 {{/* What happens by itself. */}}
@@ -103,6 +107,9 @@
 <p><strong>Done.</strong> Ollama no longer lists this model, and about {{.SizeText}} of disk space is free again.</p>
 {{/* A problem with the memory file, if any. */}}
 {{if .Note}}<p class="warn" role="alert">{{.Note}}</p>{{end}}
+{{/* Whether the parameter snapshot was kept. */}}
+{{if .SnapFile}}<p class="goodnote">A snapshot of its inference parameters was saved in the history folder: <code>{{.SnapFile}}</code></p>{{end}}
+{{if .SnapErr}}<p class="warn" role="alert">No snapshot of its inference parameters was saved: {{.SnapErr}}</p>{{end}}
 {{/* How to get it back. */}}
 <p class="muted">It stays in the table, greyed out, with a Restore icon.</p>
 {{/* A link back. */}}
@@ -127,6 +134,8 @@
 <p>Restoring means downloading the model again from the Ollama library. You get the latest version of this name, which may differ from the one that was deleted.</p>
 {{/* The loss of tuning gets its own box, because it is the part people forget. */}}
 <div class="lossbox" role="alert"><strong>You lose your tuning.</strong> Inference parameters you changed here are deleted with the model. A restored model comes back with the default parameters, so you must tune it again.</div>
+{{/* Whether the old parameter values were kept, so the person knows before clicking View history. */}}
+{{if .SnapCount}}<p class="goodnote">A snapshot of the parameters it had was kept ({{.SnapCount}}). Use View history below.</p>{{else}}<p class="warn">No snapshot of its parameters was kept, so the old values are not known.</p>{{end}}
 {{/* Models that cannot come back. */}}
 <p>A model you made yourself (from a Modelfile or an import) cannot be downloaded again.</p>
 {{if .ShowPull}}
@@ -148,6 +157,16 @@
 <div class="choices">
 {{/* Back. */}}
 <a class="btn-load" href="/">Back to the monitor</a>
+{{/* The history form only shows what was kept; it changes nothing. */}}
+<form method="post" action="/restore/history">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* The model name. */}}
+<input type="hidden" name="model" value="{{.Model}}">
+{{/* The button. */}}
+<button type="submit" class="btn-plain">View history (inference parameters it had)</button>
+{{/* End of the history form. */}}
+</form>
 {{/* The forget form removes the greyed row without touching Ollama. */}}
 <form method="post" action="/restore/forget">
 {{/* The page token proves the form comes from this monitor. */}}
@@ -159,6 +178,40 @@
 {{/* End of the forget form. */}}
 </form>
 {{/* End of the choices. */}}
+</div>
+{{/* Version 5b: the history of a deleted model (read-only). */}}
+{{else if eq .Kind "history"}}
+{{/* The heading names the model. */}}
+<h1>History of <code>{{.Model}}</code></h1>
+{{if .Snaps}}
+{{/* One block per snapshot, newest first. */}}
+<p class="muted">Taken when the model was deleted. This is a record only; nothing here changes Ollama.</p>
+{{range .Snaps}}
+<h2>Deleted on {{.When}}</h2>
+<p class="muted">Size then {{.SizeText}}. Fingerprint then <code>{{.Digest}}</code>. Kept in <code>history/{{.File}}</code></p>
+{{if .Params}}
+<table class="cmds">
+<thead><tr><th scope="col">Inference parameter</th><th scope="col">Value</th></tr></thead>
+<tbody>
+{{range .Params}}<tr><th scope="row"><code>{{.Name}}</code></th><td><code>{{.Value}}</code></td></tr>
+{{end}}</tbody>
+</table>
+{{else}}
+<p>No inference parameters were set on this model.</p>
+{{end}}
+{{end}}
+{{else}}
+{{/* Nothing kept. */}}
+<p>No history was recorded for this model. It was deleted before the history existed, or no snapshot could be saved.</p>
+{{end}}
+{{/* The choices. */}}
+<div class="choices">
+<a class="btn-load" href="/">Back to the monitor</a>
+<form method="post" action="/restore">
+<input type="hidden" name="token" value="{{.Token}}">
+<input type="hidden" name="model" value="{{.Model}}">
+<button type="submit" class="btn-plain">Back to Restore</button>
+</form>
 </div>
 {{/* Version 6: the greyed row was removed or is unknown. */}}
 {{else if eq .Kind "forgotten"}}

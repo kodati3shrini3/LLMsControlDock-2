@@ -1,0 +1,81 @@
+{{/* About page template: who made the program, what it is and which version this is. The comments are template comments, so they never reach the browser. */}}
+<!DOCTYPE html>
+{{/* lang tells screen readers which language the page is written in; the theme and the text size come from the saved choices. */}}
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}{{if .Size}} data-size="{{.Size}}"{{end}}>
+<head>{{/* start of the head. */}}
+{{/* Text encoding. */}}
+<meta charset="utf-8">
+{{/* Fit the page to the width of the screen on phones. */}}
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* The title shown on the browser tab. */}}
+<title>About Ollama Control Center</title>
+{{/* Our one stylesheet. */}}
+<link rel="stylesheet" href="/app.css">
+</head>{{/* end of the head. */}}
+<body>{{/* start of the visible page. */}}
+{{/* The page content. */}}
+<main>
+{{/* One card holds everything. */}}
+<section class="panel aboutcard">
+{{/* The name of the program. */}}
+<h1>About Ollama Control Center</h1>
+{{/* One line that says what it is. */}}
+<p class="muted aboutlead">A local monitor and control page for Ollama.</p>
+{{/* What it does, in plain words. */}}
+<p>It shows which models are installed and which are loaded in memory, lets you load, unload, tune and delete models, tells you how to download a deleted model again, and compares how fast tested models answer.</p>
+{{/* The facts, as a table: a label on the left, the value on the right. */}}
+<table class="aboutfacts">
+{{/* The table has a caption for screen readers. */}}
+<caption class="sr-only">Facts about this program</caption>
+{{/* Who developed it. */}}
+<tr><th scope="row">Developed by</th><td>{{.Developer}} &middot; {{/* A new window; noopener cuts the link back to this page, noreferrer sends no address. */}}<a href="{{.DeveloperProfile}}" target="_blank" rel="noopener noreferrer">LinkedIn profile<span class="sr-only"> (opens in a new window)</span></a></td></tr>
+{{/* Who assisted. */}}
+<tr><th scope="row">Assisted by</th><td>{{.Assistant}}</td></tr>
+{{/* The version. */}}
+<tr><th scope="row">Version</th><td>{{.Version}}</td></tr>
+{{/* The source revision, when the build recorded one. */}}
+<tr><th scope="row">Source revision</th><td>{{if .Revision}}<code>{{.Revision}}</code>{{if .Modified}} (built with uncommitted changes){{end}}{{if .RevisionDate}}, committed {{.RevisionDate}}{{end}}{{else}}not recorded in this build{{end}}</td></tr>
+{{/* The platform. */}}
+<tr><th scope="row">Built with</th><td>Go standard library only, no third-party code ({{.Platform}})</td></tr>
+{{/* Where the source lives. */}}
+<tr><th scope="row">Source code</th><td><a href="{{.Repository}}" target="_blank" rel="noopener noreferrer">{{.Repository}}<span class="sr-only"> (opens in a new window)</span></a> (private repository; opens only for its owner)</td></tr>
+{{/* Where the data goes. */}}
+<tr><th scope="row">Privacy</th><td>Runs only on this computer. The one request to the outside is the optional check of Ollama's public library when a model is deleted, and it sends only the model's name. Links to the developer's sites open in a new window only when you click them; nothing is sent to them before that.</td></tr>
+{{/* The licence. */}}
+<tr><th scope="row">Licence</th><td>{{.Copyright}}</td></tr>
+{{/* End of the table. */}}
+</table>
+{{/* The dedication, set apart so it stands out. */}}
+<blockquote class="dedication">{{.Dedication}}</blockquote>
+{{/* The developer's company: what it does, and a way to find out more. */}}
+<section class="companycard" aria-labelledby="companyname">
+{{/* The logo beside the name; the name is already written next to it, so the logo has no alternative text. */}}
+<div class="cardhead">
+{{/* The miniature logo, served from this program. */}}
+<img class="brandlogo" src="/termgate-logo.png" width="89" height="48" alt="">
+{{/* The name. */}}
+<h2 id="companyname">{{.CompanyName}}</h2>
+{{/* End of the logo and name. */}}
+</div>
+{{/* The tagline and the AI line. */}}
+<p class="muted">{{.CompanyTagline}} {{.CompanyAILine}}</p>
+{{/* The services. */}}
+<ul>
+{{range .Services}}
+{{/* One service. */}}
+<li><strong>{{.Name}}</strong>: {{.Detail}}</li>
+{{/* End of the services. */}}
+{{end}}
+</ul>
+{{/* The company website, in a new window with no link back and no referrer. */}}
+<p><a class="brandbtn brandbtn-main" href="{{.CompanyURL}}" target="_blank" rel="noopener noreferrer">Visit termgate.com &#8599;<span class="sr-only"> (opens in a new window)</span></a> <span class="muted brandnote">Opens in a new window. The link carries only a source tag (utm_source=ollama-control-center); nothing about you or your computer.</span></p>
+{{/* End of the company card. */}}
+</section>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* End of the card. */}}
+</section>
+{{/* End of the main content. */}}
+</main>
+</body>{{/* end of the visible page. */}}
+</html>{{/* end of the page. */}}

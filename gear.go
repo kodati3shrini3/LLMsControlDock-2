@@ -341,6 +341,8 @@ type gearPage struct {
 	Max int64
 	// Theme is the saved theme choice, as on the main page.
 	Theme string
+	// Size is the saved text size, medium, or empty for the browser's own size.
+	Size string
 	// Token is the page token for the forms on this page.
 	Token string
 	// Tips holds the help bubbles by short name.
@@ -656,6 +658,8 @@ func gearHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.Hand
 	show := func(w http.ResponseWriter, r *http.Request, status int, data gearPage) {
 		// Add what every version of the page needs.
 		data.Theme, data.Token, data.Tips = themeFromRequest(r), token, tips
+		// The saved text size, from the cookie; empty means the browser's own size.
+		data.Size = sizeFromRequest(r)
 		// Build the page.
 		var buf bytes.Buffer
 		// Run the template.

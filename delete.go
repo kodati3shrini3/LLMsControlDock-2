@@ -53,6 +53,20 @@ func deleteModel(ctx context.Context, base *url.URL, name string, timeout time.D
 	return fmt.Errorf("Ollama answered the delete request with status %d", status)
 } // end of deleteModel
 
+// snapView is one snapshot, ready to be drawn on the history page.
+type snapView struct {
+	// When is the deletion time in words.
+	When string
+	// SizeText is the size then.
+	SizeText string
+	// Digest is the fingerprint then.
+	Digest string
+	// Params are the inference parameters then; empty means none were set.
+	Params []snapParam
+	// File is the file the snapshot is kept in.
+	File string
+} // end of snapView
+
 // deletePage is everything the delete page template can show.
 type deletePage struct {
 	// Kind says which version of the page to draw: confirm, busy, done, gone, restore, forgotten, error.
@@ -75,6 +89,18 @@ type deletePage struct {
 	Detail string
 	// Note carries a warning that does not stop the work (for example, the list could not be saved).
 	Note string
+	// SnapText says, before deleting, what will be kept about the model's inference parameters (or that nothing can be kept).
+	SnapText string
+	// SnapClass is "ok" for good news and "warn" for a caution.
+	SnapClass string
+	// SnapFile is the snapshot file that was saved (done page); empty when none was saved.
+	SnapFile string
+	// SnapErr is why no snapshot was saved (done page); empty when it was saved.
+	SnapErr string
+	// SnapCount is how many parameter snapshots are kept for the model (restore page).
+	SnapCount int
+	// Snaps are the snapshots of the model, newest first (history page).
+	Snaps []snapView
 	// LibText is what the check of the Ollama library found, in words (empty when no check was made).
 	LibText string
 	// LibClass is "ok" for good news and "warn" for a caution; it decides how the note is drawn.
@@ -83,12 +109,14 @@ type deletePage struct {
 	ShowPull bool
 	// Theme is the saved theme choice, as on the main page.
 	Theme string
+	// Size is the saved text size, medium, or empty for the browser's own size.
+	Size string
 	// Token is the page token for the forms on this page.
 	Token string
 } // end of deletePage
 
-// deleteHandlers builds the handlers: ask (changes nothing), confirm, force, restore (information only) and forget.
-func deleteHandlers(addr ollamaAddress, token string, store *deletedStore) (ask, confirm, force, restore, forget http.HandlerFunc) {
+// deleteHandlers builds the handlers: ask (changes nothing), confirm, force, restore (information only), forget, and viewHistory (read-only list of the parameter snapshots).
+func deleteHandlers(addr ollamaAddress, token string, store *deletedStore, hist *historyStore) (ask, confirm, force, restore, forget, viewHistory http.HandlerFunc) {
 	// Read the template once; Must stops the program at start-up if the template is broken, which a test would catch first.
 	page := template.Must(template.New("delete").Parse(deleteTemplateText))
 	// readForm runs the checks that all handlers share and returns the model name; ok is false when a refusal was already sent.
@@ -132,6 +160,8 @@ func deleteHandlers(addr ollamaAddress, token string, store *deletedStore) (ask,
 	show := func(w http.ResponseWriter, r *http.Request, status int, data deletePage) {
 		// Add what every version of the page needs.
 		data.Theme, data.Token = themeFromRequest(r), token
+		// The saved text size, from the cookie; empty means the browser's own size.
+		data.Size = sizeFromRequest(r)
 		// Build the page.
 		var buf bytes.Buffer
 		// Run the template.
@@ -162,6 +192,30 @@ func deleteHandlers(addr ollamaAddress, token string, store *deletedStore) (ask,
 		// Build the page data.
 		return deletePage{Kind: "busy", Model: name, SizeText: formatSize(size), Remaining: remainingText(time.Now(), exp, expOK), Seconds: remainingSeconds(time.Now(), exp, expOK), Mismatch: mismatch}
 	} // end of busyPage
+	// snapPlan checks, without writing anything, whether a snapshot of the model's parameters can be taken, and words the answer for the warning page.
+	snapPlan := func(r *http.Request, name string) (string, string) {
+		// No folder, no snapshot.
+		if hist.dir == "" {
+			// Say so.
+			return "Nothing about this model's inference parameters can be kept, because there is no history folder. " + hist.note, "warn"
+		} // end of the folder check
+		// Ask Ollama for the parameters.
+		info, status, err := fetchShow(r.Context(), addr.URL, name, defaultCheckTimeout)
+		// Ollama did not tell.
+		if err != nil || status != http.StatusOK {
+			// Say so.
+			return "Could not read this model's inference parameters just now, so they will not be kept if you delete it.", "warn"
+		} // end of the show check
+		// How many are set.
+		n := len(parseParams(info.Parameters))
+		// None set.
+		if n == 0 {
+			// Say so.
+			return "This model has no tuned inference parameters. A note saying so is kept in the history folder.", "ok"
+		} // end of the none case
+		// Some set.
+		return fmt.Sprintf("Before deleting, a snapshot of its %d inference parameter(s) is saved in the history folder. After a restore, Restore, then View history, shows them.", n), "ok"
+	} // end of snapPlan
 	// withLib asks the Ollama library, read-only, about this model and adds the answer in words to the page; phase is "delete" or "restore". Only the model name leaves this computer.
 	withLib := func(r *http.Request, p deletePage, name, digest, phase string) deletePage {
 		// Ask the library.
@@ -170,6 +224,11 @@ func deleteHandlers(addr ollamaAddress, token string, store *deletedStore) (ask,
 		p.LibText, p.LibClass = libraryNote(state, phase)
 		// A command that is certain to fail is not offered.
 		p.ShowPull = state != libMissing
+		// Before deleting, also say what will be kept about the model's parameters.
+		if phase == "delete" {
+			// Plan the snapshot.
+			p.SnapText, p.SnapClass = snapPlan(r, name)
+		} // end of the delete phase
 		// Hand the page back.
 		return p
 	} // end of withLib
@@ -209,6 +268,21 @@ func deleteHandlers(addr ollamaAddress, token string, store *deletedStore) (ask,
 	} // end of look
 	// doDelete deletes, checks that the model is really gone, remembers it, and shows the result page.
 	doDelete := func(w http.ResponseWriter, r *http.Request, m installedModel) {
+		// The moment of deletion, used for the snapshot and for the list of deleted models.
+		at := time.Now()
+		// Keep the model's inference parameters first, because after the deletion they are gone; a failure is reported, not hidden, and does not block the deletion the person has already confirmed.
+		snapFile, snapErr := "", ""
+		// Ask Ollama for them.
+		if info, status, err := fetchShow(r.Context(), addr.URL, m.Name, defaultCheckTimeout); err != nil || status != http.StatusOK {
+			// Say why nothing was kept.
+			snapErr = "Ollama could not tell this model's inference parameters."
+		} else if f, err := hist.save(snapshotFrom(m, info, at)); err != nil { // the other case
+			// Say why nothing was kept.
+			snapErr = err.Error()
+		} else { // the saved case
+			// Remember the file name.
+			snapFile = f
+		} // end of the snapshot
 		// Ask Ollama to delete it.
 		if err := deleteModel(r.Context(), addr.URL, m.Name, deleteTimeout); err != nil {
 			// Show the plain reason.
@@ -235,12 +309,12 @@ func deleteHandlers(addr ollamaAddress, token string, store *deletedStore) (ask,
 		// Remember it, so the table can show it greyed out and Restore can offer it again.
 		note := ""
 		// Save; a failure does not undo the deletion, it only means the ghost row will be missing.
-		if err := store.add(deletedModel{Name: m.Name, Digest: m.Digest, Size: m.Size, DeletedAt: time.Now()}); err != nil {
+		if err := store.add(deletedModel{Name: m.Name, Digest: m.Digest, Size: m.Size, DeletedAt: at}); err != nil {
 			// Say so in words.
 			note = "The model is deleted, but this monitor could not remember it, so there will be no Restore row. " + err.Error()
 		} // end of the save check
 		// Done.
-		show(w, r, http.StatusOK, deletePage{Kind: "done", Model: m.Name, SizeText: formatSize(m.Size), Note: note})
+		show(w, r, http.StatusOK, deletePage{Kind: "done", Model: m.Name, SizeText: formatSize(m.Size), Note: note, SnapFile: snapFile, SnapErr: snapErr})
 	} // end of doDelete
 	// ask is the first step: it re-checks Ollama and shows the right warning; it never deletes anything.
 	ask = func(w http.ResponseWriter, r *http.Request) {
@@ -345,7 +419,7 @@ func deleteHandlers(addr ollamaAddress, token string, store *deletedStore) (ask,
 			return
 		} // end of the unknown case
 		// Show the information page.
-		show(w, r, http.StatusOK, withLib(r, deletePage{Kind: "restore", Model: d.Name, SizeText: formatSize(d.Size), Digest: d.Digest, When: d.DeletedAt.Local().Format("2 Jan 2006 15:04 MST")}, d.Name, d.Digest, "restore"))
+		show(w, r, http.StatusOK, withLib(r, deletePage{Kind: "restore", Model: d.Name, SizeText: formatSize(d.Size), Digest: d.Digest, SnapCount: len(hist.list(d.Name)), When: d.DeletedAt.Local().Format("2 Jan 2006 15:04 MST")}, d.Name, d.Digest, "restore"))
 	} // end of restore
 	// forget removes the greyed row, without touching Ollama.
 	forget = func(w http.ResponseWriter, r *http.Request) {
@@ -366,6 +440,25 @@ func deleteHandlers(addr ollamaAddress, token string, store *deletedStore) (ask,
 		// Done.
 		show(w, r, http.StatusOK, deletePage{Kind: "forgotten", Model: name})
 	} // end of forget
-	// Hand all five back (they are the named results).
+	// viewHistory lists the snapshots of one model; it only reads and changes nothing.
+	viewHistory = func(w http.ResponseWriter, r *http.Request) {
+		// Run the shared checks.
+		name, ok := readForm(w, r)
+		// A refusal was already sent.
+		if !ok {
+			// Stop here.
+			return
+		} // end of the checks
+		// Build the views.
+		var views []snapView
+		// One per snapshot.
+		for _, sn := range hist.list(name) {
+			// Add it.
+			views = append(views, snapView{When: sn.DeletedAt.Local().Format("2 Jan 2006 15:04:05 MST"), SizeText: formatSize(sn.Size), Digest: sn.Digest, Params: sn.Parameters, File: sn.File})
+		} // end of the loop
+		// Show the page.
+		show(w, r, http.StatusOK, deletePage{Kind: "history", Model: name, Snaps: views})
+	} // end of viewHistory
+	// Hand all six back (they are the named results).
 	return
 } // end of deleteHandlers

@@ -26,8 +26,8 @@ var indexTemplateText string
 //go:embed web/app.css
 var appCSS []byte
 
-// contentSecurityPolicy tells the browser what the page may load: only our own stylesheet, no scripts, no frames, and forms that send only to this same page.
-const contentSecurityPolicy = "default-src 'none'; style-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+// contentSecurityPolicy tells the browser what the page may load: only our own stylesheet and our own images, no scripts, no frames, and forms that send only to this same page.
+const contentSecurityPolicy = "default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 
 // pageData is everything the page template can show.
 type pageData struct {
@@ -51,6 +51,18 @@ type pageData struct {
 	TableError string
 	// Theme is the saved choice, light or dark; empty means follow the system.
 	Theme string
+	// Size is the saved text size, medium, or empty for the browser's own size.
+	Size string
+	// CompanyName is the developer's company, shown under the title and in the footer bar.
+	CompanyName string
+	// CompanyTagline is the company's tagline, shown in the footer bar.
+	CompanyTagline string
+	// CompanyAILine is the line that ties the program to the company's work.
+	CompanyAILine string
+	// HeaderURL is the company website address for the link under the title.
+	HeaderURL string
+	// FooterURL is the company website address for the footer bar.
+	FooterURL string
 	// Token is the page token that every form on the page carries.
 	Token string
 	// CompareCount is how many models have a saved performance test that can be compared.
@@ -92,6 +104,10 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	mux := http.NewServeMux()
 	// Route: a POST request for "/theme" saves the chosen theme in a cookie (the checks are in theme.go).
 	mux.HandleFunc("POST /theme", themeHandler(token))
+	// Route: a POST request for "/textsize" saves the chosen text size in a cookie (the checks are in size.go).
+	mux.HandleFunc("POST /textsize", sizeHandler(token))
+	// Route: a GET request for "/about" shows the read-only About page (see about.go).
+	mux.HandleFunc("GET /about", aboutHandler())
 	// Make the two unload handlers: the first asks "are you sure?", the second unloads (the checks are in unload.go).
 	unloadAsk, unloadConfirm := unloadHandlers(addr, token)
 	// Route: a POST request for "/unload" shows the warning page and changes nothing.
@@ -121,8 +137,12 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	perfHistory := openPerfStore(histPath, histNote)
 	// The deleted models are remembered in a small file next to the history (kept out of GitHub by .gitignore).
 	deletedList := openDeletedStore(deletedPathFor(histPath))
-	// The five delete and restore handlers.
-	delAsk, delConfirm, delForce, restoreInfo, restoreForget := deleteHandlers(addr, token, deletedList)
+	// The folder for the snapshots of deleted models' parameters ("history" next to the program, kept out of GitHub by .gitignore).
+	histDir, histDirNote := defaultHistoryDir()
+	// The snapshot store.
+	historyDir := &historyStore{dir: histDir, note: histDirNote}
+	// The six delete and restore handlers.
+	delAsk, delConfirm, delForce, restoreInfo, restoreForget, restoreHistory := deleteHandlers(addr, token, deletedList, historyDir)
 	// The first delete step: shows the warning, changes nothing.
 	mux.HandleFunc("POST /delete", delAsk)
 	// The second step for a model that is not loaded.
@@ -133,8 +153,10 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	mux.HandleFunc("POST /restore", restoreInfo)
 	// Remove a greyed row.
 	mux.HandleFunc("POST /restore/forget", restoreForget)
+	// The read-only list of parameter snapshots of a deleted model.
+	mux.HandleFunc("POST /restore/history", restoreHistory)
 	// The four handlers of the performance pages.
-	perfStart, perfRun, perfClearAsk, perfClearDo := perfHandlers(addr, token, perfHistory)
+	perfStart, perfRun, perfClearAsk, perfClearDo, perfClearOneAsk, perfClearOneDo := perfHandlers(addr, token, perfHistory, historyDir)
 	// Route: a POST request for "/performance" shows the performance page and changes nothing.
 	mux.HandleFunc("POST /performance", perfStart)
 	// Route: a POST request for "/performance/run" runs the test.
@@ -143,6 +165,10 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	mux.HandleFunc("POST /performance/clear", perfClearAsk)
 	// Route: a POST request for "/performance/clear/confirm" removes them.
 	mux.HandleFunc("POST /performance/clear/confirm", perfClearDo)
+	// Route: a POST request for "/performance/clear/model" shows what removing one model's saved results would lose, and changes nothing.
+	mux.HandleFunc("POST /performance/clear/model", perfClearOneAsk)
+	// Route: a POST request for "/performance/clear/model/confirm" removes one model's saved results (after keeping a copy).
+	mux.HandleFunc("POST /performance/clear/model/confirm", perfClearOneDo)
 	// Route: a POST request for "/compare" shows the comparison of the tested models and changes nothing.
 	mux.HandleFunc("POST /compare", compareHandler(addr, token, perfHistory))
 	// Route: a POST request for "/watch" pauses or resumes the automatic updates of the page.
@@ -177,6 +203,12 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 			Reason: res.Reason,
 			// The saved theme choice, from the cookie; empty means follow the system.
 			Theme: themeFromRequest(r),
+			// The saved text size, from the cookie; empty means the browser's own size.
+			Size: sizeFromRequest(r),
+			// The company name, tagline and AI line.
+			CompanyName: companyName, CompanyTagline: companyTagline, CompanyAILine: companyAILine,
+			// The company website addresses, tagged for the two places.
+			HeaderURL: companyLink("header"), FooterURL: companyLink("footer"),
 			// The page token for the forms.
 			Token: token,
 			// How many models can be compared.
@@ -240,6 +272,13 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 		// Send it.
 		w.Write(appCSS)
 	}) // end of the stylesheet route
+	// Route: a GET request for "/termgate-logo.png" sends the embedded company logo.
+	mux.HandleFunc("GET /termgate-logo.png", func(w http.ResponseWriter, r *http.Request) {
+		// Tell the browser this is a PNG image.
+		w.Header().Set("Content-Type", "image/png")
+		// Send it.
+		w.Write(companyLogo)
+	}) // end of the logo route
 	// Wrap the router so every reply carries the safety headers.
 	return secureHeaders(mux)
 } // end of newWebHandler

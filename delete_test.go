@@ -50,6 +50,12 @@ type delFake struct {
 	digests map[string]string
 	// reg is the fake Ollama library this rig points the monitor at.
 	reg *regFake
+	// params maps a model name to the parameters text /api/show reports (a missing name reports none).
+	params map[string]string
+	// failShow makes /api/show answer with a server error.
+	failShow bool
+	// events lists "show" and "delete" in the order Ollama received them.
+	events []string
 } // end of delFake
 
 // regFake is a fake Ollama library: for each manifest path it answers a status and a body, and it records every path it was asked for.
@@ -147,6 +153,33 @@ func (f *delFake) start(t *testing.T) string {
 			} // end of the loop
 			// Send it.
 			json.NewEncoder(w).Encode(map[string]any{"models": list})
+		// The details of one model.
+		case "/api/show":
+			// Record the request.
+			f.events = append(f.events, "show")
+			// A failing server.
+			if f.failShow {
+				// Say so.
+				w.WriteHeader(http.StatusInternalServerError)
+				// Stop.
+				return
+			} // end of the failure case
+			// Read the name.
+			var req struct {
+				// Model is the name.
+				Model string `json:"model"`
+			} // end of the request shape
+			// Decode it.
+			json.NewDecoder(r.Body).Decode(&req)
+			// Unknown model.
+			if _, ok := f.sizes[req.Model]; !ok {
+				// Ollama answers 404.
+				w.WriteHeader(http.StatusNotFound)
+				// Stop.
+				return
+			} // end of the unknown case
+			// The reply: parameters, a Modelfile and no model facts.
+			json.NewEncoder(w).Encode(map[string]any{"parameters": f.params[req.Model], "modelfile": "FROM " + req.Model})
 		// The delete request.
 		case "/api/delete":
 			// It must be a DELETE.
@@ -158,6 +191,8 @@ func (f *delFake) start(t *testing.T) string {
 			} // end of the method check
 			// Count it.
 			f.deleteCalls++
+			// Record the order.
+			f.events = append(f.events, "delete")
 			// A failing server.
 			if f.failDelete {
 				// Say so.
@@ -243,7 +278,7 @@ func delRig(t *testing.T) (themeRig, *delFake, string) {
 	// Put it back afterwards.
 	t.Cleanup(func() { registryBase = oldReg })
 	// The fake with its models.
-	f := &delFake{sizes: map[string]int64{"alpha:1b": 1300000000, "beta:7b": 4700000000}, loaded: map[string]bool{"beta:7b": true}, reg: g}
+	f := &delFake{sizes: map[string]int64{"alpha:1b": 1300000000, "beta:7b": 4700000000}, loaded: map[string]bool{"beta:7b": true}, reg: g, params: map[string]string{"alpha:1b": "temperature                    0.7\nnum_ctx                        4096\nstop                           \"<end>\""}}
 	// The monitor.
 	h := handlerFor(t, f.start(t))
 	// Read the main page to learn the token.
@@ -422,7 +457,7 @@ func TestDeleteConfirmDeletesAndRemembers(t *testing.T) {
 	// The main page now shows the greyed row with a restore form, and the model is not in the installed rows.
 	_, _, page := get(t, rig.h, http.MethodGet, "/")
 	// The things that must be there.
-	for _, want := range []string{`data-deleted="alpha:1b"`, "<s>alpha:1b</s>", `action="/restore"`, "Restore: how to download this model again", "Deleted models", "1.3 GB"} {
+	for _, want := range []string{`data-deleted="alpha:1b"`, "<s>alpha:1b</s>", `action="/restore"`, "Restore: how to download this model again, and the parameters it had", "Deleted models", "1.3 GB"} {
 		// Look for it.
 		if !strings.Contains(page, want) {
 			// Report the gap.
@@ -553,7 +588,7 @@ func TestDeleteRoutesAreGuarded(t *testing.T) {
 	// The rig.
 	rig, f, _ := delRig(t)
 	// Every delete and restore route.
-	for _, path := range []string{"/delete", "/delete/confirm", "/delete/force", "/restore", "/restore/forget"} {
+	for _, path := range []string{"/delete", "/delete/confirm", "/delete/force", "/restore", "/restore/forget", "/restore/history"} {
 		// A GET is not allowed.
 		if status, _, _ := get(t, rig.h, http.MethodGet, path); status != http.StatusMethodNotAllowed {
 			// Report it.
