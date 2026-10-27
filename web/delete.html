@@ -1,0 +1,188 @@
+{{/* Delete page template: one page with several versions, chosen by Kind. The comments are template comments, so they never reach the browser. */}}
+<!DOCTYPE html>
+{{/* lang tells screen readers which language the page is written in. */}}
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<head>{{/* start of the head. */}}
+{{/* Text encoding. */}}
+<meta charset="utf-8">
+{{/* Fit the page to the width of the screen on phones. */}}
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* The title shown on the browser tab. */}}
+<title>Delete a model - OllamaControlCenter</title>
+{{/* Our one stylesheet. */}}
+<link rel="stylesheet" href="/app.css">
+</head>{{/* end of the head. */}}
+<body>{{/* start of the visible page. */}}
+{{/* The page content. */}}
+<main>
+{{/* A panel that holds the message. */}}
+<section class="panel">
+{{/* Version 1: the model is not loaded and the person must confirm. */}}
+{{if eq .Kind "confirm"}}
+{{/* The heading names the model, so there is no doubt which one is meant. */}}
+<h1>Delete <code>{{.Model}}</code>?</h1>
+{{/* The warning bar. */}}
+<p class="warn" role="alert"><strong>This removes the model from this computer.</strong></p>
+{{/* What the check of the Ollama library found: good news or a caution. */}}
+{{if .LibText}}<p class="{{if eq .LibClass "ok"}}goodnote{{else}}warn{{end}}" role="{{if eq .LibClass "ok"}}status{{else}}alert{{end}}">{{.LibText}}</p>{{end}}
+{{/* The loss of tuning gets its own box, because it is the part people forget. */}}
+<div class="lossbox" role="alert"><strong>You lose your tuning.</strong> Inference parameters you changed here are deleted with the model. A restored model comes back with the default parameters, so you must tune it again.</div>
+{{/* The consequences, one by one. */}}
+<ul>
+{{/* Disk space. */}}
+<li>It frees about <strong>{{.SizeText}}</strong> of disk space.</li>
+{{/* Applications. */}}
+<li>Every application that asks Ollama for <code>{{.Model}}</code> gets an error from now on.</li>
+{{/* How to get it back. */}}
+<li>You can bring it back with <strong>Restore</strong>: it downloads the model again (about {{.SizeText}}) and gives you the latest version of the same name.</li>
+{{/* Models that cannot come back. */}}
+<li>A model you made yourself (from a Modelfile or an import) cannot be downloaded again.</li>
+{{/* End of the consequences. */}}
+</ul>
+{{/* What the monitor keeps. */}}
+<p class="muted">This monitor remembers the name, size and deletion time in a small file on this computer, so Restore can offer the model again.</p>
+{{/* The two choices side by side. */}}
+<div class="choices">
+{{/* The Yes form sends the model name and the page token to the second step. */}}
+<form method="post" action="/delete/confirm">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* The model name. */}}
+<input type="hidden" name="model" value="{{.Model}}">
+{{/* The Yes button. */}}
+<button type="submit" class="btn-solid">Yes, delete it</button>
+{{/* End of the Yes form. */}}
+</form>
+{{/* The cancel link simply goes back; nothing was changed. */}}
+<a class="btn-plain" href="/">No, keep it</a>
+{{/* End of the choices. */}}
+</div>
+{{/* Version 2: the model is loaded, so it may be in use. */}}
+{{else if eq .Kind "busy"}}
+{{/* The heading names the model. */}}
+<h1>Delete <code>{{.Model}}</code>?</h1>
+{{/* The warning bar. */}}
+<p class="warn" role="alert"><strong>This model is loaded right now, so it may be in use.</strong></p>
+{{/* What the check of the Ollama library found: good news or a caution. */}}
+{{if .LibText}}<p class="{{if eq .LibClass "ok"}}goodnote{{else}}warn{{end}}" role="{{if eq .LibClass "ok"}}status{{else}}alert{{end}}">{{.LibText}}</p>{{end}}
+{{/* The loss of tuning gets its own box, because it is the part people forget. */}}
+<div class="lossbox" role="alert"><strong>You lose your tuning.</strong> Inference parameters you changed here are deleted with the model. A restored model comes back with the default parameters, so you must tune it again.</div>
+{{/* What the monitor can and cannot see. */}}
+<p>This monitor cannot see whether an application is using it at this moment. Deleting a model that is in use can make that application fail or behave unexpectedly.</p>
+{{/* What happens by itself. */}}
+<p class="muted">If you do nothing, Ollama unloads this model by itself in: <span class="countdown"{{if .Seconds}} data-seconds="{{.Seconds}}"{{end}}>{{.Remaining}}</span>. After that, deleting it is the normal, safe case.</p>
+{{/* The first choice: do nothing. */}}
+<div class="choices">
+{{/* Hold goes back and changes nothing. */}}
+<a class="btn-load" href="/">Hold: do not delete</a>
+{{/* End of the choices. */}}
+</div>
+{{/* The second choice, for when the person is sure; it needs the exact name typed. */}}
+<h2>Force delete</h2>
+{{/* Said when the last try had a wrong name. */}}
+{{if .Mismatch}}<p class="warn" role="alert"><strong>The name did not match, so nothing was deleted.</strong></p>{{end}}
+{{/* The explanation. */}}
+<p>Only if you are sure that nothing is using it. Type the model name exactly as shown to confirm: <code>{{.Model}}</code> (frees about {{.SizeText}}).</p>
+{{/* The force form. */}}
+<form method="post" action="/delete/force" autocomplete="off">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* The model name. */}}
+<input type="hidden" name="model" value="{{.Model}}">
+{{/* The field where the person types the name. */}}
+<input type="text" name="typed" class="stopfield" aria-label="Type the model name to confirm" placeholder="{{.Model}}" required maxlength="300">
+{{/* The force button. */}}
+<button type="submit" class="unload">Force delete</button>
+{{/* End of the force form. */}}
+</form>
+{{/* Version 3: the delete worked. */}}
+{{else if eq .Kind "done"}}
+{{/* The heading names the model. */}}
+<h1>Deleted <code>{{.Model}}</code></h1>
+{{/* Say so; it was checked afterwards. */}}
+<p><strong>Done.</strong> Ollama no longer lists this model, and about {{.SizeText}} of disk space is free again.</p>
+{{/* A problem with the memory file, if any. */}}
+{{if .Note}}<p class="warn" role="alert">{{.Note}}</p>{{end}}
+{{/* How to get it back. */}}
+<p class="muted">It stays in the table, greyed out, with a Restore icon.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 4: the model is not installed (any more). */}}
+{{else if eq .Kind "gone"}}
+{{/* The heading names the model. */}}
+<h1>Delete <code>{{.Model}}</code></h1>
+{{/* Say so; there is nothing to delete. */}}
+<p>Ollama does not list this model any more, so there is nothing to delete.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 5: how to restore (information only in this phase). */}}
+{{else if eq .Kind "restore"}}
+{{/* The heading names the model. */}}
+<h1>Restore <code>{{.Model}}</code></h1>
+{{/* What is remembered. */}}
+<p>Deleted on {{.When}}. Size then: <strong>{{.SizeText}}</strong>.{{if .Digest}} Fingerprint then: <code>{{.Digest}}</code>.{{end}}</p>
+{{/* What the check of the Ollama library found: good news or a caution. */}}
+{{if .LibText}}<p class="{{if eq .LibClass "ok"}}goodnote{{else}}warn{{end}}" role="{{if eq .LibClass "ok"}}status{{else}}alert{{end}}">{{.LibText}}</p>{{end}}
+{{/* What Restore means. */}}
+<p>Restoring means downloading the model again from the Ollama library. You get the latest version of this name, which may differ from the one that was deleted.</p>
+{{/* The loss of tuning gets its own box, because it is the part people forget. */}}
+<div class="lossbox" role="alert"><strong>You lose your tuning.</strong> Inference parameters you changed here are deleted with the model. A restored model comes back with the default parameters, so you must tune it again.</div>
+{{/* Models that cannot come back. */}}
+<p>A model you made yourself (from a Modelfile or an import) cannot be downloaded again.</p>
+{{if .ShowPull}}
+{{/* The command depends on where Ollama runs; the monitor cannot know that, so all three are shown. */}}
+<p>Run the command that matches how Ollama is installed. Replace the parts in angle brackets with your own names.</p>
+<table class="cmds">
+<thead><tr><th scope="col">Where Ollama runs</th><th scope="col">Command</th></tr></thead>
+<tbody>
+<tr><th scope="row">Directly on the computer</th><td><code>ollama pull {{.Model}}</code></td></tr>
+<tr><th scope="row">In Docker</th><td><code>docker exec &lt;container-name&gt; ollama pull {{.Model}}</code><br><span class="muted">find the name with: <code>docker ps</code></span></td></tr>
+<tr><th scope="row">In Kubernetes</th><td><code>kubectl exec -n &lt;namespace&gt; &lt;pod-name&gt; -- ollama pull {{.Model}}</code><br><span class="muted">find the pod with: <code>kubectl get pods -n &lt;namespace&gt;</code></span></td></tr>
+</tbody>
+</table>
+<p class="muted">The command must run where Ollama runs, because the model is stored there. The Kubernetes line has not been tested on a real cluster.</p>
+{{end}}
+{{/* What happens afterwards. */}}
+<p class="muted">When the download is finished, this model appears in the table again and the greyed row disappears.</p>
+{{/* The two choices side by side. */}}
+<div class="choices">
+{{/* Back. */}}
+<a class="btn-load" href="/">Back to the monitor</a>
+{{/* The forget form removes the greyed row without touching Ollama. */}}
+<form method="post" action="/restore/forget">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* The model name. */}}
+<input type="hidden" name="model" value="{{.Model}}">
+{{/* The button. */}}
+<button type="submit" class="btn-plain">Remove this greyed row (I do not need it back)</button>
+{{/* End of the forget form. */}}
+</form>
+{{/* End of the choices. */}}
+</div>
+{{/* Version 6: the greyed row was removed or is unknown. */}}
+{{else if eq .Kind "forgotten"}}
+{{/* The heading names the model. */}}
+<h1><code>{{.Model}}</code></h1>
+{{/* Say so. */}}
+<p>This monitor no longer lists this model as deleted. Ollama was not touched.</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* Version 7: something went wrong. */}}
+{{else}}
+{{/* The heading names the model. */}}
+<h1>Delete <code>{{.Model}}</code></h1>
+{{/* Say what went wrong, in the plain words the program already uses. */}}
+<p><strong>Could not do this.</strong> {{.Detail}}</p>
+{{/* A link back. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* End of the versions. */}}
+{{end}}
+{{/* End of the panel. */}}
+</section>
+{{/* End of the content. */}}
+</main>
+{{/* The ticking timer needs the monitor's own script; it is included only when there is a timer to tick. */}}
+{{if .Seconds}}<script src="/countdown.js" defer></script>{{end}}
+</body>{{/* end of the visible page. */}}
+</html>{{/* end of the page. */}}

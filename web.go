@@ -119,6 +119,20 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	// Open the saved results.
 	// One history store, shared by the performance pages and the comparison page.
 	perfHistory := openPerfStore(histPath, histNote)
+	// The deleted models are remembered in a small file next to the history (kept out of GitHub by .gitignore).
+	deletedList := openDeletedStore(deletedPathFor(histPath))
+	// The five delete and restore handlers.
+	delAsk, delConfirm, delForce, restoreInfo, restoreForget := deleteHandlers(addr, token, deletedList)
+	// The first delete step: shows the warning, changes nothing.
+	mux.HandleFunc("POST /delete", delAsk)
+	// The second step for a model that is not loaded.
+	mux.HandleFunc("POST /delete/confirm", delConfirm)
+	// The force step for a loaded model; it needs the typed name.
+	mux.HandleFunc("POST /delete/force", delForce)
+	// The restore information page.
+	mux.HandleFunc("POST /restore", restoreInfo)
+	// Remove a greyed row.
+	mux.HandleFunc("POST /restore/forget", restoreForget)
 	// The four handlers of the performance pages.
 	perfStart, perfRun, perfClearAsk, perfClearDo := perfHandlers(addr, token, perfHistory)
 	// Route: a POST request for "/performance" shows the performance page and changes nothing.
@@ -192,6 +206,8 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 			} else { // the other case
 				// Build the table and switch it on.
 				data.Table = buildTableView(installed, loaded)
+				// Add the greyed rows of deleted models that are still gone.
+				data.Table.Deleted = deletedRows(deletedList.list(), installed)
 				// The table can be drawn now.
 				data.HasTable = true
 			} // end of the error check
