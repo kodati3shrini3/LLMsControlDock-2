@@ -113,7 +113,7 @@ func TestEveryExternalLinkIsSafe(t *testing.T) {
 	// All templates.
 	files, _ := filepath.Glob("web/*.html")
 	// A link to an outside address, written out or built by the template from a field that holds one.
-	link := regexp.MustCompile(`<a [^>]*href="(https?://[^"]*|\{\{\.(?:HeaderURL|FooterURL|CompanyURL|DeveloperProfile|Repository)\}\})"[^>]*>`)
+	link := regexp.MustCompile(`<a [^>]*href="(https?://[^"]*|\{\{\.(?:HeaderURL|FooterURL|CompanyURL|DeveloperProfile|Repository|URL)\}\})"[^>]*>`)
 	// How many were checked, so the test cannot pass by finding nothing.
 	checked := 0
 	// Go through the templates.

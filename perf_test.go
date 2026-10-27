@@ -93,7 +93,7 @@ func (f *perfFake) start(t *testing.T) string {
 		// The installed models.
 		case "/api/tags":
 			// Four models: a chat model, a thinking model, an embedding model and one with no known ability.
-			w.Write([]byte(`{"models":[{"name":"chat:1b","size":3300000000,"details":{"family":"llama"},"capabilities":["completion"]},{"name":"think:1b","size":3300000000,"details":{"family":"llama"},"capabilities":["completion","thinking"]},{"name":"embed:1b","size":2000000000,"details":{"family":"bert"},"capabilities":["embedding"]},{"name":"odd:1b","size":1000,"details":{"family":"x"},"capabilities":[]}]}`))
+			w.Write([]byte(`{"models":[{"name":"chat:1b","size":3300000000,"details":{"family":"llama","parameter_size":"1.2B","quantization_level":"Q4_K_M"},"capabilities":["completion"]},{"name":"think:1b","size":3300000000,"details":{"family":"llama","parameter_size":"1.2B","quantization_level":"Q4_K_M"},"capabilities":["completion","thinking"]},{"name":"embed:1b","size":2000000000,"details":{"family":"bert","parameter_size":"335M","quantization_level":"F16"},"capabilities":["embedding"]},{"name":"odd:1b","size":1000,"details":{"family":"x"},"capabilities":[]}]}`))
 		// The loaded models.
 		case "/api/ps":
 			// Build the list from the fake's state.
@@ -1108,9 +1108,9 @@ func TestDefaultHistoryPath(t *testing.T) {
 		want string
 	}{
 		// From the bin folder of the project.
-		{"/home/u/OllamaControlCenter/bin/OllamaControlCenter", nil, "/home/u/OllamaControlCenter/PerformanceCompare/performance.json"},
+		{"/home/u/OllamaControlCenter/bin/OllamaControlCenter", nil, "/home/u/OllamaControlCenter/performanceCompare/performance.json"},
 		// From any other folder: next to the program.
-		{"/opt/occ/OllamaControlCenter", nil, "/opt/occ/PerformanceCompare/performance.json"},
+		{"/opt/occ/OllamaControlCenter", nil, "/opt/occ/performanceCompare/performance.json"},
 		// Unknown place: the configuration folder.
 		{"", errors.New("no path"), "/cfg/OllamaControlCenter/performance.json"},
 	} {

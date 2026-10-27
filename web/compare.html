@@ -1,4 +1,4 @@
-{{/* Comparison page: the latest saved performance test of each model side by side. The comments are template comments, so they never reach the browser. */}}
+{{/* Comparison page: the latest saved performance test of each model, in groups that may be compared like for like, with the method, the references and the notice. The comments are template comments, so they never reach the browser. */}}
 <!DOCTYPE html>
 {{/* lang tells screen readers which language the page is written in. */}}
 <html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}{{if .Size}} data-size="{{.Size}}"{{end}}>
@@ -19,31 +19,42 @@
 <section class="panel">
 {{/* The page heading. */}}
 <h1>Compare models</h1>
+{{/* The short notice, always at the top, with a link to the full text at the bottom. */}}
+<div class="cmpnotice" role="note"><strong>Important notice.</strong> {{.NoticeShort}} <a href="#notice">Read the full notice</a>.</div>
 {{/* Nothing saved yet. */}}
 {{if .Empty}}
 <p>No model has been through a performance test yet. Use the chart icon before a model name on the monitor page to test one, then come back here.</p>
 {{range .Notes}}<p class="muted">{{.}}</p>{{end}}
 {{else}}
+{{/* The two saves and the jump to the method; each is a small form, and the program writes the file into the results folder itself. */}}
+<div class="cmpactions">
+<form method="post" action="/compare/pdf"><input type="hidden" name="token" value="{{.Token}}"><button type="submit" class="btn-plain">Save this comparison as PDF</button></form>
+<form method="post" action="/compare/csv"><input type="hidden" name="token" value="{{.Token}}"><button type="submit" class="btn-plain">Save the data as CSV</button></form>
+<a class="btn-plain" href="#how">How and why this was done</a>
+</div>
 {{/* What the figures say, in plain words. */}}
-{{if .Findings}}
 <h2>What the figures say</h2>
 <ul>
 {{range .Findings}}<li>{{.}}</li>{{end}}
 </ul>
-{{end}}
-{{/* One table for each kind of model. */}}
-{{range $t := .Tables}}
-<h2>{{$t.Title}}</h2>
-<p class="muted">{{$t.Note}}</p>
+{{/* One block for each group of models that may be compared with each other. */}}
+{{range $g := .Groups}}
+<div class="cmpgroup"><h2>{{$g.Title}}</h2></div>
+{{/* Why these models are compared together. */}}
+<p class="cmpwhy"><strong>Why this group:</strong> {{$g.Why}}</p>
+{{/* The fastest model of the group, when there is a ranking. */}}
+{{if $g.Headline}}<p><strong>{{$g.Headline}}</strong></p>{{end}}
+{{/* Why there is no ranking, or that the model has no peer. */}}
+{{range $g.Notes}}<p class="muted">{{.}}</p>{{end}}
 {{/* The scroll box, reachable with Tab so keyboard users can scroll the table sideways. */}}
-<div class="scrollbox" tabindex="0" role="region" aria-label="{{$t.Title}}, scrolls sideways">
+<div class="scrollbox" tabindex="0" role="region" aria-label="{{$g.Title}}, scrolls sideways">
 <table class="models comparetable">
 {{/* The column headings, each with its help bubble; the first stays in view. */}}
-<thead><tr>{{range $i, $c := $t.Cols}}<th scope="col"{{if eq $i 0}} class="stickycol"{{end}}>{{template "tipbox" $c}}</th>{{end}}</tr></thead>
+<thead><tr>{{range $i, $c := $g.Cols}}<th scope="col"{{if eq $i 0}} class="stickycol"{{end}}>{{template "tipbox" $c}}</th>{{end}}</tr></thead>
 <tbody>
-{{/* One row for each model; a busy test is marked with a symbol and words, never colour alone. */}}
-{{range $r := $t.Rows}}
-<tr>{{range $i, $c := $r.Cells}}{{if eq $i 0}}<th scope="row" class="stickycol">{{$c}}{{if $r.Busy}} <span aria-label="measured on a busy machine" title="measured on a busy machine">⚠</span>{{end}}</th>{{else}}<td>{{$c}}</td>{{end}}{{end}}</tr>
+{{/* One row for each model. */}}
+{{range $r := $g.Rows}}
+<tr>{{range $i, $c := $r.Cells}}{{if eq $i 0}}<th scope="row" class="stickycol">{{$c}}</th>{{else}}<td>{{$c}}</td>{{end}}{{end}}</tr>
 {{end}}
 </tbody>
 </table>
@@ -54,7 +65,30 @@
 <ul>
 {{range .Notes}}<li>{{.}}</li>{{end}}
 </ul>
+{{/* The method: every answer carries numbers that point to the reference list. */}}
+<h2 id="how">How and why this comparison was done</h2>
+<table class="settingtable">
+<thead><tr><th scope="col">Question</th><th scope="col">Answer</th></tr></thead>
+<tbody>
+{{range .How}}
+<tr><th scope="row">{{.Question}}</th><td data-label="Answer">{{.Answer}}</td></tr>
 {{end}}
+</tbody>
+</table>
+{{/* The references: the sources the method is based on, each opened and read. */}}
+<h2 id="references">References</h2>
+<ol class="cmprefs">
+{{range .Refs}}
+<li id="ref{{.N}}">[{{.N}}] {{.Authors}}. <em>{{.Title}}</em>. {{.Where}}. <a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.URL}}<span class="sr-only"> (opens in a new window)</span></a> Used here for: {{.Used}}</li>
+{{end}}
+</ol>
+<p class="muted">The addresses were opened and read on {{.RefsChecked}}. A web page can change or disappear later.</p>
+{{end}}
+{{/* The full notice. */}}
+<h2 id="notice">{{.NoticeTitle}}</h2>
+<div class="cmpnotice">
+{{range .NoticeFull}}<p>{{.}}</p>{{end}}
+</div>
 {{/* Where the figures come from. */}}
 {{if .SaveNote}}<p class="muted">{{.SaveNote}}</p>{{end}}
 {{/* The way back. */}}

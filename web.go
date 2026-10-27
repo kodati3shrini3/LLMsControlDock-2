@@ -132,10 +132,20 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	mux.HandleFunc("POST /modelfile", modelfileHandler(addr, token))
 	// Make the four performance handlers: the start page, the test run, and the two steps of clearing the saved results (the checks are in perfpage.go); the history lives in the person's configuration folder.
 	histPath, histNote := defaultHistoryPath()
+	// An earlier version named the results folder with a capital P; rename it before anything is opened, so the saved results are found.
+	if msg := moveOldHistoryFolder(histPath); msg != "" {
+		// Say so in the log.
+		log.Print(msg)
+	} // end of the rename check
 	// Open the saved results.
 	// One history store, shared by the performance pages and the comparison page.
 	perfHistory := openPerfStore(histPath, histNote)
-	// The deleted models are remembered in a small file next to the history (kept out of GitHub by .gitignore).
+	// An older version kept the list of deleted models next to the results; bring it to the new folder first.
+	if msg := moveOldDeletedFile(histPath); msg != "" {
+		// Say so in the log; the list is then simply empty until the file can be moved.
+		log.Print(msg)
+	} // end of the move check
+	// The deleted models are remembered in a small file in the deletedHistory folder (kept out of GitHub by .gitignore).
 	deletedList := openDeletedStore(deletedPathFor(histPath))
 	// The folder for the snapshots of deleted models' parameters ("history" next to the program, kept out of GitHub by .gitignore).
 	histDir, histDirNote := defaultHistoryDir()
@@ -171,6 +181,12 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	mux.HandleFunc("POST /performance/clear/model/confirm", perfClearOneDo)
 	// Route: a POST request for "/compare" shows the comparison of the tested models and changes nothing.
 	mux.HandleFunc("POST /compare", compareHandler(addr, token, perfHistory))
+	// The two downloads of the comparison: a PDF report and the data as CSV (both carry the notice; the checks are in compreport.go).
+	comparePDF, compareCSV := compareDownloadHandlers(addr, token, perfHistory)
+	// Route: a POST request for "/compare/pdf" sends the comparison as a PDF file.
+	mux.HandleFunc("POST /compare/pdf", comparePDF)
+	// Route: a POST request for "/compare/csv" sends the data as a CSV file.
+	mux.HandleFunc("POST /compare/csv", compareCSV)
 	// Route: a POST request for "/watch" pauses or resumes the automatic updates of the page.
 	mux.HandleFunc("POST /watch", watchHandler(token))
 	// The two steps of stopping the monitor.
@@ -181,6 +197,8 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	mux.HandleFunc("POST /stop/confirm", stopConfirm)
 	// Route: a GET request for "/countdown.js" sends the small script that makes the timers tick (only the message pages use it).
 	mux.HandleFunc("GET /countdown.js", countdownHandler)
+	// Route: a GET request for "/copy.js" sends the small script behind the copy buttons next to commands (only the restore page uses it).
+	mux.HandleFunc("GET /copy.js", copyHandler)
 	// Route: a GET request for "/loading.js" sends the small script that shows the waiting message while a model loads (only the load warning page uses it).
 	mux.HandleFunc("GET /loading.js", loadingHandler)
 	// Route: a GET request for exactly "/" shows the page; other paths get 404 and other methods get 405 from the router.

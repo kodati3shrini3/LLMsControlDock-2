@@ -16,7 +16,12 @@ history/
 *.history.json
 
 # Saved performance test results (numbers about this machine): personal to each machine
+performanceCompare/
+# The name used by earlier versions (renamed on start-up); kept here so an old folder can never reach GitHub
 PerformanceCompare/
+
+# Remembered list of deleted models: personal to each machine
+deletedHistory/
 
 # Local user settings written by the app: personal to each machine
 settings.json
