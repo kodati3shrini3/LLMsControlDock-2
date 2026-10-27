@@ -22,6 +22,8 @@ import ( // import lists the standard-library packages this file uses.
 	"strings"
 	// sync keeps two tests from running at the same time.
 	"sync"
+	// time stamps the safety copy of removed results.
+	"time"
 ) // end of imports
 
 // performanceTemplateText holds the performance pages, stored inside the executable at build time.
@@ -57,6 +59,8 @@ type perfGroup struct {
 type perfPage struct {
 	// Theme is the saved colour theme, or empty to follow the system.
 	Theme string
+	// Size is the saved text size, medium, or empty for the browser's own size.
+	Size string
 	// Token is the page token every form carries.
 	Token string
 	// Kind chooses the version of the page.
@@ -83,6 +87,24 @@ type perfPage struct {
 	HistoryCount int
 	// Seconds is the rough time the test may take, in words.
 	Duration string
+	// Summaries are the lines of the "what you lose" table.
+	Summaries []perfSummary
+	// CompareNow is how many models "Compare tested models" lists now.
+	CompareNow int
+	// InCompare is true when the model is in that list now.
+	InCompare bool
+	// RemoveCount is how many results one removal takes away.
+	RemoveCount int
+	// OtherCount is how many results of other models would stay.
+	OtherCount int
+	// CopyPlan says, before removal, whether a safety copy will be kept.
+	CopyPlan string
+	// CopyPlanBad is true when no safety copy can be kept.
+	CopyPlanBad bool
+	// CopyFile is the full path of the safety copy that was kept, or empty.
+	CopyFile string
+	// CopyErr is why no safety copy was kept, or empty.
+	CopyErr string
 } // end of perfPage
 
 // fmtSecs shows a time in seconds with sensible decimals; zero means not available.
@@ -431,8 +453,8 @@ func historyTable(runs []perfRun, kind string) ([]string, [][]string) {
 	return cols, rows
 } // end of historyTable
 
-// perfHandlers builds the four handlers: the start page (changes nothing), the run, and the two steps of clearing the history.
-func perfHandlers(addr ollamaAddress, token string, store *perfStore) (http.HandlerFunc, http.HandlerFunc, http.HandlerFunc, http.HandlerFunc) {
+// perfHandlers builds the six handlers: the start page (changes nothing), the run, the two steps of clearing all saved results, and the two steps of clearing one model's results; the history folder receives a safety copy of whatever is removed.
+func perfHandlers(addr ollamaAddress, token string, store *perfStore, hist *historyStore) (http.HandlerFunc, http.HandlerFunc, http.HandlerFunc, http.HandlerFunc, http.HandlerFunc, http.HandlerFunc) {
 	// Read the template once, together with the shared help-bubble templates; Must stops the program at start-up if it is broken, which a test would catch first.
 	page := template.Must(template.New("performance").Parse(performanceTemplateText + tipsTemplateText))
 	// The help bubbles never change, so build them once, each with an element name that is unique on the page.
@@ -448,6 +470,8 @@ func perfHandlers(addr ollamaAddress, token string, store *perfStore) (http.Hand
 	show := func(w http.ResponseWriter, r *http.Request, status int, data perfPage) {
 		// Add what every version needs.
 		data.Theme, data.Token = themeFromRequest(r), token
+		// The saved text size, from the cookie; empty means the browser's own size.
+		data.Size = sizeFromRequest(r)
 		// Build the page.
 		var buf bytes.Buffer
 		// Run the template.
@@ -636,7 +660,7 @@ func perfHandlers(addr ollamaAddress, token string, store *perfStore) (http.Hand
 		// Show it.
 		show(w, r, http.StatusOK, p)
 	} // end of run
-	// clearAsk is the first step of clearing: it asks "are you sure?" and changes nothing.
+	// clearAsk is the first step of clearing everything: it shows what would be lost and changes nothing.
 	clearAsk := func(w http.ResponseWriter, r *http.Request) {
 		// The form checks.
 		name, ok := readModelForm(w, r, token)
@@ -645,10 +669,12 @@ func perfHandlers(addr ollamaAddress, token string, store *perfStore) (http.Hand
 			// Stop here.
 			return
 		} // end of the form checks
-		// Show the question.
-		show(w, r, http.StatusOK, perfPage{Kind: "clearask", Model: name, HistoryCount: store.count()})
+		// Whether a safety copy can be kept.
+		plan, bad := removalPlan(hist)
+		// Show the question with its consequences.
+		show(w, r, http.StatusOK, perfPage{Kind: "clearask", Model: name, HistoryCount: store.count(), Summaries: store.summaries("", name), CompareNow: store.testedModels(), RemoveCount: store.countModel(name), CopyPlan: plan, CopyPlanBad: bad})
 	} // end of clearAsk
-	// clearDo is the second step: it removes every saved run.
+	// clearDo is the second step: it keeps a copy, then removes every saved run.
 	clearDo := func(w http.ResponseWriter, r *http.Request) {
 		// The form checks.
 		name, ok := readModelForm(w, r, token)
@@ -657,6 +683,10 @@ func perfHandlers(addr ollamaAddress, token string, store *perfStore) (http.Hand
 			// Stop here.
 			return
 		} // end of the form checks
+		// Everything that is about to go.
+		runs := store.all()
+		// Keep a copy first; a failure is reported but does not stop the confirmed removal.
+		file, copyErr := keepCopy(hist, "", runs, time.Now())
 		// Remove everything.
 		if err := store.clear(); err != nil {
 			// Say why.
@@ -665,8 +695,54 @@ func perfHandlers(addr ollamaAddress, token string, store *perfStore) (http.Hand
 			return
 		} // end of the clear check
 		// Say it is done.
-		show(w, r, http.StatusOK, perfPage{Kind: "cleared", Model: name})
+		show(w, r, http.StatusOK, perfPage{Kind: "cleared", Model: name, RemoveCount: len(runs), CopyFile: file, CopyErr: copyErr})
 	} // end of clearDo
-	// Hand the four handlers back.
-	return start, run, clearAsk, clearDo
+	// clearOneAsk is the first step of clearing one model's results: it shows what would be lost and changes nothing.
+	clearOneAsk := func(w http.ResponseWriter, r *http.Request) {
+		// The form checks.
+		name, ok := readModelForm(w, r, token)
+		// A refusal was already sent.
+		if !ok {
+			// Stop here.
+			return
+		} // end of the form checks
+		// How many results this model has.
+		n := store.countModel(name)
+		// Nothing saved for it.
+		if n == 0 {
+			// Say so.
+			show(w, r, http.StatusOK, perfPage{Kind: "clearonenone", Model: name})
+			// Stop here.
+			return
+		} // end of the empty check
+		// Whether a safety copy can be kept.
+		plan, bad := removalPlan(hist)
+		// Show the question with its consequences.
+		show(w, r, http.StatusOK, perfPage{Kind: "clearoneask", Model: name, RemoveCount: n, OtherCount: store.count() - n, Summaries: store.summaries(name, name), InCompare: store.inCompare(name), CopyPlan: plan, CopyPlanBad: bad})
+	} // end of clearOneAsk
+	// clearOneDo is the second step: it keeps a copy, then removes the results of this model only.
+	clearOneDo := func(w http.ResponseWriter, r *http.Request) {
+		// The form checks.
+		name, ok := readModelForm(w, r, token)
+		// A refusal was already sent.
+		if !ok {
+			// Stop here.
+			return
+		} // end of the form checks
+		// Keep a copy first; a failure is reported but does not stop the confirmed removal.
+		file, copyErr := keepCopy(hist, name, store.runsOf(name), time.Now())
+		// Remove this model's results.
+		n, err := store.removeModel(name)
+		// A failure to save.
+		if err != nil {
+			// Say why.
+			show(w, r, http.StatusInternalServerError, perfPage{Kind: "error", Model: name, Detail: err.Error()})
+			// Stop here.
+			return
+		} // end of the remove check
+		// Say it is done.
+		show(w, r, http.StatusOK, perfPage{Kind: "clearonedone", Model: name, RemoveCount: n, CopyFile: file, CopyErr: copyErr})
+	} // end of clearOneDo
+	// Hand the six handlers back.
+	return start, run, clearAsk, clearDo, clearOneAsk, clearOneDo
 } // end of perfHandlers

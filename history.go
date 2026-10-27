@@ -152,16 +152,22 @@ func (h *historyStore) save(s paramSnapshot) (string, error) {
 		// Fixed wording.
 		return "", fmt.Errorf("the snapshot could not be encoded: %w", err)
 	} // end of the encode check
-	// The first part of the name: time, then the model.
-	base := s.DeletedAt.Format("2006-01-02_15-04-05") + "_" + safeFilePart(s.Model)
+	// The first part of the name: time with its time zone offset (Z for UTC, otherwise such as +0100), then the model.
+	base := s.DeletedAt.Format("2006-01-02_15-04-05Z0700") + "_" + safeFilePart(s.Model)
+	// Write it under a name that is never used twice.
+	return h.writeUnique("snapshot", base, snapshotSuffix, data)
+} // end of save
+
+// writeUnique writes one file into the history folder under base + suffix, adding a number when the name is taken; a file is never overwritten, and only this user can read it. The word says what is being saved, for the error texts.
+func (h *historyStore) writeUnique(what, base, suffix string, data []byte) (string, error) {
 	// Try the plain name, then numbered ones.
 	for n := 0; n < 100; n++ {
 		// The file name.
-		name := base + snapshotSuffix
+		name := base + suffix
 		// A number from the second try on.
 		if n > 0 {
 			// Add it.
-			name = fmt.Sprintf("%s-%d%s", base, n+1, snapshotSuffix)
+			name = fmt.Sprintf("%s-%d%s", base, n+1, suffix)
 		} // end of the number
 		// Create the file, failing when it exists, so nothing is ever overwritten; only this user may read it.
 		f, err := os.OpenFile(filepath.Join(h.dir, name), os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0o600)
@@ -173,26 +179,59 @@ func (h *historyStore) save(s paramSnapshot) (string, error) {
 		// Another problem.
 		if err != nil {
 			// Fixed wording with the system reason.
-			return "", fmt.Errorf("the snapshot file could not be created: %w", err)
+			return "", fmt.Errorf("the %s file could not be created: %w", what, err)
 		} // end of the create check
 		// Write the bytes.
 		if _, err := f.Write(data); err != nil {
 			// Close before returning.
 			f.Close()
 			// Fixed wording.
-			return "", fmt.Errorf("the snapshot file could not be written: %w", err)
+			return "", fmt.Errorf("the %s file could not be written: %w", what, err)
 		} // end of the write check
 		// Close to flush.
 		if err := f.Close(); err != nil {
 			// Fixed wording.
-			return "", fmt.Errorf("the snapshot file could not be written: %w", err)
+			return "", fmt.Errorf("the %s file could not be written: %w", what, err)
 		} // end of the close check
 		// Saved.
 		return name, nil
 	} // end of the loop
-	// Too many snapshots in one second.
-	return "", errors.New("the snapshot file name was already taken")
-} // end of save
+	// Too many files in one second.
+	return "", fmt.Errorf("the %s file name was already taken", what)
+} // end of writeUnique
+
+// removedSuffix ends the name of every safety copy of removed performance results; it differs from snapshotSuffix, so the parameter history never lists these.
+const removedSuffix = "_removed.json"
+
+// saveRemoved writes the safety copy of performance results that are about to be removed and returns its file name.
+func (h *historyStore) saveRemoved(r removedResults) (string, error) {
+	// No folder: nothing can be saved.
+	if h.dir == "" {
+		// Say why.
+		if h.note != "" {
+			// The stored reason.
+			return "", errors.New(h.note)
+		} // end of the note check
+		// A fixed reason.
+		return "", errors.New("there is no history folder")
+	} // end of the folder check
+	// The folder, readable only by this user.
+	if err := os.MkdirAll(h.dir, 0o700); err != nil {
+		// Fixed wording with the system reason.
+		return "", fmt.Errorf("the history folder could not be created: %w", err)
+	} // end of the folder check
+	// Encode with indentation so the person can read the file.
+	data, err := json.MarshalIndent(r, "", "  ")
+	// A bug, not a user problem.
+	if err != nil {
+		// Fixed wording.
+		return "", fmt.Errorf("the copy could not be encoded: %w", err)
+	} // end of the encode check
+	// The name: time with its zone offset, then what was removed.
+	base := r.RemovedAt.Format("2006-01-02_15-04-05Z0700") + "_performance-results_" + safeFilePart(r.Scope)
+	// Write it under a name that is never used twice.
+	return h.writeUnique("copy", base, removedSuffix, data)
+} // end of saveRemoved
 
 // list returns the snapshots of one model, newest first; files that are not ours, damaged, too large or from another model are skipped.
 func (h *historyStore) list(model string) []paramSnapshot {

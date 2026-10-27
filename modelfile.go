@@ -30,6 +30,8 @@ const maxModelfileShown = 512 * 1024
 type modelfilePage struct {
 	// Theme is the chosen colour theme, or empty to follow the system.
 	Theme string
+	// Size is the saved text size, medium, or empty for the browser's own size.
+	Size string
 	// Kind is modelfile, notinstalled or error.
 	Kind string
 	// Model is the model name.
@@ -66,6 +68,8 @@ func modelfileHandler(addr ollamaAddress, token string) http.HandlerFunc {
 	show := func(w http.ResponseWriter, r *http.Request, status int, data modelfilePage) {
 		// Add the theme.
 		data.Theme = themeFromRequest(r)
+		// The saved text size, from the cookie; empty means the browser's own size.
+		data.Size = sizeFromRequest(r)
 		// Build the page.
 		var buf bytes.Buffer
 		// Run the template.

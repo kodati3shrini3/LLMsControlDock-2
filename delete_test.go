@@ -457,7 +457,7 @@ func TestDeleteConfirmDeletesAndRemembers(t *testing.T) {
 	// The main page now shows the greyed row with a restore form, and the model is not in the installed rows.
 	_, _, page := get(t, rig.h, http.MethodGet, "/")
 	// The things that must be there.
-	for _, want := range []string{`data-deleted="alpha:1b"`, "<s>alpha:1b</s>", `action="/restore"`, "Restore: how to download this model again", "Deleted models", "1.3 GB"} {
+	for _, want := range []string{`data-deleted="alpha:1b"`, "<s>alpha:1b</s>", `action="/restore"`, "Restore: how to download this model again, and the parameters it had", "Deleted models", "1.3 GB"} {
 		// Look for it.
 		if !strings.Contains(page, want) {
 			// Report the gap.

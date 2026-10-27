@@ -1084,7 +1084,7 @@ button.btn-plain {
 } /* end of rule */
 
 /* Every icon box is its own anchor: the name is private to each box, so a bubble finds only its own icon. */
-.gearform .tipbox, .comparebar .tipbox, .controls .tipbox {
+.gearform .tipbox, .comparebar .tipbox, .controls .tipbox, .lookstack .tipbox {
   /* The name the bubble uses to find this box. */
   anchor-name: --tipicon;
   /* Keep the name inside this box, so the boxes of other rows never get mixed up. */
@@ -1483,4 +1483,364 @@ a.btn-load {
 .cmds code {
   /* Break long words. */
   overflow-wrap: anywhere;
+} /* end of rule */
+
+/* Text size Medium: the whole page is 81 percent of the browser's own text size; every size in this stylesheet is in rem, so everything follows. */
+html[data-size="medium"] {
+  /* Percent of the browser's own size works in every browser and keeps the person's own browser setting as the base. */
+  font-size: 81%;
+} /* end of rule */
+
+/* Icons are drawn with a size in pixels in the page; in Medium they shrink to the same 81 percent. */
+html[data-size="medium"] svg[width="10"] {
+  /* 81 percent of 10 pixels. */
+  width: 8.1px;
+  /* Same height. */
+  height: 8.1px;
+} /* end of rule */
+/* 81 percent of 14 pixels. */
+html[data-size="medium"] svg[width="14"] {
+  /* Width. */
+  width: 11.34px;
+  /* Height. */
+  height: 11.34px;
+} /* end of rule */
+/* 81 percent of 18 pixels. */
+html[data-size="medium"] svg[width="18"] {
+  /* Width. */
+  width: 14.58px;
+  /* Height. */
+  height: 14.58px;
+} /* end of rule */
+/* 81 percent of 20 pixels. */
+html[data-size="medium"] svg[width="20"] {
+  /* Width. */
+  width: 16.2px;
+  /* Height. */
+  height: 16.2px;
+} /* end of rule */
+/* 81 percent of 22 pixels. */
+html[data-size="medium"] svg[width="22"] {
+  /* Width. */
+  width: 17.82px;
+  /* Height. */
+  height: 17.82px;
+} /* end of rule */
+
+/* The two look switches, text size on top and theme below, lined up on the right. */
+.lookstack {
+  /* One above the other. */
+  display: flex;
+  /* In a column. */
+  flex-direction: column;
+  /* Against the right edge. */
+  align-items: flex-end;
+  /* A little air between the rows. */
+  gap: 0.45rem;
+} /* end of rule */
+
+/* The small "Text" label before the size switch: dotted underline says a tooltip is there. */
+.sizelabel {
+  /* Small, like the Auto label. */
+  font-size: 0.75rem;
+  /* Quiet colour. */
+  color: var(--muted);
+  /* A dotted line hints at the tooltip. */
+  border-bottom: 1px dotted var(--muted);
+  /* Shows that help is available. */
+  cursor: help;
+  /* A little room before the switch. */
+  margin-right: 0.4rem;
+} /* end of rule */
+
+/* A switch whose knob sits on the right (Large). */
+.switch-right {
+  /* Push the knob to the right edge. */
+  justify-content: flex-end;
+} /* end of rule */
+
+/* A knob that holds a letter instead of a symbol. */
+.knob-letter {
+  /* Slightly smaller and bold, so M and L read clearly. */
+  font-size: 0.7rem;
+  /* Bold letter. */
+  font-weight: 700;
+} /* end of rule */
+
+/* Text for screen readers only. */
+.sr-only {
+  /* Take it out of the layout. */
+  position: absolute;
+  /* One pixel is enough for a screen reader. */
+  width: 1px;
+  /* One pixel high. */
+  height: 1px;
+  /* Hide anything outside. */
+  overflow: hidden;
+  /* Clip it away. */
+  clip-path: inset(50%);
+  /* Keep it on one line. */
+  white-space: nowrap;
+} /* end of rule */
+
+
+/* The About card: narrower than the tables so lines stay easy to read. */
+.aboutcard {
+  /* A comfortable reading width. */
+  max-width: 44rem;
+  /* Centred. */
+  margin: 2rem auto;
+  /* More air inside than a normal panel. */
+  padding: 1.5rem 1.75rem;
+} /* end of rule */
+
+/* The line under the About heading. */
+.aboutlead {
+  /* Close to the heading. */
+  margin-top: 0;
+  /* A little larger than body text. */
+  font-size: 1.05rem;
+} /* end of rule */
+
+/* The facts table of the About page. */
+.aboutfacts {
+  /* Full width. */
+  width: 100%;
+  /* Lines between rows, not between cells. */
+  border-collapse: collapse;
+  /* Air around the table. */
+  margin: 1rem 0 1.25rem;
+} /* end of rule */
+
+/* Labels and values of the About table. */
+.aboutfacts th, .aboutfacts td {
+  /* Left aligned. */
+  text-align: left;
+  /* Air inside the cells. */
+  padding: 0.55rem 0.75rem 0.55rem 0;
+  /* A thin line above each row. */
+  border-top: 1px solid var(--border);
+  /* Start at the top when a value wraps. */
+  vertical-align: top;
+} /* end of rule */
+
+/* The labels. */
+.aboutfacts th {
+  /* A fixed column, so the values line up. */
+  width: 10rem;
+  /* Quiet colour. */
+  color: var(--muted);
+  /* Semi-bold. */
+  font-weight: 600;
+} /* end of rule */
+
+/* The dedication: set apart with a bar and the category colours, in italics. */
+.dedication {
+  /* Space around it. */
+  margin: 1.25rem 0;
+  /* Air inside. */
+  padding: 1rem 1.25rem;
+  /* The accent bar on the left. */
+  border-left: 6px solid var(--cat-accent);
+  /* Soft band colour from the variables, so it works in light and dark. */
+  background: var(--cat-bg);
+  /* Text colour that is readable on the band. */
+  color: var(--cat-text);
+  /* Italics for a personal line. */
+  font-style: italic;
+  /* Slightly larger. */
+  font-size: 1.05rem;
+  /* Rounded on the right only, next to the bar. */
+  border-radius: 0 0.5rem 0.5rem 0;
+} /* end of rule */
+
+/* The look switches are at the top right edge of the window, so their bubbles open downwards, lined up with the right edge of their box. */
+.lookstack .tip-icon {
+  /* The top edge of the bubble sits on the bottom edge of the box. */
+  top: anchor(bottom);
+  /* No bottom edge: the top decides. */
+  bottom: auto;
+  /* No left edge: the right edge decides. */
+  left: auto;
+  /* The bubble's right edge sits on the box's right edge. */
+  right: anchor(right);
+  /* A little gap below the box. */
+  margin: 0.25rem 0 0 0;
+} /* end of rule */
+
+/* On a narrow window the bubbles span the window again. */
+@media (max-width: 40rem) {
+  /* The look bubbles. */
+  .lookstack .tip-icon {
+    /* Near the left edge. */
+    left: 0.5rem;
+    /* Near the right edge. */
+    right: 0.5rem;
+  } /* end of rule */
+} /* end of rule */
+
+/* The quiet line under the title: who is behind the program. */
+.brandline {
+  /* Close to the title. */
+  margin: 0.2rem 0 0;
+  /* Small and quiet. */
+  font-size: 0.85rem;
+  /* Secondary colour from the variables. */
+  color: var(--muted);
+} /* end of rule */
+
+/* The company name in that line is a link: semi-bold so it can be found. */
+.brandline a {
+  /* Semi-bold. */
+  font-weight: 600;
+} /* end of rule */
+
+/* The footer bar at the bottom of the main page. */
+.brandbar {
+  /* Words on the left, buttons on the right. */
+  display: flex;
+  /* Level with each other. */
+  align-items: center;
+  /* Push the two parts apart. */
+  justify-content: space-between;
+  /* Wrap on a narrow window. */
+  flex-wrap: wrap;
+  /* Space between the parts when they wrap. */
+  gap: 0.75rem 1rem;
+  /* Space above and below the bar. */
+  margin: 1.5rem 0 2rem;
+  /* Air inside. */
+  padding: 0.9rem 1.1rem;
+  /* The same solid outline and panel colour as the other boxes. */
+  border: 2px solid var(--border);
+  /* Rounded like the panels. */
+  border-radius: 0.5rem;
+  /* Panel colour. */
+  background: var(--panel);
+} /* end of rule */
+
+/* The tagline in the bar. */
+.brandbar span {
+  /* Quiet colour. */
+  color: var(--muted);
+  /* Small. */
+  font-size: 0.85rem;
+} /* end of rule */
+
+/* The two buttons. */
+.brandbtns {
+  /* Side by side. */
+  display: flex;
+  /* Wrap on a narrow window. */
+  flex-wrap: wrap;
+  /* Space between them. */
+  gap: 0.6rem;
+} /* end of rule */
+
+/* A rounded link button with an outline. */
+.brandbtn {
+  /* An outline in the accent colour, visible without colour fill. */
+  border: 2px solid var(--cat-accent);
+  /* Pill shape. */
+  border-radius: 999px;
+  /* Room inside. */
+  padding: 0.3rem 0.9rem;
+  /* Small. */
+  font-size: 0.85rem;
+  /* No underline on a button. */
+  text-decoration: none;
+  /* Text colour from the variables. */
+  color: var(--text);
+  /* Keep on one line. */
+  white-space: nowrap;
+  /* Sits level with the words next to it. */
+  display: inline-block;
+} /* end of rule */
+
+/* The main button is filled. */
+.brandbtn-main {
+  /* Filled with the accent colour. */
+  background: var(--cat-accent);
+  /* Page colour on it for contrast in light and dark. */
+  color: var(--bg);
+  /* Semi-bold. */
+  font-weight: 600;
+} /* end of rule */
+
+/* A button under the pointer or the keyboard focus gets a strong outline. */
+.brandbtn:hover, .brandbtn:focus-visible {
+  /* Outline in the text colour. */
+  outline: 3px solid var(--text);
+  /* A little gap. */
+  outline-offset: 2px;
+} /* end of rule */
+
+/* The company card on the About page. */
+.companycard {
+  /* Space above the card. */
+  margin: 1.25rem 0;
+  /* Air inside. */
+  padding: 1rem 1.25rem;
+  /* A solid outline. */
+  border: 2px solid var(--border);
+  /* Rounded corners. */
+  border-radius: 0.5rem;
+} /* end of rule */
+
+/* The company name in the card. */
+.companycard h2 {
+  /* Tight to the top. */
+  margin: 0.1rem 0 0.3rem;
+  /* A little larger than body text. */
+  font-size: 1.1rem;
+} /* end of rule */
+
+/* The note next to the button. */
+.brandnote {
+  /* Small. */
+  font-size: 0.8rem;
+  /* A little room after the button. */
+  margin-left: 0.4rem;
+} /* end of rule */
+
+/* The logo and the tagline side by side in the footer bar. */
+.brandwho {
+  /* Side by side. */
+  display: flex;
+  /* Level with each other. */
+  align-items: center;
+  /* Space between the logo and the words. */
+  gap: 0.9rem;
+} /* end of rule */
+
+/* The miniature logo: 2.5 rem high (40 pixels at the normal size), so it follows the text size switch. */
+.brandlogo {
+  /* The height decides; the width follows the picture's shape. */
+  height: 2.5rem;
+  /* Keep the shape. */
+  width: auto;
+  /* Never squeezed by the words next to it. */
+  flex: none;
+  /* Softly rounded corners, like the boxes. */
+  border-radius: 0.4rem;
+  /* A white tile behind it, so the logo reads the same in the dark theme. */
+  background: #ffffff;
+} /* end of rule */
+
+/* The logo with the company name in the About card. */
+.cardhead {
+  /* Side by side. */
+  display: flex;
+  /* Level with each other. */
+  align-items: center;
+  /* Space between the logo and the name. */
+  gap: 0.9rem;
+  /* Space below, before the tagline. */
+  margin-bottom: 0.3rem;
+} /* end of rule */
+
+/* The name next to the logo needs no extra space. */
+.cardhead h2 {
+  /* No margins inside the row. */
+  margin: 0;
 } /* end of rule */

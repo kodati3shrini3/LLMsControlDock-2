@@ -1,7 +1,7 @@
 {{/* Settings page template: one page with several versions, chosen by Kind. The comments are template comments, so they never reach the browser. */}}
 <!DOCTYPE html>
 {{/* lang tells screen readers which language the page is written in. */}}
-<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}{{if .Size}} data-size="{{.Size}}"{{end}}>
 <head>{{/* start of the head. */}}
 {{/* Text encoding. */}}
 <meta charset="utf-8">

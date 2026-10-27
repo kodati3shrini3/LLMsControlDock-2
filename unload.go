@@ -197,6 +197,8 @@ type unloadPage struct {
 	Detail string
 	// Theme is the saved theme choice, as on the main page.
 	Theme string
+	// Size is the saved text size, medium, or empty for the browser's own size.
+	Size string
 	// Token is the page token for the forms on this page.
 	Token string
 } // end of unloadPage
@@ -246,6 +248,8 @@ func unloadHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.Ha
 	show := func(w http.ResponseWriter, r *http.Request, status int, data unloadPage) {
 		// Add what every version of the page needs.
 		data.Theme, data.Token = themeFromRequest(r), token
+		// The saved text size, from the cookie; empty means the browser's own size.
+		data.Size = sizeFromRequest(r)
 		// Build the page.
 		var buf bytes.Buffer
 		// Run the template.

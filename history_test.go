@@ -139,6 +139,11 @@ func TestDeleteSavesSnapshotFirst(t *testing.T) {
 	} // end of the content check
 	// The restore page offers the history.
 	restore := bodyOf(post(t, rig.h, "/restore", url.Values{"token": {rig.token}, "model": {"alpha:1b"}}, fromThisPage))
+	// The page says a snapshot was kept, before the button is clicked.
+	if !strings.Contains(restore, "A snapshot of the parameters it had was kept (1). Use View history below.") {
+		// Report it.
+		t.Errorf("the restore page does not say a snapshot exists")
+	} // end of the snapshot line check
 	// The button.
 	if !strings.Contains(restore, `action="/restore/history"`) || !strings.Contains(restore, "View history") {
 		// Report it.
@@ -147,7 +152,7 @@ func TestDeleteSavesSnapshotFirst(t *testing.T) {
 	// The history page.
 	page := bodyOf(post(t, rig.h, "/restore/history", url.Values{"token": {rig.token}, "model": {"alpha:1b"}}, fromThisPage))
 	// The parameters and the facts, with the stop word escaped.
-	for _, want := range []string{"History of <code>alpha:1b</code>", "<code>temperature</code>", "<code>0.7</code>", "<code>num_ctx</code>", "<code>4096</code>", "&#34;&lt;end&gt;&#34;", "1.3 GB", names[0]} {
+	for _, want := range []string{"History of <code>alpha:1b</code>", "<code>temperature</code>", "<code>0.7</code>", "<code>num_ctx</code>", "<code>4096</code>", "&#34;&lt;end&gt;&#34;", "1.3 GB", strings.ReplaceAll(names[0], "+", "&#43;")} {
 		// Look for it.
 		if !strings.Contains(page, want) {
 			// Report the gap.
@@ -335,3 +340,27 @@ func TestDefaultHistoryDir(t *testing.T) {
 		t.Errorf("no-folder case gave %q, %q", d, note)
 	} // end of the none check
 } // end of TestDefaultHistoryDir
+
+// TestRestorePageSaysWhenNothingWasKept checks a model deleted without a snapshot says so on the restore page.
+func TestRestorePageSaysWhenNothingWasKept(t *testing.T) {
+	// Ollama cannot tell the parameters, so no snapshot is taken.
+	rig, f, _ := delRig(t)
+	// Make show fail.
+	f.failShow = true
+	// Delete alpha anyway.
+	post(t, rig.h, "/delete/confirm", url.Values{"token": {rig.token}, "model": {"alpha:1b"}}, fromThisPage)
+	// The restore page.
+	body := bodyOf(post(t, rig.h, "/restore", url.Values{"token": {rig.token}, "model": {"alpha:1b"}}, fromThisPage))
+	// The honest line, and no claim that a snapshot exists.
+	if !strings.Contains(body, "No snapshot of its parameters was kept, so the old values are not known.") || strings.Contains(body, "was kept (") {
+		// Report it.
+		t.Errorf("the restore page does not say nothing was kept: %s", body)
+	} // end of the check
+	// The key explains the history too.
+	_, _, page := get(t, rig.h, http.MethodGet, "/")
+	// The key text.
+	if !strings.Contains(page, "how to download it again, and the parameters it had") {
+		// Report it.
+		t.Errorf("the key does not mention the parameters")
+	} // end of the key check
+} // end of TestRestorePageSaysWhenNothingWasKept

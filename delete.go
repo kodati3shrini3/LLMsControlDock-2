@@ -97,6 +97,8 @@ type deletePage struct {
 	SnapFile string
 	// SnapErr is why no snapshot was saved (done page); empty when it was saved.
 	SnapErr string
+	// SnapCount is how many parameter snapshots are kept for the model (restore page).
+	SnapCount int
 	// Snaps are the snapshots of the model, newest first (history page).
 	Snaps []snapView
 	// LibText is what the check of the Ollama library found, in words (empty when no check was made).
@@ -107,6 +109,8 @@ type deletePage struct {
 	ShowPull bool
 	// Theme is the saved theme choice, as on the main page.
 	Theme string
+	// Size is the saved text size, medium, or empty for the browser's own size.
+	Size string
 	// Token is the page token for the forms on this page.
 	Token string
 } // end of deletePage
@@ -156,6 +160,8 @@ func deleteHandlers(addr ollamaAddress, token string, store *deletedStore, hist 
 	show := func(w http.ResponseWriter, r *http.Request, status int, data deletePage) {
 		// Add what every version of the page needs.
 		data.Theme, data.Token = themeFromRequest(r), token
+		// The saved text size, from the cookie; empty means the browser's own size.
+		data.Size = sizeFromRequest(r)
 		// Build the page.
 		var buf bytes.Buffer
 		// Run the template.
@@ -413,7 +419,7 @@ func deleteHandlers(addr ollamaAddress, token string, store *deletedStore, hist 
 			return
 		} // end of the unknown case
 		// Show the information page.
-		show(w, r, http.StatusOK, withLib(r, deletePage{Kind: "restore", Model: d.Name, SizeText: formatSize(d.Size), Digest: d.Digest, When: d.DeletedAt.Local().Format("2 Jan 2006 15:04 MST")}, d.Name, d.Digest, "restore"))
+		show(w, r, http.StatusOK, withLib(r, deletePage{Kind: "restore", Model: d.Name, SizeText: formatSize(d.Size), Digest: d.Digest, SnapCount: len(hist.list(d.Name)), When: d.DeletedAt.Local().Format("2 Jan 2006 15:04 MST")}, d.Name, d.Digest, "restore"))
 	} // end of restore
 	// forget removes the greyed row, without touching Ollama.
 	forget = func(w http.ResponseWriter, r *http.Request) {

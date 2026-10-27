@@ -216,6 +216,8 @@ type loadPage struct {
 	Detail string
 	// Theme is the saved theme choice, as on the main page.
 	Theme string
+	// Size is the saved text size, medium, or empty for the browser's own size.
+	Size string
 	// Token is the page token for the forms on this page.
 	Token string
 } // end of loadPage
@@ -264,6 +266,8 @@ func loadHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.Hand
 	show := func(w http.ResponseWriter, r *http.Request, status int, data loadPage) {
 		// Add what every version of the page needs.
 		data.Theme, data.Token, data.DefaultText = themeFromRequest(r), token, defaultKeepText
+		// The saved text size, from the cookie; empty means the browser's own size.
+		data.Size = sizeFromRequest(r)
 		// The choices and the bubble for the keep-alive row.
 		data.KeepOptions, data.KeepTip = keepChoices, keepTip
 		// Build the page.

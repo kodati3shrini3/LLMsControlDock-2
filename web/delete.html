@@ -1,7 +1,7 @@
 {{/* Delete page template: one page with several versions, chosen by Kind. The comments are template comments, so they never reach the browser. */}}
 <!DOCTYPE html>
 {{/* lang tells screen readers which language the page is written in. */}}
-<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}>
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}{{if .Size}} data-size="{{.Size}}"{{end}}>
 <head>{{/* start of the head. */}}
 {{/* Text encoding. */}}
 <meta charset="utf-8">
@@ -134,6 +134,8 @@
 <p>Restoring means downloading the model again from the Ollama library. You get the latest version of this name, which may differ from the one that was deleted.</p>
 {{/* The loss of tuning gets its own box, because it is the part people forget. */}}
 <div class="lossbox" role="alert"><strong>You lose your tuning.</strong> Inference parameters you changed here are deleted with the model. A restored model comes back with the default parameters, so you must tune it again.</div>
+{{/* Whether the old parameter values were kept, so the person knows before clicking View history. */}}
+{{if .SnapCount}}<p class="goodnote">A snapshot of the parameters it had was kept ({{.SnapCount}}). Use View history below.</p>{{else}}<p class="warn">No snapshot of its parameters was kept, so the old values are not known.</p>{{end}}
 {{/* Models that cannot come back. */}}
 <p>A model you made yourself (from a Modelfile or an import) cannot be downloaded again.</p>
 {{if .ShowPull}}

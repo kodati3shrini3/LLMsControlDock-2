@@ -751,7 +751,7 @@ func TestPerfComparisonAndHistory(t *testing.T) {
 	// The first step of clearing only asks.
 	_, ask, _ := perfPost(t, rig, "/performance/clear", "chat:1b")
 	// The question names the number.
-	if !strings.Contains(ask, "removes all 2 saved test results") || len(savedRuns(t, hist)) != 2 {
+	if !strings.Contains(ask, "permanently remove all 2 saved test results") || len(savedRuns(t, hist)) != 2 {
 		// Report the problem.
 		t.Errorf("the clear question removed something or is wrong")
 	} // end of the ask check
