@@ -427,3 +427,50 @@ func TestKeyAndDrawnIcons(t *testing.T) {
 		t.Errorf("only %d icon buttons in the table", n)
 	} // end of the row check
 } // end of TestKeyAndDrawnIcons
+
+// ruleOf returns the text of the first CSS rule that starts with the given selector line, from the selector to its closing brace.
+func ruleOf(css, selector string) string {
+	// Where the rule starts (at the beginning of a line).
+	i := strings.Index(css, "\n"+selector+" {")
+	// Not found.
+	if i < 0 {
+		// An empty result makes the caller's check fail with a clear message.
+		return ""
+	} // end of the presence check
+	// The text from the selector on.
+	rest := css[i+1:]
+	// Cut at the closing brace.
+	return rest[:strings.Index(rest, "}")+1]
+} // end of ruleOf
+
+// TestKeyBox checks that the key above the models table is a box (outline, rounded corners, padding) with clear space around it.
+func TestKeyBox(t *testing.T) {
+	// A fake and a rig.
+	rig, _ := perfRig(t, newPerfFake())
+	// The stylesheet the monitor serves.
+	_, _, css := get(t, rig.h, http.MethodGet, "/app.css")
+	// The key's rule.
+	legend := ruleOf(css, ".legend")
+	// What the box needs.
+	for _, want := range []string{"border: 2px solid var(--border)", "border-radius: 0.6rem", "padding: 0.9rem 1rem", "margin: 0 0 1.1rem", "background: var(--bg)"} {
+		// Look for it.
+		if !strings.Contains(legend, want) {
+			// Report the gap.
+			t.Errorf(".legend lacks %q", want)
+		} // end of the check
+	} // end of the loop
+	// The heading row above the box leaves clear space below it.
+	if head := ruleOf(css, ".panelhead"); !strings.Contains(head, "margin-bottom: 1rem") {
+		// Report it.
+		t.Errorf(".panelhead has no space below it")
+	} // end of the space check
+	// The key sits in the panel of the models table, after the heading row and before the table.
+	_, _, body := get(t, rig.h, http.MethodGet, "/")
+	// The three places.
+	head, key, table := strings.Index(body, `class="panelhead"`), strings.Index(body, `<ul class="legend`), strings.Index(body, `<table class="models"`)
+	// The order must be heading row, key, table.
+	if !(head >= 0 && head < key && key < table) {
+		// Report it.
+		t.Errorf("order wrong: heading row %d, key %d, table %d", head, key, table)
+	} // end of the order check
+} // end of TestKeyBox
