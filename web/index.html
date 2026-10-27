@@ -155,6 +155,8 @@
 <li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></span><span><strong>Modelfile</strong>: shows a model&#39;s Modelfile, read-only</span></li>
 <li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg></span><span><strong>Inference parameters</strong>: view and modify them; only for models that are not loaded</span></li>
 <li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></span><span><strong>Performance</strong>: before a model name; only for models that are not loaded</span></li>
+<li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></span><span><strong>Delete</strong>: removes a model from this computer; asks first</span></li>
+<li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/></svg></span><span><strong>Restore</strong>: on a greyed, deleted row; shows how to download the model again</span></li>
 <li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M7 21h10"/><path d="M4 7h16"/><path d="M4 7l-2.5 7a3.5 3.5 0 0 0 5 0z"/><path d="M20 7l-2.5 7a3.5 3.5 0 0 0 5 0z"/></svg></span><span><strong>Compare tested models</strong>: the button at the top right of this panel</span></li>
 </ul>
 {{/* The scroll box: it can be reached with Tab, so keyboard users can scroll the table sideways. */}}
@@ -213,6 +215,8 @@
 {{/* The model name is the row heading and stays visible while scrolling. */}}
 <th scope="row" class="stickycol">
 {{/* The performance icon comes before the name; a loaded model may be in use, so it gets an empty slot of the same width instead, and the names stay in line. */}}
+{{/* Two icons stacked in a fixed-width column: the performance icon on top (empty slot on a loaded model) and the delete icon just below it (for every model). */}}
+<span class="iconstack">
 {{if .Loaded}}<span class="gearslot" aria-hidden="true"></span>{{else}}
 {{/* A small form that sends the model name and the page token to the performance page, which changes nothing. */}}
 <form class="gearform" method="post" action="/performance">
@@ -232,6 +236,24 @@
 </form>
 {{/* End of the performance icon. */}}
 {{end}}
+{{/* A small form that sends the model name and the page token to the delete warning page, which changes nothing. */}}
+<form class="gearform" method="post" action="/delete">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{$.Token}}">
+{{/* The model name. */}}
+<input type="hidden" name="model" value="{{.Name}}">
+{{/* The area that opens the tip. */}}
+<span class="tipbox">
+{{/* The button: the symbol is hidden from screen readers, which read the label and the tip instead. */}}
+<button type="submit" class="gear gear-delete" aria-label="Delete {{.Name}}" aria-describedby="tipdel-{{.Name}}"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button>
+{{/* The tip. */}}
+<span class="tip tip-icon" role="tooltip" id="tipdel-{{.Name}}">Delete this model from this computer (it asks first)</span>
+{{/* End of the tip area. */}}
+</span>
+{{/* End of the form. */}}
+</form>
+{{/* End of the icon column. */}}
+</span>
 {{.Name}}</th>
 {{/* The state cell: a dot (solid green when loaded, an empty ring when not) plus the words, so colour is never the only signal. */}}
 <td>
@@ -318,6 +340,43 @@
 {{/* End of the model loop. */}}
 {{end}}
 {{/* End of the category loop. */}}
+{{end}}
+{{/* Models this monitor deleted and that are still gone: greyed rows with a Restore icon in the place of the delete icon. */}}
+{{if .Table.Deleted}}
+<tr class="grouprow">{{/* start of the heading row. */}}
+<th scope="colgroup" colspan="10"><strong>Deleted models</strong> <span class="muted">({{len .Table.Deleted}})</span></th>
+</tr>{{/* end of the heading row. */}}
+{{range .Table.Deleted}}
+{{/* A greyed row; it has no data-model, so the refresh script ignores it. */}}
+<tr class="ghostrow" data-deleted="{{.Name}}">
+<th scope="row" class="stickycol">
+{{/* The same icon column: an empty slot where the performance icon is, the restore icon where the delete icon is. */}}
+<span class="iconstack">
+<span class="gearslot" aria-hidden="true"></span>
+{{/* A small form that sends the model name and the page token to the restore page, which changes nothing. */}}
+<form class="gearform" method="post" action="/restore">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{$.Token}}">
+{{/* The model name. */}}
+<input type="hidden" name="model" value="{{.Name}}">
+{{/* The area that opens the tip. */}}
+<span class="tipbox">
+{{/* The button. */}}
+<button type="submit" class="gear gear-restore" aria-label="Restore {{.Name}}" aria-describedby="tiprestore-{{.Name}}"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/></svg></button>
+{{/* The tip. */}}
+<span class="tip tip-icon" role="tooltip" id="tiprestore-{{.Name}}">Restore: how to download this model again</span>
+{{/* End of the tip area. */}}
+</span>
+{{/* End of the form. */}}
+</form>
+{{/* End of the icon column. */}}
+</span>
+{{/* The name is struck through; the line under it says when and how big. */}}
+<s>{{.Name}}</s><br><span class="muted ghostnote">deleted {{.WhenText}}, {{.SizeText}}</span></th>
+{{/* One wide cell for the rest of the row. */}}
+<td colspan="9" class="muted">Deleted. Restore downloads it again.</td>
+</tr>{{/* end of the greyed row. */}}
+{{end}}
 {{end}}
 {{/* End of the table body. */}}
 </tbody>

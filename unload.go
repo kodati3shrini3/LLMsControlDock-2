@@ -45,8 +45,14 @@ const unloadVerifyStep = 300 * time.Millisecond
 // maxModelNameLen is the longest model name the forms accept.
 const maxModelNameLen = 300
 
-// postJSON sends one JSON body to base+path and returns only the status number; every error text is fixed and never contains the address.
+// postJSON sends one JSON body with the POST method; it is the short form of sendJSON that every earlier feature uses.
 func postJSON(ctx context.Context, base *url.URL, path string, timeout time.Duration, payload any) (int, error) {
+	// Hand over to the general function with the POST method.
+	return sendJSON(ctx, http.MethodPost, base, path, timeout, payload)
+} // end of postJSON
+
+// sendJSON sends one JSON body to base+path with the given method (POST, or DELETE for removing a model) and returns only the status number; every error text is fixed and never contains the address.
+func sendJSON(ctx context.Context, method string, base *url.URL, path string, timeout time.Duration, payload any) (int, error) {
 	// Turn the payload into JSON text.
 	body, err := json.Marshal(payload)
 	// A failure here is a bug in the program, not in Ollama.
@@ -57,7 +63,7 @@ func postJSON(ctx context.Context, base *url.URL, path string, timeout time.Dura
 	// Build the full address by adding the path safely.
 	target := base.JoinPath(path).String()
 	// Create the request; the context allows cancelling it from outside.
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, target, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, method, target, bytes.NewReader(body))
 	// A failure here means the address could not form a request.
 	if err != nil {
 		// Return a fixed message.
@@ -80,7 +86,7 @@ func postJSON(ctx context.Context, base *url.URL, path string, timeout time.Dura
 	io.Copy(io.Discard, io.LimitReader(resp.Body, 1<<20))
 	// Hand back the status number.
 	return resp.StatusCode, nil
-} // end of postJSON
+} // end of sendJSON
 
 // unloadModel asks Ollama to unload one model now by setting its keep-alive time to 0; it returns which request worked.
 func unloadModel(ctx context.Context, base *url.URL, name string, timeout time.Duration) (string, error) {

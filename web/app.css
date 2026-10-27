@@ -1388,3 +1388,99 @@ button.btn-plain {
   /* Bold like a heading. */
   font-weight: 600;
 } /* end of rule */
+
+/* The delete icon turns to the problem colour when pointed at, so it is clear it is the risky one. */
+.gear-delete:hover, .gear-delete:focus-visible {
+  /* The problem colour. */
+  color: var(--bad);
+} /* end of rule */
+
+/* The restore icon turns to the good colour when pointed at. */
+.gear-restore:hover, .gear-restore:focus-visible {
+  /* The good colour. */
+  color: var(--ok);
+} /* end of rule */
+
+/* A greyed row for a deleted model. */
+.ghostrow th, .ghostrow td {
+  /* Faded, but still readable. */
+  opacity: 0.75;
+} /* end of rule */
+
+/* The deletion note under the struck name. */
+.ghostnote {
+  /* Smaller than the name. */
+  font-size: 0.85em;
+} /* end of rule */
+
+/* A link that looks like the blue button (Hold, Back): no underline. */
+a.btn-load {
+  /* Buttons are not underlined. */
+  text-decoration: none;
+  /* Sits in the line like the other buttons. */
+  display: inline-block;
+} /* end of rule */
+
+/* A heading right after a row of choices needs room above it. */
+.choices + h2 {
+  /* Space above. */
+  margin-top: 1.6rem;
+} /* end of rule */
+
+/* Good news in a delete or restore page: a bar in the good colour, like the warning bar but green. */
+.goodnote {
+  /* A thick bar in the good colour. */
+  border-left: 6px solid var(--ok);
+  /* Room between the bar and the text. */
+  padding: 0.4rem 0.8rem;
+  /* A light panel behind it, as for the warning. */
+  background: var(--bg);
+} /* end of rule */
+
+/* The box that stresses the loss of tuning: a red outline, so it cannot be mistaken for a routine line. */
+.lossbox {
+  /* A solid outline in the problem colour. */
+  border: 2px solid var(--bad);
+  /* Rounded corners like the other boxes. */
+  border-radius: 0.6rem;
+  /* Room inside. */
+  padding: 0.7rem 1rem;
+  /* Room below it. */
+  margin: 0 0 1rem;
+  /* The page background, so it stands out from the grey panel. */
+  background: var(--bg);
+} /* end of rule */
+
+/* Its first words in the problem colour. */
+.lossbox strong {
+  /* The problem colour. */
+  color: var(--bad);
+} /* end of rule */
+
+/* The table of restore commands. */
+.cmds {
+  /* Use the full width. */
+  width: 100%;
+  /* One line between rows. */
+  border-collapse: collapse;
+  /* Room around it. */
+  margin: 0.4rem 0 1rem;
+} /* end of rule */
+
+/* Cells of the command table. */
+.cmds th, .cmds td {
+  /* Room inside. */
+  padding: 0.35rem 0.6rem;
+  /* A thin line under every row. */
+  border-bottom: 1px solid var(--border);
+  /* Text from the left. */
+  text-align: left;
+  /* Text from the top. */
+  vertical-align: top;
+} /* end of rule */
+
+/* Long commands wrap instead of pushing the page wider. */
+.cmds code {
+  /* Break long words. */
+  overflow-wrap: anywhere;
+} /* end of rule */

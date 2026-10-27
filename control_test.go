@@ -387,21 +387,21 @@ func TestKeyAndDrawnIcons(t *testing.T) {
 			t.Errorf("the page still contains %q", bad)
 		} // end of the character check
 	} // end of the loop
-	// The key names all six things.
-	for _, want := range []string{"Modelfile</strong>", "Inference parameters</strong>", "Performance</strong>", "Compare tested models</strong>", "Dotted headings</strong>", "Sideways scroll</strong>", `class="legend muted"`} {
+	// The key names all eight things.
+	for _, want := range []string{"Modelfile</strong>", "Inference parameters</strong>", "Performance</strong>", "Delete</strong>", "Restore</strong>", "Compare tested models</strong>", "Dotted headings</strong>", "Sideways scroll</strong>", `class="legend muted"`} {
 		// Look for it.
 		if !strings.Contains(body, want) {
 			// Report the gap.
 			t.Errorf("the key lacks %q", want)
 		} // end of the check
 	} // end of the loop
-	// Six entries in the key.
-	if n := strings.Count(body, `<li><span class="sym">`); n != 6 {
+	// Eight entries in the key.
+	if n := strings.Count(body, `<li><span class="sym">`); n != 8 {
 		// Report it.
-		t.Errorf("the key has %d entries, want 6", n)
+		t.Errorf("the key has %d entries, want 8", n)
 	} // end of the count check
-	// The two reading hints come first in the key, then the four icon explanations.
-	order := []string{"Dotted headings</strong>", "Sideways scroll</strong>", "Modelfile</strong>", "Inference parameters</strong>", "Performance</strong>", "Compare tested models</strong>"}
+	// The two reading hints come first in the key, then the six icon explanations.
+	order := []string{"Dotted headings</strong>", "Sideways scroll</strong>", "Modelfile</strong>", "Inference parameters</strong>", "Performance</strong>", "Delete</strong>", "Restore</strong>", "Compare tested models</strong>"}
 	// Walk the list and make sure each entry comes after the one before.
 	last := -1
 	// Each entry.

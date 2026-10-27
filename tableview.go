@@ -81,6 +81,34 @@ type groupView struct {
 	Rows []rowView
 } // end of groupView
 
+// deletedRow is one greyed-out row for a model that was deleted.
+type deletedRow struct {
+	// Name is the model name.
+	Name string
+	// SizeText is the size it had, in words.
+	SizeText string
+	// WhenText is the deletion time in words, in the computer's own time zone.
+	WhenText string
+} // end of deletedRow
+
+// deletedRows turns the remembered deleted models into rows; a name that is installed again is left out (it was restored, or pulled by hand).
+func deletedRows(items []deletedModel, installed []installedModel) []deletedRow {
+	// The rows to show.
+	var rows []deletedRow
+	// Go through the remembered models, newest first.
+	for _, d := range items {
+		// Installed again: no ghost.
+		if _, back := findInstalled(installed, d.Name); back {
+			// Skip it.
+			continue
+		} // end of the installed check
+		// Add the row.
+		rows = append(rows, deletedRow{Name: d.Name, SizeText: formatSize(d.Size), WhenText: d.DeletedAt.Local().Format("2 Jan 15:04")})
+	} // end of the loop
+	// Hand back.
+	return rows
+} // end of deletedRows
+
 // tableView is everything the page needs to draw the Installed table.
 type tableView struct {
 	// Total is the number of installed models.
@@ -89,6 +117,8 @@ type tableView struct {
 	Columns []columnView
 	// Groups are the non-empty category sections, in the fixed order.
 	Groups []groupView
+	// Deleted are the models this monitor deleted and that are not installed now; they are drawn greyed out at the end of the table.
+	Deleted []deletedRow
 } // end of tableView
 
 // makeTip looks up the help text for a heading and attaches the element name.
