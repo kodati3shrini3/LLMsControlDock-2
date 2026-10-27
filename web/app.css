@@ -1175,6 +1175,8 @@ button.btn-plain {
   justify-content: space-between;
   /* Space between them when they wrap. */
   gap: 0.4rem 1rem;
+  /* Clear space between this row and whatever follows (the key box). */
+  margin-bottom: 1rem;
 } /* end of rule */
 
 /* The heading inside that row has no extra space of its own. */
@@ -1329,10 +1331,16 @@ button.btn-plain {
 .legend {
   /* No bullets. */
   list-style: none;
-  /* A little room below. */
-  margin: 0 0 0.8rem;
-  /* No inner space. */
-  padding: 0;
+  /* Clear space below, before the table. */
+  margin: 0 0 1.1rem;
+  /* Room between the box outline and the entries. */
+  padding: 0.9rem 1rem;
+  /* A solid outline like the panels, visible without colour. */
+  border: 2px solid var(--border);
+  /* Rounded corners. */
+  border-radius: 0.6rem;
+  /* The page background, so the box stands out from the grey panel in both themes. */
+  background: var(--bg);
   /* Columns of at least 15rem, as many as fit. */
   display: grid;
   /* The column rule. */
