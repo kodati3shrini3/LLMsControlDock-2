@@ -46,12 +46,68 @@ type perfStore struct {
 } // end of perfStore
 
 // historyFolderName is the folder, next to the project, that holds the saved performance results.
-const historyFolderName = "PerformanceCompare"
+const historyFolderName = "performanceCompare"
+
+// oldHistoryFolderName is the name earlier versions used for that folder (with a capital P); a folder with this name is moved to the new name once.
+const oldHistoryFolderName = "PerformanceCompare"
+
+// moveOldHistoryFolder renames the folder of earlier versions (PerformanceCompare) to the current name, so saved results and copies are not left behind; it does nothing when there is no old folder or the new one exists already (that includes computers that do not tell the two names apart). The returned text is empty when all is well, or says in plain words what happened.
+func moveOldHistoryFolder(historyPath string) string {
+	// No file path: memory only, nothing to move.
+	if historyPath == "" {
+		// Nothing to do.
+		return ""
+	} // end of the memory check
+	// The current results folder.
+	newDir := filepath.Dir(historyPath)
+	// Only the project's own folder is touched, never a fallback folder.
+	if filepath.Base(newDir) != historyFolderName {
+		// Nothing to do.
+		return ""
+	} // end of the name check
+	// The folder of earlier versions, beside it.
+	oldDir := filepath.Join(filepath.Dir(newDir), oldHistoryFolderName)
+	// Is there an old folder?
+	if st, err := os.Stat(oldDir); err != nil || !st.IsDir() {
+		// None: leave everything as it is.
+		return ""
+	} // end of the old-folder check
+	// The new name exists already (or is the same folder on a computer that ignores capitals): leave both alone.
+	if _, err := os.Lstat(newDir); err == nil {
+		// Say it only when they really are two folders.
+		if os.SameFile(mustStat(oldDir), mustStat(newDir)) {
+			// The same folder: nothing to say.
+			return ""
+		} // end of the same-folder check
+		// Two folders: the person should look.
+		return "Both " + oldDir + " and " + newDir + " exist; the old one was left alone. Move its files by hand if you need them."
+	} // end of the new-folder check
+	// Rename the folder (same disk, so this is one step).
+	if err := os.Rename(oldDir, newDir); err != nil {
+		// The old folder stays where it is.
+		return "The results folder could not be renamed to " + newDir + " (" + err.Error() + "); the old folder was left where it is."
+	} // end of the rename check
+	// Done.
+	return ""
+} // end of moveOldHistoryFolder
+
+// mustStat returns the file information of a path that was just found to exist; a failure gives nil, which SameFile treats as "not the same".
+func mustStat(p string) os.FileInfo {
+	// Look at it.
+	st, err := os.Stat(p)
+	// A failure.
+	if err != nil {
+		// Nothing to compare.
+		return nil
+	} // end of the check
+	// The information.
+	return st
+} // end of mustStat
 
 // executablePath finds the running program; a test replaces it.
 var executablePath = os.Executable
 
-// defaultHistoryPath returns the history file: in a folder named PerformanceCompare next to the project (the program normally runs from the project's bin folder, so that is the folder above it), or, when the program's own place cannot be found, in the person's configuration folder; an empty text and a reason mean memory only.
+// defaultHistoryPath returns the history file: in a folder named performanceCompare next to the project (the program normally runs from the project's bin folder, so that is the folder above it), or, when the program's own place cannot be found, in the person's configuration folder; an empty text and a reason mean memory only.
 func defaultHistoryPath() (string, string) {
 	// Where is the running program?
 	if exe, err := executablePath(); err == nil && exe != "" {

@@ -1,0 +1,37 @@
+{{/* Page shown after a PDF or CSV of the comparison was written into the results folder. The comments are template comments, so they never reach the browser. */}}
+<!DOCTYPE html>
+{{/* lang tells screen readers which language the page is written in. */}}
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}{{if .Size}} data-size="{{.Size}}"{{end}}>
+<head>{{/* start of the head. */}}
+{{/* Text encoding. */}}
+<meta charset="utf-8">
+{{/* Fit the page to the width of the screen on phones. */}}
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* The title shown on the browser tab. */}}
+<title>Comparison saved - OllamaControlCenter</title>
+{{/* Our one stylesheet. */}}
+<link rel="stylesheet" href="/app.css">
+</head>{{/* end of the head. */}}
+<body>{{/* start of the visible page. */}}
+{{/* The page content. */}}
+<main>
+{{/* A panel that holds the message. */}}
+<section class="panel">
+{{/* The page heading. */}}
+<h1>Comparison saved</h1>
+{{/* What was saved and where; the program wrote the file itself, so the browser asks nothing. */}}
+<p>The {{.Kind}} file was saved on the computer that runs the monitor, in this folder:</p>
+{{/* The folder, shown on its own line. */}}
+<p><code class="savedpath">{{.Folder}}</code></p>
+{{/* The file name and size. */}}
+<p>File name: <code class="savedname">{{.Name}}</code> ({{.Bytes}} bytes)</p>
+{{/* The notice travels with every output. */}}
+<div class="cmpnotice" role="note"><strong>Important notice.</strong> {{.NoticeShort}}</div>
+{{/* The way back: the comparison page is opened with a small form, like everywhere else. */}}
+<form method="post" action="/compare"><input type="hidden" name="token" value="{{.Token}}"><button type="submit" class="btn-plain">Back to the comparison</button></form>
+{{/* End of the panel. */}}
+</section>
+{{/* End of the content. */}}
+</main>
+</body>{{/* end of the visible page. */}}
+</html>{{/* end of the page. */}}

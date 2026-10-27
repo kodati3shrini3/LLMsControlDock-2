@@ -421,24 +421,24 @@ var helpTexts = map[string]tooltip{
 		// What it helps with.
 		Decide: "Whether the figures are recent enough to trust.",
 	}, // end of Tested on
-	// The comparison page: speed against the fastest model.
+	// The comparison page: place in the ranking of the group.
 	"Speed vs fastest": {
 		// What it tells you.
-		Plain: "How this model compares with the fastest model in the same table.",
-		// A real case from the test machine.
-		Example: "medgemma:latest writes 80 tokens/s and qwen3.6:27b 36, so the second is 2.2× slower.",
+		Plain: "Its place among the like-for-like models of its group, and how many times slower than the first it is.",
+		// A real case.
+		Example: "#1, fastest leads its group. \"not ranked\" means a caution in the last column keeps the row out of the ranking.",
 		// What it helps with.
-		Decide: "Which model to pick when speed matters more than size.",
+		Decide: "Which model to pick when speed matters, without comparing unlike models.",
 	}, // end of Speed vs fastest
-	// The comparison page: rough words per second.
-	"Words per second": {
+	// The comparison page: speed in characters per second.
+	"Characters per second": {
 		// What it tells you.
-		Plain: "A rough reading speed: the answer speed times 0.75, since a word is about three quarters of a token.",
-		// A real case from the test machine.
-		Example: "36 tokens/s is about 27 words per second, faster than a person reads.",
+		Plain: "How many characters the model writes each second. Counted the same way for every model, so makers can be compared.",
+		// A real case.
+		Example: "Models cut text into tokens differently, so 40 tokens/s from two makers can differ; characters do not.",
 		// What it helps with.
-		Decide: "Whether answers will feel instant or slow.",
-	}, // end of Words per second
+		Decide: "Which model is really faster at writing the same kind of answer.",
+	}, // end of Characters per second
 	// The comparison page: load speed.
 	"Load speed from disk": {
 		// What it tells you.
@@ -448,15 +448,6 @@ var helpTexts = map[string]tooltip{
 		// What it helps with.
 		Decide: "How long a model keeps you waiting after it was unloaded.",
 	}, // end of Load speed from disk
-	// The comparison page: speed for each gigabyte of memory.
-	"Speed per GB of memory": {
-		// What it tells you.
-		Plain: "Answer speed divided by the memory the model uses: how much speed each gigabyte buys.",
-		// A real case from the test machine.
-		Example: "medgemma:latest: 80 tokens/s on 3.8 GB (gigabytes) is about 21 tokens/s for each GB (gigabytes).",
-		// What it helps with.
-		Decide: "Which model gives the most speed for the memory it takes.",
-	}, // end of Speed per GB of memory
 	// The comparison page: busy machine.
 	"Machine busy": {
 		// What it tells you.
@@ -466,6 +457,15 @@ var helpTexts = map[string]tooltip{
 		// What it helps with.
 		Decide: "Whether to repeat the test when the machine is idle.",
 	}, // end of Machine busy
+	// The comparison page: whether a row can be ranked.
+	"Fair to rank?": {
+		// What it tells you.
+		Plain: "Whether this test is like the others of its group. If not, the reasons are shown and the row is not ranked.",
+		// A real case.
+		Example: "A model tested two days before the others, or with a different precision, is not ranked.",
+		// What it helps with.
+		Decide: "Whether to trust a ranking, or to test the models again together.",
+	}, // end of Fair to rank
 	// The performance page: change since the previous run.
 	"Change since the previous run": {
 		// What it tells you.

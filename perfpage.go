@@ -495,14 +495,14 @@ func perfHandlers(addr ollamaAddress, token string, store *perfStore, hist *hist
 		// Send the finished page.
 		w.Write(buf.Bytes())
 	} // end of show
-	// check runs the checks the start and the run share: the form, the model installed, not loaded, and able to be tested; ok is false after a page was shown.
-	check := func(w http.ResponseWriter, r *http.Request) (string, bool, bool) {
+	// check runs the checks the start and the run share: the form, the model installed, not loaded, and able to be tested; it also returns what Ollama says about the model; ok is false after a page was shown.
+	check := func(w http.ResponseWriter, r *http.Request) (string, bool, modelDetails, bool) {
 		// The form checks: same page, valid token, sensible model name.
 		name, ok := readModelForm(w, r, token)
 		// A refusal was already sent.
 		if !ok {
 			// Stop here.
-			return "", false, false
+			return "", false, modelDetails{}, false
 		} // end of the form checks
 		// Read the installed models now, not what the page showed earlier.
 		installed, err := fetchInstalled(r.Context(), addr.URL, defaultCheckTimeout)
@@ -511,7 +511,7 @@ func perfHandlers(addr ollamaAddress, token string, store *perfStore, hist *hist
 			// Show the plain reason.
 			show(w, r, http.StatusBadGateway, perfPage{Kind: "error", Model: name, Detail: err.Error()})
 			// Stop here.
-			return "", false, false
+			return "", false, modelDetails{}, false
 		} // end of the installed read check
 		// The model must exist.
 		m, found := findInstalled(installed, name)
@@ -520,7 +520,7 @@ func perfHandlers(addr ollamaAddress, token string, store *perfStore, hist *hist
 			// Say so.
 			show(w, r, http.StatusOK, perfPage{Kind: "notinstalled", Model: name})
 			// Stop here.
-			return "", false, false
+			return "", false, modelDetails{}, false
 		} // end of the installed check
 		// Read the loaded models.
 		loaded, err := fetchLoaded(r.Context(), addr.URL, defaultCheckTimeout)
@@ -529,30 +529,30 @@ func perfHandlers(addr ollamaAddress, token string, store *perfStore, hist *hist
 			// Show the plain reason.
 			show(w, r, http.StatusBadGateway, perfPage{Kind: "error", Model: name, Detail: err.Error()})
 			// Stop here.
-			return "", false, false
+			return "", false, modelDetails{}, false
 		} // end of the loaded read check
 		// A loaded model may be in use: the test is refused.
 		if _, ok := findLoaded(loaded, name); ok {
 			// Say so.
 			show(w, r, http.StatusOK, perfPage{Kind: "loaded", Model: name})
 			// Stop here.
-			return "", false, false
+			return "", false, modelDetails{}, false
 		} // end of the loaded check
 		// Which kind of test fits the model.
 		switch categorize(m.Capabilities) {
 		// Embedding models are tested by embedding.
 		case categoryEmbedding:
 			// An embedding test.
-			return name, true, true
+			return name, true, m.Details, true
 		// Models that write text.
 		case categoryText, categoryMultimodal:
 			// A generate test.
-			return name, false, true
+			return name, false, m.Details, true
 		} // end of the switch
 		// Anything else cannot be tested.
 		show(w, r, http.StatusOK, perfPage{Kind: "unsupported", Model: name})
 		// Stop here.
-		return "", false, false
+		return "", false, modelDetails{}, false
 	} // end of check
 	// historyFor fills the history part of a page for one model.
 	historyFor := func(p *perfPage, name string, embedding bool) {
@@ -581,7 +581,7 @@ func perfHandlers(addr ollamaAddress, token string, store *perfStore, hist *hist
 	// start is the first step: it explains the test and the risks, and shows earlier results; it changes nothing.
 	start := func(w http.ResponseWriter, r *http.Request) {
 		// The checks.
-		name, embedding, ok := check(w, r)
+		name, embedding, _, ok := check(w, r)
 		// A page was already shown.
 		if !ok {
 			// Stop here.
@@ -599,7 +599,7 @@ func perfHandlers(addr ollamaAddress, token string, store *perfStore, hist *hist
 	// run is the second step: it runs the test, saves the numbers and shows them.
 	run := func(w http.ResponseWriter, r *http.Request) {
 		// The checks.
-		name, embedding, ok := check(w, r)
+		name, embedding, info, ok := check(w, r)
 		// A page was already shown.
 		if !ok {
 			// Stop here.
@@ -624,7 +624,7 @@ func perfHandlers(addr ollamaAddress, token string, store *perfStore, hist *hist
 		// The Ollama version, for the record.
 		version := checkOllama(r.Context(), addr.URL, defaultCheckTimeout).Version
 		// Run the test.
-		res, err := performTest(r.Context(), addr.URL, name, embedding, version)
+		res, err := performTest(r.Context(), addr.URL, name, embedding, version, info)
 		// The test failed.
 		if err != nil {
 			// Show the plain reason; the model was unloaded again by the test itself.

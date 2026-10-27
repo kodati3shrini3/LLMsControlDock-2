@@ -23,8 +23,11 @@ import ( // import lists the standard-library packages this file uses.
 // deletedFileVersion is written into the file so a future version of the program can recognise an older layout.
 const deletedFileVersion = 1
 
-// deletedFileName is the file that remembers deleted models; it sits next to the performance history, which the .gitignore already keeps out of GitHub (requirement S4).
+// deletedFileName is the file that remembers deleted models.
 const deletedFileName = "deleted-models.json"
+
+// deletedFolderName is the folder, next to the project, that holds that file; the .gitignore keeps it out of GitHub (requirement S4).
+const deletedFolderName = "deletedHistory"
 
 // maxDeletedFile is the biggest file that will be read; a normal list is a few kilobytes.
 const maxDeletedFile = 1 * 1024 * 1024
@@ -61,16 +64,63 @@ type deletedStore struct {
 	note string
 } // end of deletedStore
 
-// deletedPathFor puts the file in the same folder as the performance history; an empty history path gives an empty path.
+// deletedPathFor puts the file in its own folder, deletedHistory, next to the performanceCompare folder (that is, in the project folder); when the results are not in a performanceCompare folder, the folder goes beside the results file instead; an empty history path gives an empty path.
 func deletedPathFor(historyPath string) string {
 	// No folder was found for the history, so none for this file either.
 	if historyPath == "" {
 		// Memory only.
 		return ""
 	} // end of the memory case
-	// Same folder, other file name.
-	return filepath.Join(filepath.Dir(historyPath), deletedFileName)
+	// The folder of the results.
+	resultsDir := filepath.Dir(historyPath)
+	// A results folder named performanceCompare sits in the project folder; the new folder goes beside it.
+	if filepath.Base(resultsDir) == historyFolderName {
+		// Go up one level.
+		resultsDir = filepath.Dir(resultsDir)
+	} // end of the folder check
+	// Own folder, then the file name.
+	return filepath.Join(resultsDir, deletedFolderName, deletedFileName)
 } // end of deletedPathFor
+
+// moveOldDeletedFile moves the list from the place earlier versions used (next to the performance results) to the new folder, so nothing already remembered is lost; it does nothing when there is no old file or the new file exists already. The returned text is empty when all is well, or says in plain words what went wrong.
+func moveOldDeletedFile(historyPath string) string {
+	// No history path: nothing to move.
+	if historyPath == "" {
+		// Nothing to do.
+		return ""
+	} // end of the memory case
+	// Where earlier versions kept the file.
+	oldPath := filepath.Join(filepath.Dir(historyPath), deletedFileName)
+	// Where it belongs now.
+	newPath := deletedPathFor(historyPath)
+	// The same place: nothing to move.
+	if oldPath == newPath {
+		// Nothing to do.
+		return ""
+	} // end of the same-place check
+	// Is there an old file?
+	if _, err := os.Stat(oldPath); err != nil {
+		// None (or unreadable): leave everything as it is.
+		return ""
+	} // end of the old-file check
+	// A new file is never overwritten.
+	if _, err := os.Stat(newPath); err == nil {
+		// Leave both alone.
+		return ""
+	} // end of the new-file check
+	// The new folder, readable only by this user.
+	if err := os.MkdirAll(filepath.Dir(newPath), 0o700); err != nil {
+		// The old file stays where it is.
+		return "The list of deleted models could not be moved to its new folder (" + err.Error() + "); the old file was left where it is."
+	} // end of the folder check
+	// Move the file (same disk, so this is one step).
+	if err := os.Rename(oldPath, newPath); err != nil {
+		// The old file stays where it is.
+		return "The list of deleted models could not be moved to its new folder (" + err.Error() + "); the old file was left where it is."
+	} // end of the move check
+	// Done.
+	return ""
+} // end of moveOldDeletedFile
 
 // openDeletedStore reads the file if there is one; a missing file is normal (nothing deleted yet), a damaged one is left alone and the list is kept in memory only.
 func openDeletedStore(path string) *deletedStore {

@@ -14,10 +14,8 @@ import ( // import lists the standard-library packages this file uses.
 	"log"
 	// net/http serves the page.
 	"net/http"
-	// sort puts the rows in order.
-	"sort"
-	// strings joins text.
-	"strings"
+	// path/filepath names the folder of the saved results.
+	"path/filepath"
 ) // end of imports
 
 // compareTemplateText is the page template, stored inside the executable at build time.
@@ -25,37 +23,46 @@ import ( // import lists the standard-library packages this file uses.
 //go:embed web/compare.html
 var compareTemplateText string
 
-// wordsPerToken is the rough number of English words in one token (a common rule of thumb, not a measurement).
-const wordsPerToken = 0.75
+// compareTextHeadings are the column headings of a group of chat models, in order.
+var compareTextHeadings = []string{"Model", "Parameters", "Quantization", "Tested on", "Answer speed", "Characters per second", "Speed vs fastest", "Prompt reading speed", "Time to first word", "Total time", "Load time", "Load speed from disk", "Memory used", "Processor split", "Machine busy", "Fair to rank?"}
 
-// compareTextHeadings are the column headings of the table of text models, in order.
-var compareTextHeadings = []string{"Model", "Tested on", "Answer speed", "Speed vs fastest", "Words per second", "Prompt reading speed", "Time to first word", "Total time", "Load time", "Load speed from disk", "Memory used", "Processor split", "Speed per GB of memory", "Machine busy"}
-
-// compareEmbedHeadings are the column headings of the table of embedding models, in order.
-var compareEmbedHeadings = []string{"Model", "Tested on", "Embedding time", "Speed vs fastest", "Load time", "Load speed from disk", "Memory used", "Processor split", "Vector length", "Machine busy"}
+// compareEmbedHeadings are the column headings of the group of embedding models, in order.
+var compareEmbedHeadings = []string{"Model", "Quantization", "Tested on", "Embedding time", "Speed vs fastest", "Load time", "Load speed from disk", "Memory used", "Processor split", "Vector length", "Machine busy", "Fair to rank?"}
 
 // compareExtraHeadings are the headings that exist only on the comparison page and need their own tooltip (the others are shared with the performance page).
-var compareExtraHeadings = []string{"Tested on", "Speed vs fastest", "Words per second", "Load speed from disk", "Speed per GB of memory", "Machine busy"}
+var compareExtraHeadings = []string{"Tested on", "Speed vs fastest", "Characters per second", "Load speed from disk", "Machine busy", "Fair to rank?"}
 
 // cmpRow is one model in a comparison table.
 type cmpRow struct {
 	// Cells are the values, one for each column.
 	Cells []string
-	// Busy is true when the run was made on a busy machine, so the row can be marked.
+	// Busy is true when the run was made on a busy machine.
 	Busy bool
 } // end of cmpRow
 
-// cmpTable is one comparison table.
-type cmpTable struct {
-	// Title is the heading above the table.
+// howRow is one question of the "How and why" section with its answer; the numbers in brackets point to the reference list.
+type howRow struct {
+	// Question is what a reader may ask.
+	Question string
+	// Answer says how and why, in plain words.
+	Answer string
+} // end of howRow
+
+// cmpGroupView is one comparison group as the page draws it.
+type cmpGroupView struct {
+	// Title is the heading of the group.
 	Title string
-	// Note is one sentence under the heading.
-	Note string
+	// Why is the reason the models are compared together.
+	Why string
+	// Headline is the sentence about the fastest model, or empty.
+	Headline string
+	// Notes explain why there is no ranking, or that the model has no peer.
+	Notes []string
 	// Cols are the column headings with their help bubbles.
 	Cols []tipView
 	// Rows are the models.
 	Rows []cmpRow
-} // end of cmpTable
+} // end of cmpGroupView
 
 // comparePage is everything the comparison template needs.
 type comparePage struct {
@@ -63,18 +70,34 @@ type comparePage struct {
 	Theme string
 	// Size is the saved text size, medium, or empty for the browser's own size.
 	Size string
-	// Token is the page token for the "Back" form.
+	// Token is the page token for the forms.
 	Token string
-	// Tables are the comparison tables (text models, embedding models).
-	Tables []cmpTable
+	// Groups are the comparison groups.
+	Groups []cmpGroupView
 	// Findings are plain sentences read out of the figures.
 	Findings []string
-	// Notes are cautions about how to read the table.
+	// Notes are cautions about how to read the page.
 	Notes []string
 	// Empty is true when no test is saved yet.
 	Empty bool
 	// SaveNote says where the figures come from, or why there is no file.
 	SaveNote string
+	// NoticeShort is the short notice at the top.
+	NoticeShort string
+	// NoticeTitle is the heading of the full notice.
+	NoticeTitle string
+	// NoticeFull is the full notice, one paragraph per entry.
+	NoticeFull []string
+	// How is the "How and why this comparison was done" section.
+	How []howRow
+	// Refs is the verified reference list.
+	Refs []reference
+	// RefsChecked is the day the references were read.
+	RefsChecked string
+	// Models is how many models are shown, for the downloads.
+	Models int
+	// Data is the same groups in their raw form, for the CSV download.
+	Data []cmpGroup
 } // end of comparePage
 
 // latestRuns returns the newest run of each model and kind that used the given prompt version, and how many models were skipped because their newest run used another prompt.
@@ -170,21 +193,139 @@ func cmpLoadSpeed(r perfRun) string {
 	return fmt.Sprintf("%.1f GB/s", cmpGB(r.ModelBytes)/r.ColdLoadSec)
 } // end of cmpLoadSpeed
 
-// cmpName writes the model name, with a note when Ollama no longer has the model.
-func cmpName(name string, installed map[string]bool, known bool) string {
-	// Only say it when the list of installed models was read.
-	if known && !installed[name] {
-		// Mark it.
-		return name + " (no longer installed)"
-	} // end of the check
-	// The plain name.
-	return name
-} // end of cmpName
+// cmpFair writes the "Fair to rank?" cell: yes, or no with every reason; symbols are for the page, plain words for the downloads.
+func cmpFair(m cmpModel, symbols bool) string {
+	// No reasons: the model can be ranked.
+	if len(m.Reasons) == 0 {
+		// With symbols for the page, plain words for downloads.
+		if symbols {
+			// The page form.
+			return "✓ Yes"
+		} // end of the symbol check
+		// The plain form.
+		return "Yes"
+	} // end of the fair check
+	// Join the reasons.
+	why := ""
+	// Go through them.
+	for i, r := range m.Reasons {
+		// A separator between reasons.
+		if i > 0 {
+			// Semicolon and space.
+			why += "; "
+		} // end of the separator check
+		// The reason.
+		why += r
+	} // end of the loop
+	// With symbols for the page, plain words for downloads.
+	if symbols {
+		// The page form.
+		return "⚠ No: " + why
+	} // end of the symbol check
+	// The plain form.
+	return "No: " + why
+} // end of cmpFair
 
-// buildCompare turns the latest saved runs into the page: two tables, the sentences read out of them, and the cautions.
-func buildCompare(runs []perfRun, skipped int, installed map[string]bool, known bool) comparePage {
-	// The page.
-	var p comparePage
+// cmpVsFastest writes the "Speed vs fastest" cell of one model inside its group.
+func cmpVsFastest(g cmpGroup, m cmpModel) string {
+	// A model outside the ranking.
+	if m.Rank == 0 {
+		// Say so.
+		return "not ranked"
+	} // end of the rank check
+	// The best model is the one in first place.
+	best := cmpBest(g.Models).Run
+	// The best model itself.
+	if m.Rank == 1 {
+		// Say so.
+		return "#1, fastest"
+	} // end of the first check
+	// The ratio, worked out from the figure the group is ranked by.
+	ratio := 0.0
+	// An embedding group: time against the shortest time.
+	if g.Embedding {
+		// Longer is slower.
+		if best.WarmTotalSec > 0 {
+			// The ratio.
+			ratio = m.Run.WarmTotalSec / best.WarmTotalSec
+		} // end of the figure check
+	} else if m.Run.CharSpeed > 0 {
+		// A chat group: the best speed against this speed.
+		ratio = best.CharSpeed / m.Run.CharSpeed
+	} // end of the kind check
+	// Without a ratio only the place is shown.
+	if ratio <= 0 {
+		// The place.
+		return fmt.Sprintf("#%d", m.Rank)
+	} // end of the ratio check
+	// The place and the ratio.
+	return fmt.Sprintf("#%d, %.1f× slower", m.Rank, ratio)
+} // end of cmpVsFastest
+
+// cmpMemory writes the memory cell.
+func cmpMemory(r perfRun) string {
+	// Not reported.
+	if r.ModelBytes <= 0 {
+		// Say so.
+		return "not reported"
+	} // end of the check
+	// The size.
+	return formatSize(r.ModelBytes)
+} // end of cmpMemory
+
+// cmpCharSpeed writes the characters-per-second cell.
+func cmpCharSpeed(r perfRun) string {
+	// Older tests did not count characters.
+	if r.CharSpeed <= 0 {
+		// Say so.
+		return "not saved (older test)"
+	} // end of the check
+	// A whole number is precise enough.
+	return fmt.Sprintf("%.0f chars/s", r.CharSpeed)
+} // end of cmpCharSpeed
+
+// groupRowCells writes the cells of one model, in the order of the group's headings.
+func groupRowCells(g cmpGroup, m cmpModel) []string {
+	// The test.
+	r := m.Run
+	// The date.
+	when := r.Time.UTC().Format("2006-01-02 15:04 UTC")
+	// An embedding group.
+	if g.Embedding {
+		// The cells.
+		return []string{m.Name, m.Quant, when, fmtSecs(r.WarmTotalSec), cmpVsFastest(g, m), fmtSecs(r.ColdLoadSec), cmpLoadSpeed(r), cmpMemory(r), cmpSplit(r), fmt.Sprintf("%d numbers", r.VectorLength), cmpBusy(r), cmpFair(m, true)}
+	} // end of the embedding case
+	// The cells of a chat model.
+	return []string{m.Name, m.Params, m.Quant, when, fmtSpeed(r.AnswerSpeed), cmpCharSpeed(r), cmpVsFastest(g, m), fmtSpeed(r.PromptSpeed), fmtSecs(r.WarmFirstWordSec), fmtSecs(r.WarmTotalSec), fmtSecs(r.ColdLoadSec), cmpLoadSpeed(r), cmpMemory(r), cmpSplit(r), cmpBusy(r), cmpFair(m, true)}
+} // end of groupRowCells
+
+// howRows writes the "How and why this comparison was done" section; the numbers in brackets are checked against the reference list by a test.
+func howRows() []howRow {
+	// The rows.
+	return []howRow{
+		// What is measured.
+		{"What is measured?", "How fast each model answers one request at a time (the single-stream case) and how much memory it uses. It does not measure the quality or safety of the answers, many users at once, or long documents. [4]"},
+		// How a test runs.
+		{"How is a test run?", fmt.Sprintf("Every model gets the same fixed prompt, the same planned answer length (%d tokens), temperature 0 and the same random seed. One warm-up run is thrown away, and the middle value (median) of %d timed runs is kept. [1][3]", perfAnswerTokens, perfTimedRuns)},
+		// Why characters.
+		{"Why characters per second?", "Models cut text into tokens in different ways, so tokens per second cannot be compared between models of different makers. One published method counts every model's tokens with a single common tokenizer [3]; this program counts the characters of the answer instead, which needs no extra software and is the same for every model. Tokens per second is still shown for information."},
+		// How groups are chosen.
+		{"How are the groups chosen?", "By kind (chat or embedding) and, for chat models, by size class, using the parameter count Ollama reports. The five size classes are this program's own choice, not an industry standard. If Ollama reports no size, the class is estimated from the memory the model used, and such a model is not ranked. Embedding models are a group of their own [6]."},
+		// What decides a rank.
+		{"What decides whether a row can be ranked?", fmt.Sprintf("A model is ranked only when nothing makes it unlike the rest of its group: the same precision as most of the group, a test made within %d hours of the newest one, the same Ollama version and context length, the whole model on the graphics card, a quiet machine, no other model loaded, a full-length answer and a saved character count. The last column gives the reasons. The %d-hour limit is this program's own rule.", cmpSameSittingHours, cmpSameSittingHours)},
+		// Why nothing is ranked across groups.
+		{"Why is nothing ranked across groups?", "Results gained under different conditions are not directly comparable. The MLPerf paper applies this to its own results [4], and NVIDIA's documentation says to compare results only when the definitions align [2]."},
+		// How the figures are worked out.
+		{"How are the figures worked out?", "From the figures Ollama reports with each reply: counts of tokens and durations in nanoseconds [5]. Answer speed is the answer tokens divided by the answer time. Characters per second is the characters of the answer divided by the answer time. These two formulas are this program's own calculations, and the time to the first word is measured by this program."},
+		// What is not covered.
+		{"What is not covered?", "The quality and safety of answers, many users at once, long prompts, and other computers. Read the notice at the end of this page before using any figure."},
+	} // end of the rows
+} // end of howRows
+
+// buildCompare turns the latest saved runs into the page: comparison groups with fairness flags, the sentences read out of them, the method, the references and the notice.
+func buildCompare(runs []perfRun, skipped int, installed map[string]modelDetails, known bool) comparePage {
+	// The page, with the parts that never change.
+	p := comparePage{NoticeShort: noticeShort, NoticeTitle: noticeTitle, NoticeFull: noticeFull, How: howRows(), Refs: compareReferences, RefsChecked: referencesChecked, Models: len(runs)}
 	// Nothing saved yet.
 	if len(runs) == 0 {
 		// Say so.
@@ -197,156 +338,64 @@ func buildCompare(runs []perfRun, skipped int, installed map[string]bool, known 
 		// Nothing more to build.
 		return p
 	} // end of the empty check
-	// Split by kind.
-	var texts, embeds []perfRun
-	// Sort each run into its list.
-	for _, r := range runs {
-		// An embedding model.
-		if r.Kind == "embedding" {
-			// Its list.
-			embeds = append(embeds, r)
-		} else {
-			// The text models.
-			texts = append(texts, r)
-		} // end of the kind check
-	} // end of the split loop
-	// Fastest writer first; a model with no figure goes last.
-	sort.SliceStable(texts, func(i, j int) bool { return texts[i].AnswerSpeed > texts[j].AnswerSpeed })
-	// Fastest embedder first (the shortest time); a model with no figure goes last.
-	sort.SliceStable(embeds, func(i, j int) bool {
-		// A missing figure is the slowest.
-		if embeds[i].WarmTotalSec <= 0 {
-			// Not before the other.
-			return false
-		} // end of the first check
-		// A missing figure of the other goes after this one.
-		if embeds[j].WarmTotalSec <= 0 {
-			// This one first.
-			return true
-		} // end of the second check
-		// Shorter is faster.
-		return embeds[i].WarmTotalSec < embeds[j].WarmTotalSec
-	}) // end of the embedding sort
+	// The groups.
+	groups := groupRuns(runs, installed, known)
+	// Keep the raw groups for the downloads.
+	p.Data = groups
+	// The first sentence says how to read the page.
+	p.Findings = append(p.Findings, "Models are compared only inside their group, under like-for-like conditions. There is no single winner across the whole list. [1][2][4]")
 	// Any busy run.
 	busy := 0
-	// Count them.
-	for _, r := range runs {
-		// A busy one.
-		if r.Busy {
-			// Count it.
-			busy++
-		} // end of the check
-	} // end of the count loop
-	// The table of text models.
-	if len(texts) > 0 {
-		// Its column headings.
-		t := cmpTable{Title: "Models that write text", Note: "Sorted by answer speed, fastest first. The same fixed prompt was used for every model. The table scrolls sideways."}
-		// Build the headings with their bubbles.
-		for i, h := range compareTextHeadings {
-			// A heading, with an element name that is unique on the page.
-			t.Cols = append(t.Cols, makeTip(fmt.Sprintf("tip-cmp-t-%d", i), h))
+	// Build the view of each group.
+	for gi, g := range groups {
+		// The heading list of the group.
+		heads := compareTextHeadings
+		// The prefix of the element names.
+		prefix := "t"
+		// An embedding group has its own columns.
+		if g.Embedding {
+			// Its headings.
+			heads = compareEmbedHeadings
+			// Its prefix.
+			prefix = "e"
+		} // end of the embedding check
+		// The view.
+		v := cmpGroupView{Title: g.Title, Why: g.Why, Headline: g.Headline, Notes: g.Notes}
+		// The headings with their bubbles, with element names that are unique on the page.
+		for i, h := range heads {
+			// One heading.
+			v.Cols = append(v.Cols, makeTip(fmt.Sprintf("tip-cmp-%s%d-%d", prefix, gi, i), h))
 		} // end of the heading loop
-		// The fastest figure is the reference.
-		fastest := texts[0].AnswerSpeed
-		// One row for each model.
-		for _, r := range texts {
-			// How it compares with the fastest.
-			vs := "not comparable"
-			// Work it out.
-			if r.AnswerSpeed > 0 && fastest > 0 {
-				// The fastest itself.
-				if r.AnswerSpeed >= fastest*0.995 {
-					// Say so.
-					vs = "fastest"
-				} else {
-					// How many times slower.
-					vs = fmt.Sprintf("%.1f× slower", fastest/r.AnswerSpeed)
-				} // end of the fastest check
-			} // end of the figure check
-			// Words per second, roughly.
-			words := "not available"
-			// Work it out.
-			if r.AnswerSpeed > 0 {
-				// About.
-				words = fmt.Sprintf("about %.0f", r.AnswerSpeed*wordsPerToken)
-			} // end of the words check
-			// Speed for each gigabyte of memory.
-			perGB := "not available"
-			// Work it out.
-			if r.AnswerSpeed > 0 && r.ModelBytes > 0 {
-				// Tokens per second per gigabyte.
-				perGB = fmt.Sprintf("%.1f tokens/s per GB", r.AnswerSpeed/cmpGB(r.ModelBytes))
-			} // end of the per-GB check
-			// Memory used.
-			mem := "not reported"
-			// Fill it in.
-			if r.ModelBytes > 0 {
-				// The size.
-				mem = formatSize(r.ModelBytes)
-			} // end of the memory check
-			// The row.
-			t.Rows = append(t.Rows, cmpRow{Busy: r.Busy, Cells: []string{
-				cmpName(r.Model, installed, known), r.Time.UTC().Format("2006-01-02 15:04 UTC"),
-				fmtSpeed(r.AnswerSpeed), vs, words, fmtSpeed(r.PromptSpeed), fmtSecs(r.WarmFirstWordSec), fmtSecs(r.WarmTotalSec),
-				fmtSecs(r.ColdLoadSec), cmpLoadSpeed(r), mem, cmpSplit(r), perGB, cmpBusy(r),
-			}}) // end of the row
-		} // end of the model loop
-		// Keep the table.
-		p.Tables = append(p.Tables, t)
-	} // end of the text table
-	// The table of embedding models.
-	if len(embeds) > 0 {
-		// Its title and note.
-		t := cmpTable{Title: "Embedding models", Note: "Sorted by embedding time, shortest first. Embedding models write no text, so they are never ranked against the models above. The table scrolls sideways."}
-		// Build the headings with their bubbles.
-		for i, h := range compareEmbedHeadings {
-			// A heading, with an element name that is unique on the page.
-			t.Cols = append(t.Cols, makeTip(fmt.Sprintf("tip-cmp-e-%d", i), h))
-		} // end of the heading loop
-		// The shortest time is the reference.
-		fastest := embeds[0].WarmTotalSec
-		// One row for each model.
-		for _, r := range embeds {
-			// How it compares with the fastest.
-			vs := "not comparable"
-			// Work it out.
-			if r.WarmTotalSec > 0 && fastest > 0 {
-				// The fastest itself.
-				if r.WarmTotalSec <= fastest*1.005 {
-					// Say so.
-					vs = "fastest"
-				} else {
-					// How many times slower.
-					vs = fmt.Sprintf("%.1f× slower", r.WarmTotalSec/fastest)
-				} // end of the fastest check
-			} // end of the figure check
-			// Memory used.
-			mem := "not reported"
-			// Fill it in.
-			if r.ModelBytes > 0 {
-				// The size.
-				mem = formatSize(r.ModelBytes)
-			} // end of the memory check
-			// The row.
-			t.Rows = append(t.Rows, cmpRow{Busy: r.Busy, Cells: []string{
-				cmpName(r.Model, installed, known), r.Time.UTC().Format("2006-01-02 15:04 UTC"),
-				fmtSecs(r.WarmTotalSec), vs, fmtSecs(r.ColdLoadSec), cmpLoadSpeed(r), mem, cmpSplit(r),
-				fmt.Sprintf("%d numbers", r.VectorLength), cmpBusy(r),
-			}}) // end of the row
-		} // end of the model loop
-		// Keep the table.
-		p.Tables = append(p.Tables, t)
-	} // end of the embedding table
-	// Sentences read out of the text models.
-	p.Findings = append(p.Findings, textFindings(texts)...)
-	// Sentences read out of the embedding models.
-	p.Findings = append(p.Findings, embedFindings(embeds)...)
-	// The standing cautions.
-	p.Notes = append(p.Notes,
-		"Only the latest test of each model is shown. Tests made under different machine conditions are not exactly comparable; the last column marks tests made on a busy machine.",
-		"Models of different sizes are not a fair race: a bigger model is expected to be slower. \"Speed per GB of memory\" and \"Speed vs fastest\" are guides, not verdicts.",
-		"\"Words per second\" is a rough guess (tokens × 0.75). \"Load speed from disk\" is the model size divided by the cold load time; it also includes start-up work, and a model that was still in the computer's file cache loads faster than a truly cold one.",
-	) // end of the standing cautions
+		// The rows.
+		for _, m := range g.Models {
+			// One row.
+			v.Rows = append(v.Rows, cmpRow{Busy: m.Run.Busy, Cells: groupRowCells(g, m)})
+			// Count the busy tests.
+			if m.Run.Busy {
+				// One more.
+				busy++
+			} // end of the busy check
+		} // end of the row loop
+		// The sentence about the group.
+		switch {
+		// A ranked group.
+		case g.Headline != "":
+			// Name the winner.
+			p.Findings = append(p.Findings, g.Title+": "+g.Headline)
+		// A group with one model.
+		case len(g.Models) == 1:
+			// Say so.
+			p.Findings = append(p.Findings, g.Title+": only one model, so there is nothing to rank yet.")
+		// A group that cannot be ranked.
+		default:
+			// Say so.
+			p.Findings = append(p.Findings, g.Title+": no ranking yet, because fewer than two models can be compared like for like.")
+		} // end of the sentence switch
+		// Keep the group.
+		p.Groups = append(p.Groups, v)
+	} // end of the group loop
+	// The standing caution.
+	p.Notes = append(p.Notes, "Only the latest test of each model is shown. A row marked with a caution is shown for information but is not ranked.")
 	// Models left out because of another prompt.
 	if skipped > 0 {
 		// The note.
@@ -361,154 +410,63 @@ func buildCompare(runs []perfRun, skipped int, installed map[string]bool, known 
 	return p
 } // end of buildCompare
 
-// textFindings reads plain sentences out of the text-model runs (sorted by answer speed, fastest first).
-func textFindings(texts []perfRun) []string {
-	// With fewer than two models there is nothing to compare.
-	if len(texts) < 2 {
-		// Say what is missing.
-		return []string{"Only one text model has been tested. Test another one to compare."}
-	} // end of the count check
-	// The sentences.
-	var out []string
-	// The fastest and the slowest writer, among models with a figure.
-	var fast, slow *perfRun
-	// Look for them.
-	for i := range texts {
-		// A model with no figure cannot be ranked.
-		if texts[i].AnswerSpeed <= 0 {
-			// Skip it.
-			continue
-		} // end of the check
-		// The first one found is the fastest, because the list is sorted.
-		if fast == nil {
-			// Remember it.
-			fast = &texts[i]
-		} // end of the fastest check
-		// The last one found is the slowest.
-		slow = &texts[i]
+// gatherCompare reads the saved tests and the installed models and builds the page; the page, the PDF and the CSV all come from here, so they can never disagree.
+func gatherCompare(r *http.Request, addr ollamaAddress, store *perfStore) comparePage {
+	// What Ollama has now: its details tell the size and precision of every model that is still installed (an error only means the "no longer installed" note is left out).
+	installed := map[string]modelDetails{}
+	// Read them.
+	list, err := fetchInstalled(r.Context(), addr.URL, defaultCheckTimeout)
+	// Fill the map.
+	for _, m := range list {
+		// One model.
+		installed[m.Name] = m.Details
 	} // end of the loop
-	// Two different models with a figure.
-	if fast != nil && slow != nil && fast != slow {
-		// The sentence.
-		out = append(out, fmt.Sprintf("%s writes fastest: %.1f tokens/s (about %.0f words per second). %s is the slowest at %.1f tokens/s, %.1f× slower.",
-			fast.Model, fast.AnswerSpeed, fast.AnswerSpeed*wordsPerToken, slow.Model, slow.AnswerSpeed, fast.AnswerSpeed/slow.AnswerSpeed))
-	} // end of the speed sentence
-	// The quickest and the slowest to load.
-	var quick, tardy *perfRun
-	// Look for them.
-	for i := range texts {
-		// A model with no figure cannot be ranked.
-		if texts[i].ColdLoadSec <= 0 {
-			// Skip it.
-			continue
-		} // end of the check
-		// The first candidate for both.
-		if quick == nil || texts[i].ColdLoadSec < quick.ColdLoadSec {
-			// The quicker one.
-			quick = &texts[i]
-		} // end of the quick check
-		// The slower one.
-		if tardy == nil || texts[i].ColdLoadSec > tardy.ColdLoadSec {
-			// The slowest one.
-			tardy = &texts[i]
-		} // end of the tardy check
-	} // end of the loop
-	// Two different models with a figure.
-	if quick != nil && tardy != nil && quick != tardy {
-		// The sentence.
-		out = append(out, fmt.Sprintf("%s loads quickest (%s from cold); %s needs %s.", quick.Model, fmtSecs(quick.ColdLoadSec), tardy.Model, fmtSecs(tardy.ColdLoadSec)))
-	} // end of the load sentence
-	// The model that uses the least memory, and the model that gives the most speed for its memory.
-	var small, thrifty *perfRun
-	// Look for them.
-	for i := range texts {
-		// A model with no size cannot be ranked.
-		if texts[i].ModelBytes <= 0 {
-			// Skip it.
-			continue
-		} // end of the check
-		// The smallest.
-		if small == nil || texts[i].ModelBytes < small.ModelBytes {
-			// Remember it.
-			small = &texts[i]
-		} // end of the small check
-		// A model with no speed cannot be thrifty.
-		if texts[i].AnswerSpeed <= 0 {
-			// Skip it.
-			continue
-		} // end of the speed check
-		// The most speed for each gigabyte.
-		if thrifty == nil || texts[i].AnswerSpeed/cmpGB(texts[i].ModelBytes) > thrifty.AnswerSpeed/cmpGB(thrifty.ModelBytes) {
-			// Remember it.
-			thrifty = &texts[i]
-		} // end of the thrifty check
-	} // end of the loop
-	// The memory sentence.
-	if small != nil {
-		// The sentence.
-		s := fmt.Sprintf("%s uses the least memory (%s).", small.Model, formatSize(small.ModelBytes))
-		// Add the thrifty model when it is another one.
-		if thrifty != nil && thrifty != small {
-			// The addition.
-			s += fmt.Sprintf(" %s gives the most speed for its memory (%.1f tokens/s per GB).", thrifty.Model, thrifty.AnswerSpeed/cmpGB(thrifty.ModelBytes))
-		} else if thrifty != nil {
-			// The same model.
-			s += fmt.Sprintf(" It also gives the most speed for its memory (%.1f tokens/s per GB).", thrifty.AnswerSpeed/cmpGB(thrifty.ModelBytes))
-		} // end of the thrifty check
-		// Keep it.
-		out = append(out, s)
-	} // end of the memory sentence
-	// Models that do not fit fully on the graphics card.
-	var spill []string
-	// Look for them.
-	for _, r := range texts {
-		// A known size and part of it outside the graphics card.
-		if r.ModelBytes > 0 && r.GPUBytes < r.ModelBytes {
-			// Name it.
-			spill = append(spill, r.Model)
-		} // end of the check
-	} // end of the loop
-	// The sentence.
-	if len(spill) > 0 {
-		// Say which ones.
-		out = append(out, "Not fully on the graphics card (so slower than they could be): "+strings.Join(spill, ", ")+".")
-	} // end of the spill sentence
-	// Hand them back.
-	return out
-} // end of textFindings
+	// The latest runs.
+	runs, skipped := store.latestRuns(perfPromptVersion)
+	// Build the page.
+	data := buildCompare(runs, skipped, installed, err == nil)
+	// Where the figures live.
+	path, note := store.where()
+	// A file, or the reason there is none.
+	if path != "" {
+		// Say where.
+		data.SaveNote = "The figures come from " + path + ". Each PDF or CSV you save here is written by the program into the folder " + filepath.Dir(path) + "; the browser asks for no place."
+	} else {
+		// The reason.
+		data.SaveNote = note
+	} // end of the path check
+	// Hand it back.
+	return data
+} // end of gatherCompare
 
-// embedFindings reads plain sentences out of the embedding-model runs (sorted by time, shortest first).
-func embedFindings(embeds []perfRun) []string {
-	// With fewer than two models there is nothing to compare, and no sentence is needed for none at all.
-	if len(embeds) < 2 {
-		// Nothing to say; the table speaks for itself.
-		return nil
-	} // end of the count check
-	// The fastest and the slowest embedder, among models with a figure.
-	var fast, slow *perfRun
-	// Look for them.
-	for i := range embeds {
-		// A model with no figure cannot be ranked.
-		if embeds[i].WarmTotalSec <= 0 {
-			// Skip it.
-			continue
-		} // end of the check
-		// The first one found is the fastest.
-		if fast == nil {
-			// Remember it.
-			fast = &embeds[i]
-		} // end of the fastest check
-		// The last one found is the slowest.
-		slow = &embeds[i]
-	} // end of the loop
-	// Two different models with a figure.
-	if fast != nil && slow != nil && fast != slow {
-		// The sentence.
-		return []string{fmt.Sprintf("%s embeds fastest (%s). %s needs %s, %.1f× longer.", fast.Model, fmtSecs(fast.WarmTotalSec), slow.Model, fmtSecs(slow.WarmTotalSec), slow.WarmTotalSec/fast.WarmTotalSec)}
-	} // end of the sentence check
-	// Nothing to say.
-	return nil
-} // end of embedFindings
+// compareForm runs the checks every comparison request shares (same page, small form, valid token); ok is false after a refusal was sent.
+func compareForm(w http.ResponseWriter, r *http.Request, token string) bool {
+	// Limit the size of the form.
+	r.Body = http.MaxBytesReader(w, r.Body, 1024)
+	// Only the monitor's own page may ask.
+	if !sameOrigin(r) {
+		// Refuse.
+		http.Error(w, "request did not come from this page", http.StatusForbidden)
+		// Stop here.
+		return false
+	} // end of the origin check
+	// Read the form.
+	if err := r.ParseForm(); err != nil {
+		// Refuse.
+		http.Error(w, "bad form", http.StatusBadRequest)
+		// Stop here.
+		return false
+	} // end of the form check
+	// The page token must match.
+	if !tokenValid(token, r.PostFormValue("token")) {
+		// Refuse.
+		http.Error(w, "bad token", http.StatusForbidden)
+		// Stop here.
+		return false
+	} // end of the token check
+	// All checks passed.
+	return true
+} // end of compareForm
 
 // compareHandler serves the comparison page; it only reads the saved figures and changes nothing.
 func compareHandler(addr ollamaAddress, token string, store *perfStore) http.HandlerFunc {
@@ -516,56 +474,17 @@ func compareHandler(addr ollamaAddress, token string, store *perfStore) http.Han
 	page := template.Must(template.New("compare").Parse(compareTemplateText + tipsTemplateText))
 	// The handler.
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Limit the size of the form.
-		r.Body = http.MaxBytesReader(w, r.Body, 1024)
-		// Only the monitor's own page may ask.
-		if !sameOrigin(r) {
-			// Refuse.
-			http.Error(w, "request did not come from this page", http.StatusForbidden)
-			// Stop here.
+		// The shared checks.
+		if !compareForm(w, r, token) {
+			// A refusal was sent.
 			return
-		} // end of the origin check
-		// Read the form.
-		if err := r.ParseForm(); err != nil {
-			// Refuse.
-			http.Error(w, "bad form", http.StatusBadRequest)
-			// Stop here.
-			return
-		} // end of the form check
-		// The page token must match.
-		if !tokenValid(token, r.PostFormValue("token")) {
-			// Refuse.
-			http.Error(w, "bad token", http.StatusForbidden)
-			// Stop here.
-			return
-		} // end of the token check
-		// Which models Ollama has now (an error only means the "no longer installed" note is left out).
-		installed := map[string]bool{}
-		// Read them.
-		list, err := fetchInstalled(r.Context(), addr.URL, defaultCheckTimeout)
-		// Fill the set.
-		for _, m := range list {
-			// One name.
-			installed[m.Name] = true
-		} // end of the loop
-		// The latest runs.
-		runs, skipped := store.latestRuns(perfPromptVersion)
-		// Build the page.
-		data := buildCompare(runs, skipped, installed, err == nil)
+		} // end of the checks
+		// Build the page data.
+		data := gatherCompare(r, addr, store)
 		// Add what every page needs.
 		data.Theme, data.Token = themeFromRequest(r), token
 		// The saved text size, from the cookie; empty means the browser's own size.
 		data.Size = sizeFromRequest(r)
-		// Where the figures live.
-		path, note := store.where()
-		// A file, or the reason there is none.
-		if path != "" {
-			// Say where.
-			data.SaveNote = "The figures come from " + path + "."
-		} else {
-			// The reason.
-			data.SaveNote = note
-		} // end of the path check
 		// Build the page in memory first, so a template error gives a clean 500 and not a half page.
 		var buf bytes.Buffer
 		// Run the template.

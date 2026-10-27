@@ -1485,6 +1485,72 @@ a.btn-load {
   overflow-wrap: anywhere;
 } /* end of rule */
 
+/* The small Copy button next to a command: an outlined pill, as large as the text beside it. */
+.copybtn {
+  /* Icon and word side by side. */
+  display: inline-flex;
+  /* Centre them on one line. */
+  align-items: center;
+  /* Space between the icon and the word. */
+  gap: 0.3rem;
+  /* Room from the command. */
+  margin-left: 0.4rem;
+  /* Room inside. */
+  padding: 0.1rem 0.6rem;
+  /* Outline in the border colour. */
+  border: 1px solid var(--border);
+  /* Pill shape. */
+  border-radius: 999px;
+  /* The page's own colours. */
+  background: transparent;
+  /* Text colour. */
+  color: var(--text);
+  /* The same font as the page. */
+  font: inherit;
+  /* A little smaller than the text. */
+  font-size: 0.85em;
+  /* A hand to show it can be pressed. */
+  cursor: pointer;
+} /* end of rule */
+
+/* A hidden Copy button stays hidden (the display rule above would otherwise show it). */
+.copybtn[hidden] {
+  /* Not shown. */
+  display: none;
+} /* end of rule */
+
+/* The icon follows the text size, in every size setting. */
+.copybtn .copyicon {
+  /* Width. */
+  width: 0.9rem;
+  /* Height. */
+  height: 0.9rem;
+} /* end of rule */
+
+/* Pointing at it or reaching it with the keyboard: a filled outline. */
+.copybtn:hover, .copybtn:focus-visible {
+  /* A stronger outline. */
+  border-color: var(--text);
+} /* end of rule */
+
+/* A keyboard ring that does not depend on colour alone. */
+.copybtn:focus-visible {
+  /* The ring. */
+  outline: 3px solid var(--text);
+  /* A gap between button and ring. */
+  outline-offset: 2px;
+} /* end of rule */
+
+/* The hidden box used by the old way of copying: far outside the visible page. */
+.copybox {
+  /* Out of the flow. */
+  position: fixed;
+  /* Far above the page. */
+  top: -1000px;
+  /* Far to the left. */
+  left: -1000px;
+} /* end of rule */
+
 /* Text size Medium: the whole page is 81 percent of the browser's own text size; every size in this stylesheet is in rem, so everything follows. */
 html[data-size="medium"] {
   /* Percent of the browser's own size works in every browser and keeps the person's own browser setting as the base. */
@@ -1843,4 +1909,84 @@ html[data-size="medium"] svg[width="22"] {
 .cardhead h2 {
   /* No margins inside the row. */
   margin: 0;
+} /* end of rule */
+
+/* The comparison page: a bordered notice box that stands apart from the text around it, readable without colour. */
+.cmpnotice {
+  /* A clear outline. */
+  border: 1px solid var(--border);
+  /* The page background, so the box reads as a separate area. */
+  background: var(--bg);
+  /* Room inside the box. */
+  padding: 0.6rem 0.8rem;
+  /* Room around the box. */
+  margin: 1rem 0;
+} /* end of rule */
+
+/* Paragraphs inside the notice box sit close together. */
+.cmpnotice p {
+  /* A small gap. */
+  margin: 0.4rem 0;
+} /* end of rule */
+
+/* The bar above a group: a thick line on the left marks the start of a group. */
+.cmpgroup {
+  /* The thick line, in the accent colour that is also used for the categories. */
+  border-left: 6px solid var(--cat-accent);
+  /* Space between the line and the heading. */
+  padding-left: 0.8rem;
+  /* Room above and below. */
+  margin: 1.6rem 0 0.4rem;
+} /* end of rule */
+
+/* The heading inside the bar needs no outer space of its own. */
+.cmpgroup h2 {
+  /* No extra space. */
+  margin: 0;
+} /* end of rule */
+
+/* The line that says why the models of a group are compared together. */
+.cmpwhy {
+  /* The category colours, so it reads as part of the group. */
+  background: var(--cat-bg);
+  /* Text that is readable on that background in both themes. */
+  color: var(--cat-text);
+  /* Room inside. */
+  padding: 0.5rem 0.7rem;
+  /* Room around. */
+  margin: 0.4rem 0;
+} /* end of rule */
+
+/* The row of download buttons. */
+.cmpactions {
+  /* Side by side, wrapping on a narrow window. */
+  display: flex;
+  /* A gap between the buttons. */
+  gap: 0.6rem;
+  /* Wrap instead of overflowing. */
+  flex-wrap: wrap;
+  /* Line the buttons up. */
+  align-items: center;
+  /* Room above and below. */
+  margin: 0.6rem 0;
+} /* end of rule */
+
+/* A form that holds only a button needs no outer space. */
+.cmpactions form {
+  /* No space. */
+  margin: 0;
+} /* end of rule */
+
+/* The reference list: long addresses may break anywhere so nothing runs off the screen. */
+.cmprefs {
+  /* The "[n]" in each entry is the number, so the list adds none of its own. */
+  list-style: none;
+  /* No indent, because there is no list number to make room for. */
+  padding-left: 0;
+} /* end of rule */
+.cmprefs li {
+  /* Room between entries. */
+  margin: 0.45rem 0;
+  /* Break long addresses. */
+  overflow-wrap: anywhere;
 } /* end of rule */

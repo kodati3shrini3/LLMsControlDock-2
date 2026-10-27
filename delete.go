@@ -173,8 +173,8 @@ func deleteHandlers(addr ollamaAddress, token string, store *deletedStore, hist 
 			// Stop here.
 			return
 		} // end of the template check
-		// A page with a ticking timer may run the monitor's own script, and nothing else.
-		if data.Seconds > 0 {
+		// A page with a ticking timer, or with copy buttons next to commands, may run the monitor's own script, and nothing else.
+		if data.Seconds > 0 || data.ShowPull {
 			// Replace the strict policy by the one that allows the script file.
 			w.Header().Set("Content-Security-Policy", contentSecurityPolicyWithScript)
 		} // end of the script policy

@@ -443,7 +443,7 @@ func TestDeleteConfirmDeletesAndRemembers(t *testing.T) {
 		t.Errorf("%d delete requests, want 1", f.calls())
 	} // end of the call check
 	// The file exists and only the owner may read it.
-	info, err := os.Stat(filepath.Join(dir, deletedFileName))
+	info, err := os.Stat(filepath.Join(dir, deletedFolderName, deletedFileName))
 	// It must exist.
 	if err != nil {
 		// Stop the test.
@@ -559,7 +559,7 @@ func TestDeleteFailuresAreHonest(t *testing.T) {
 		t.Errorf("a failed delete was not reported: %s", body)
 	} // end of the failure check
 	// Nothing remembered.
-	if _, err := os.Stat(filepath.Join(dir, deletedFileName)); err == nil {
+	if _, err := os.Stat(filepath.Join(dir, deletedFolderName, deletedFileName)); err == nil {
 		// Report it.
 		t.Errorf("a failed delete was remembered as deleted")
 	} // end of the memory check
@@ -662,11 +662,16 @@ func TestInstalledAgainHidesTheGhost(t *testing.T) {
 func TestDeletedStoreFile(t *testing.T) {
 	// A private folder.
 	dir := t.TempDir()
-	// The path comes from the history path.
-	if got := deletedPathFor(filepath.Join(dir, "PerformanceCompare", "performance.json")); got != filepath.Join(dir, "PerformanceCompare", deletedFileName) {
+	// With a performanceCompare results folder, the new folder sits beside it, in the project folder.
+	if got := deletedPathFor(filepath.Join(dir, "performanceCompare", "performance.json")); got != filepath.Join(dir, "deletedHistory", deletedFileName) {
 		// Report it.
-		t.Errorf("path %q is not next to the history", got)
+		t.Errorf("path %q is not in the deletedHistory folder beside performanceCompare", got)
 	} // end of the path check
+	// With another results folder, the new folder sits beside the results file.
+	if got := deletedPathFor(filepath.Join(dir, "OllamaControlCenter", "performance.json")); got != filepath.Join(dir, "OllamaControlCenter", "deletedHistory", deletedFileName) {
+		// Report it.
+		t.Errorf("path %q for the fallback folder", got)
+	} // end of the fallback check
 	// No history path means memory only.
 	if deletedPathFor("") != "" {
 		// Report it.
@@ -920,3 +925,72 @@ func TestRestorePageLibraryNotes(t *testing.T) {
 		t.Errorf("restore page (missing) wrong: %s", body)
 	} // end of the missing check
 } // end of TestRestorePageLibraryNotes
+
+// TestOldDeletedFileMovesToTheNewFolder checks that the list written by an earlier version is moved, never overwritten, and that nothing happens when there is nothing to move.
+func TestOldDeletedFileMovesToTheNewFolder(t *testing.T) {
+	// A project folder with a performanceCompare folder, as on the real machine.
+	root := t.TempDir()
+	// The results file path.
+	hist := filepath.Join(root, "performanceCompare", "performance.json")
+	// The folder must exist.
+	if err := os.MkdirAll(filepath.Dir(hist), 0o700); err != nil {
+		// Stop the test.
+		t.Fatal(err)
+	} // end of the folder check
+	// Nothing to move yet.
+	if msg := moveOldDeletedFile(hist); msg != "" {
+		// Report it.
+		t.Errorf("message %q with nothing to move", msg)
+	} // end of the empty check
+	// An old file from an earlier version.
+	oldFile := filepath.Join(root, "performanceCompare", deletedFileName)
+	// Write it.
+	if err := os.WriteFile(oldFile, []byte("old"), 0o600); err != nil {
+		// Stop the test.
+		t.Fatal(err)
+	} // end of the write check
+	// Move it.
+	if msg := moveOldDeletedFile(hist); msg != "" {
+		// Report it.
+		t.Fatalf("message %q", msg)
+	} // end of the move check
+	// The new place holds it, the old place is empty.
+	newFile := filepath.Join(root, "deletedHistory", deletedFileName)
+	// Read the new file.
+	if b, err := os.ReadFile(newFile); err != nil || string(b) != "old" {
+		// Report it.
+		t.Errorf("new file %q, error %v", b, err)
+	} // end of the content check
+	// The old file is gone.
+	if _, err := os.Stat(oldFile); err == nil {
+		// Report it.
+		t.Errorf("the old file is still there")
+	} // end of the old-file check
+	// The new folder is private.
+	if st, err := os.Stat(filepath.Dir(newFile)); err != nil || st.Mode().Perm() != 0o700 {
+		// Report it.
+		t.Errorf("folder mode %v, error %v", st, err)
+	} // end of the mode check
+	// A second old file never overwrites the new one.
+	if err := os.WriteFile(oldFile, []byte("second"), 0o600); err != nil {
+		// Stop the test.
+		t.Fatal(err)
+	} // end of the write check
+	// Try again.
+	moveOldDeletedFile(hist)
+	// The new file keeps its content.
+	if b, _ := os.ReadFile(newFile); string(b) != "old" {
+		// Report it.
+		t.Errorf("the new file was overwritten: %q", b)
+	} // end of the overwrite check
+	// The second old file stays where it is.
+	if b, _ := os.ReadFile(oldFile); string(b) != "second" {
+		// Report it.
+		t.Errorf("the old file was changed: %q", b)
+	} // end of the stay check
+	// A memory-only store has nothing to move.
+	if moveOldDeletedFile("") != "" {
+		// Report it.
+		t.Errorf("a message for a memory-only store")
+	} // end of the memory check
+} // end of TestOldDeletedFileMovesToTheNewFolder

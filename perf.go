@@ -26,6 +26,8 @@ import ( // import lists the standard-library packages this file uses.
 	"strings"
 	// time measures how long things take.
 	"time"
+	// unicode/utf8 counts the characters of an answer (only the count is kept, never the text).
+	"unicode/utf8"
 ) // end of imports
 
 // perfPromptVersion names the fixed prompt; saved runs carry it, so only runs with the same prompt are compared.
@@ -77,6 +79,8 @@ type perfFigures struct {
 	GotFirstWord bool
 	// VectorLength is the length of the first embedding vector (embedding models only).
 	VectorLength int
+	// AnswerChars is how many characters the model wrote, answer and reasoning together (only the count is kept, never the text).
+	AnswerChars int
 } // end of perfFigures
 
 // perfRun is one saved test: numbers and names only, never any text of a prompt or an answer. A zero in a speed or time field means "not available".
@@ -93,12 +97,22 @@ type perfRun struct {
 	Host string `json:"host"`
 	// PromptVersion names the fixed prompt.
 	PromptVersion string `json:"prompt_version"`
+	// Family is the model family Ollama reported when the test ran (empty in older results).
+	Family string `json:"family,omitempty"`
+	// ParameterSize is the size label Ollama reported when the test ran, for example 4.3B (empty in older results).
+	ParameterSize string `json:"parameter_size,omitempty"`
+	// Quantization is the compression level Ollama reported when the test ran, for example Q4_K_M (empty in older results).
+	Quantization string `json:"quantization,omitempty"`
 	// Runs is how many timed runs the medians come from.
 	Runs int `json:"runs"`
 	// AnswerSpeed is the median answer speed in tokens per second.
 	AnswerSpeed float64 `json:"answer_speed,omitempty"`
 	// PromptSpeed is the median prompt reading speed in tokens per second.
 	PromptSpeed float64 `json:"prompt_speed,omitempty"`
+	// CharSpeed is the median writing speed in characters per second; characters are counted the same way for every model, unlike tokens (zero in older results).
+	CharSpeed float64 `json:"char_speed,omitempty"`
+	// AnswerChars is the number of characters the model wrote in the last timed run, answer and reasoning together (a count only, never the text).
+	AnswerChars int64 `json:"answer_chars,omitempty"`
 	// ColdLoadSec is the load time of the warm-up run, which loaded the model.
 	ColdLoadSec float64 `json:"cold_load_sec,omitempty"`
 	// ColdFirstWordSec is the measured time to the first word of the warm-up run.
@@ -293,6 +307,8 @@ func runGenerate(ctx context.Context, base *url.URL, model string) (perfFigures,
 				// Say what it said, shortened.
 				return perfFigures{}, fmt.Errorf("Ollama stopped the test: %s", shortMessage(line))
 			} // end of the error check
+			// Count the characters the model wrote, answer and reasoning together, because the writing time covers both; only the number is kept.
+			f.AnswerChars += utf8.RuneCountInString(p.Response) + utf8.RuneCountInString(p.Thinking)
 			// The first piece of output, whether answer or reasoning, ends the wait for the first word.
 			if !f.GotFirstWord && (p.Response != "" || p.Thinking != "") {
 				// Remember how long it took.
@@ -361,11 +377,13 @@ func runEmbed(ctx context.Context, base *url.URL, model string) (perfFigures, er
 } // end of runEmbed
 
 // performTest runs the whole test on one model that is not loaded: one warm-up run (which loads it), then timed runs, then it reads what Ollama reports and unloads the model again. The result holds numbers only.
-func performTest(ctx context.Context, base *url.URL, model string, embedding bool, version string) (run perfRun, err error) {
+func performTest(ctx context.Context, base *url.URL, model string, embedding bool, version string, info modelDetails) (run perfRun, err error) {
 	// Is Ollama on this same computer? Only then do the machine figures describe it.
 	local := isLocalAddress(base)
 	// The result starts with the facts known before the test.
 	run = perfRun{Time: time.Now().UTC(), Model: model, Kind: "generate", OllamaVersion: version, Host: base.Host, PromptVersion: perfPromptVersion, Runs: perfTimedRuns}
+	// What Ollama says about the model, so the comparison can group it by size and precision later even when the model is gone.
+	run.Family, run.ParameterSize, run.Quantization = info.Family, info.ParameterSize, info.QuantizationLevel
 	// An embedding model is tested differently.
 	if embedding {
 		// Mark it.
@@ -442,11 +460,13 @@ func performTest(ctx context.Context, base *url.URL, model string, embedding boo
 		timed = append(timed, f)
 	} // end of the timed loop
 	// Collect each figure over the timed runs.
-	var answer, prompt, firstWord, total []float64
+	var answer, prompt, firstWord, total, chars []float64
 	// Go through the runs.
 	for _, f := range timed {
 		// Answer speed.
 		answer = append(answer, perSecond(f.EvalCount, f.EvalNs))
+		// Answer speed in characters per second (the same unit for every model).
+		chars = append(chars, perSecond(int64(f.AnswerChars), f.EvalNs))
 		// Prompt reading speed.
 		prompt = append(prompt, perSecond(f.PromptCount, f.PromptNs))
 		// First word, when one was seen.
@@ -459,6 +479,8 @@ func performTest(ctx context.Context, base *url.URL, model string, embedding boo
 	} // end of the loop
 	// The medians.
 	run.AnswerSpeed, run.PromptSpeed, run.WarmFirstWordSec, run.WarmTotalSec = median(answer), median(prompt), median(firstWord), median(total)
+	// The median speed in characters per second.
+	run.CharSpeed = median(chars)
 	// The cold figures.
 	run.ColdLoadSec = secs(cold.LoadNs)
 	// The cold first word.
@@ -470,6 +492,8 @@ func performTest(ctx context.Context, base *url.URL, model string, embedding boo
 	last := timed[len(timed)-1]
 	// Tokens in and out, and the vector length.
 	run.TokensIn, run.TokensOut, run.VectorLength = last.PromptCount, last.EvalCount, last.VectorLength
+	// The number of characters of the last answer.
+	run.AnswerChars = int64(last.AnswerChars)
 	// What Ollama reports about the loaded model.
 	if list, lerr := fetchLoaded(ctx, base, defaultCheckTimeout); lerr == nil {
 		// Find the tested model.
