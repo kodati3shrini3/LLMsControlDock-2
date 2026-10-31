@@ -774,6 +774,17 @@ func TestGearNotInstalled(t *testing.T) {
 	} // end of the change check
 } // end of TestGearNotInstalled
 
+// briefBody shortens a reply to its first 400 characters, so a failing test prints what the server answered without flooding the screen.
+func briefBody(body string) string {
+	// A short reply is shown whole.
+	if len(body) <= 400 {
+		// Hand it back.
+		return body
+	} // end of the short check
+	// A long reply is cut and marked.
+	return body[:400] + " ...[cut]"
+} // end of briefBody
+
 // TestGearRejectsBadValues checks every bad value of every setting is refused on the review step and on the save step, shown back escaped with a reason, and never reaches Ollama.
 func TestGearRejectsBadValues(t *testing.T) {
 	// A fake where seed and num_ctx are saved too, so "emptying" would mean losing something.
@@ -816,17 +827,17 @@ func TestGearRejectsBadValues(t *testing.T) {
 				// The settings page comes back with the reason, and no confirm button.
 				if status != http.StatusOK || !strings.Contains(body, "Not saved.") || !strings.Contains(body, `role="alert"><strong>⚠</strong>`) || strings.Contains(body, "Yes, save them into the model") {
 					// Report the problem.
-					t.Errorf("%s %s %q: status %d", path, key, v, status)
+					t.Errorf("%s %s %q: status %d, reply: %s", path, key, v, status, briefBody(body))
 				} // end of the check
 				// An empty value of a saved setting gets its own, clear reason.
 				if strings.TrimSpace(v) == "" && !strings.Contains(body, "cannot be empty") {
 					// Report the problem.
-					t.Errorf("%s %s %q: no 'cannot be empty' reason", path, key, v)
+					t.Errorf("%s %s %q: no 'cannot be empty' reason, reply: %s", path, key, v, briefBody(body))
 				} // end of the empty check
 				// Markup must come back escaped.
 				if strings.Contains(body, "<script>alert") || strings.Contains(body, "<b>") {
 					// Report the problem.
-					t.Errorf("%s %s: unescaped markup in the page", path, key)
+					t.Errorf("%s %s: unescaped markup in the page, reply: %s", path, key, briefBody(body))
 				} // end of the escape check
 			} // end of the path loop
 		} // end of the value loop
@@ -836,12 +847,12 @@ func TestGearRejectsBadValues(t *testing.T) {
 	// Nothing is saved.
 	if !strings.Contains(body, "Not saved.") {
 		// Report the problem.
-		t.Errorf("a good value was saved next to a bad one")
+		t.Errorf("a good value was saved next to a bad one, reply: %s", briefBody(body))
 	} // end of the mixed check
 	// Nothing reached Ollama.
 	if f.createCount() != 0 {
 		// Report the problem.
-		t.Errorf("a bad value was sent to Ollama")
+		t.Errorf("a bad value was sent to Ollama, create requests: %v", f.creates)
 	} // end of the change check
 	// The saved values are untouched.
 	if got := f.saved("num_ctx"); len(got) != 1 || got[0] != "4096" {
