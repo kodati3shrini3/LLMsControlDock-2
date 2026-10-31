@@ -72,14 +72,32 @@ func main() {
 	checkFlag := flag.Bool("check", false, "check Ollama once, print one status line, and exit (0 = online, 1 = offline)")
 	// Define a -models switch: false unless given on the command line.
 	modelsFlag := flag.Bool("models", false, "print the installed and loaded models as tables, and exit (0 = printed, 1 = Ollama not reachable)")
+	// Define a -check-links switch: opens every reference address of the comparison page once, prints the result, and exits (the only time the program contacts the internet).
+	linksFlag := flag.Bool("check-links", false, "open every reference address of the comparison page once, print which answer, and exit (0 = all answered, 1 = at least one did not)")
 	// Read the command line now, so the variables above receive their values.
 	flag.Parse()
 
-	// The two one-shot modes cannot be combined; ask the person to choose one.
-	if *checkFlag && *modelsFlag {
+	// The one-shot modes cannot be combined; ask the person to choose one.
+	modes := 0
+	// Count the modes that were given.
+	for _, on := range []bool{*checkFlag, *modelsFlag, *linksFlag} {
+		// One more mode.
+		if on {
+			// Count it.
+			modes++
+		} // end of the mode check
+	} // end of the loop
+	// More than one is not allowed.
+	if modes > 1 {
 		// log.Fatal prints the message and exits with code 1.
-		log.Fatal("use either -check or -models, not both")
+		log.Fatal("use only one of -check, -models and -check-links")
 	} // end of the combination check
+
+	// In -check-links mode, no Ollama is needed: open the reference addresses, print the result and leave.
+	if *linksFlag {
+		// Run it and leave with its exit code.
+		os.Exit(runCheckLinks(compareReferences, newLinkClient(), referencesChecked, os.Stdout))
+	} // end of the links mode
 
 	// Choose the Ollama address by precedence: option, then environment variable, then default.
 	addr, err := resolve(*ollamaFlag, os.Getenv(envOllamaURL))
