@@ -2025,3 +2025,17 @@ html[data-size="medium"] svg[width="22"] {
   /* The muted colour of the page. */
   color: var(--muted);
 } /* end of rule */
+
+/* The form with the re-test button of a group: button and note side by side, wrapping on a narrow screen. */
+.cmpretest {
+  /* Space above and below. */
+  margin: 0.5rem 0 0.9rem;
+  /* The button and the note sit in a row. */
+  display: flex;
+  /* They wrap on a phone. */
+  flex-wrap: wrap;
+  /* Space between them. */
+  gap: 0.5rem 0.8rem;
+  /* Centre them vertically. */
+  align-items: center;
+} /* end of rule */

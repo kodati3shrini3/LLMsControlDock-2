@@ -191,6 +191,16 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	mux.HandleFunc("POST /performance/clear/model/confirm", perfClearOneDo)
 	// Route: a POST request for "/compare" shows the comparison of the tested models and changes nothing.
 	mux.HandleFunc("POST /compare", compareHandler(addr, token, perfHistory))
+	// The four handlers of the group re-test (retest.go): ask, start, progress, stop.
+	retestAsk, retestStart, retestStatus, retestStop := retestHandlers(addr, token, perfHistory)
+	// Route: a POST request for "/compare/retest" shows which models of a group would be tested again, and changes nothing.
+	mux.HandleFunc("POST /compare/retest", retestAsk)
+	// Route: a POST request for "/compare/retest/run" starts the re-test of the group in the background.
+	mux.HandleFunc("POST /compare/retest/run", retestStart)
+	// Route: a GET request for "/compare/retest/status" shows how far the re-test has got; it only reads.
+	mux.HandleFunc("GET /compare/retest/status", retestStatus)
+	// Route: a POST request for "/compare/retest/stop" asks the re-test to stop after the model being tested.
+	mux.HandleFunc("POST /compare/retest/stop", retestStop)
 	// The two downloads of the comparison: a PDF report and the data as CSV (both carry the notice; the checks are in compreport.go).
 	comparePDF, compareCSV := compareDownloadHandlers(addr, token, perfHistory)
 	// Route: a POST request for "/compare/pdf" sends the comparison as a PDF file.
