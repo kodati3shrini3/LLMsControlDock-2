@@ -133,9 +133,9 @@
 {{/* The main content area. */}}
 <main>
 {{/* The status panel; aria-live asks screen readers to announce changes. */}}
-<section class="panel" aria-labelledby="status-title" aria-live="polite">
-{{/* The panel heading. */}}
-<h2 id="status-title">Ollama status</h2>
+<section class="panel" aria-label="API health" aria-live="polite">
+{{/* The panel heading, with its help bubble; the bubble says that this is the Ollama status. */}}
+<h2 id="status-title"><span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.HealthTip.ID}}">{{.HealthTip.Title}}</span><span class="tip" role="tooltip" id="{{.HealthTip.ID}}">{{template "tip" .HealthTip}}</span></span></h2>
 {{/* Online: a tick, the word Online, the version and the reply time. */}}
 {{if .Online}}
 {{/* The class ok colours the line, but the tick and the word carry the meaning. */}}
@@ -146,6 +146,8 @@
 <p class="status bad"><span class="symbol" aria-hidden="true">✖</span> <strong>Offline</strong> <span class="muted">{{.Reason}} ({{.ElapsedMs}} ms)</span></p>
 {{/* End of the online check. */}}
 {{end}}
+{{/* The counters: failed checks in a row and in total, and the last successful check with its time zone; the warning sign and the words both show a problem. */}}
+<p class="muted healthline">{{if .Health.FailedRow}}<span class="symbol" aria-hidden="true">⚠</span> {{end}}Failed checks: <strong>{{.Health.FailedRow}}</strong> in a row, <strong>{{.Health.FailedTotal}}</strong> in total since this monitor started. Last successful check: <strong>{{.Health.LastOK}}</strong>.</p>
 {{/* End of the status panel. */}}
 </section>
 {{/* The Installed models panel. */}}

@@ -30,6 +30,8 @@ func allHeadings() []string {
 	} // end of the column loop
 	// Then the headings of the settings page and the Load page.
 	out = append(out, gearHeadings...)
+	// The Ollama status panel heading on the main page.
+	out = append(out, healthHeadings...)
 	// The performance page headings.
 	out = append(out, perfHeadings...)
 	// The comparison page headings that are not shared with other pages.

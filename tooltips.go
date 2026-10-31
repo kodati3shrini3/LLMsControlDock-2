@@ -22,12 +22,24 @@ var loadedColumns = []string{"Model", "Size (as reported)", "Memory on GPU", "Lo
 // gearHeadings are the headings on the settings page and the Load page that have a help bubble, in the order they appear; a test checks each has a text.
 var gearHeadings = []string{"Set in the model", "Ollama's default", "Allowed values", "Context size", "Temperature", "Top-k", "Top-p", "Min-p", "Repeat penalty", "Repeat window", "Seed", "Answer length limit", "Stop words", "Keep-alive time"}
 
+// healthHeadings are the headings of the Ollama status panel on the main page that have a help bubble; a test checks each has a text.
+var healthHeadings = []string{"API health"}
+
 // perfHeadings are the indicator names on the performance page that have a help bubble; a test checks each has a text.
 var perfHeadings = []string{"Answer speed", "Prompt reading speed", "Load time", "Total time", "Time to first word", "Tokens counted", "Embedding time", "Vector length", "Processor split", "Memory used", "Change since the previous run", "CPU cores", "CPU load", "Memory free", "Swap in use", "Other models loaded", "GPU"}
 
 // helpTexts holds every tooltip, keyed by the exact heading text it belongs to.
 // The wording was checked against Ollama's documentation; "Max context length" and "Embedding length" are not described there.
 var helpTexts = map[string]tooltip{
+	// The Ollama status panel on the main page.
+	"API health": {
+		// What it means.
+		Plain: "Ollama status: does Ollama answer, how many checks failed, and when it last answered correctly.",
+		// A real case.
+		Example: "3 failed in a row means Ollama has not answered the last 3 checks.",
+		// What it helps with.
+		Decide: "Whether Ollama is steady enough to rely on right now.",
+	}, // end of API health
 	// The model name, shared by both tables.
 	"Model": {
 		// What it means.

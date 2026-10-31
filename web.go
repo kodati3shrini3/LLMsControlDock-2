@@ -63,6 +63,10 @@ type pageData struct {
 	HeaderURL string
 	// FooterURL is the company website address for the footer bar.
 	FooterURL string
+	// Health holds the counters of failed checks and the last successful check.
+	Health healthView
+	// HealthTip is the help bubble of the panel heading "API health".
+	HealthTip tipView
 	// Token is the page token that every form on the page carries.
 	Token string
 	// CompareCount is how many models have a saved performance test that can be compared.
@@ -98,6 +102,10 @@ func secureHeaders(next http.Handler) http.Handler {
 func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	// Read the template once; Must stops the program at start-up if the template is broken, which a test would catch first.
 	page := template.Must(template.New("index").Parse(indexTemplateText))
+	// The counters of failed checks live as long as the monitor runs.
+	health := &apiHealth{}
+	// The help bubble of the panel heading never changes, so build it once.
+	healthTip := makeTip("tip-health", "API health")
 	// Create the page token: an unguessable value that every form on the page carries, so only this page can send a form (requirement S2).
 	token := mustToken()
 	// Create a router for the routes.
@@ -217,6 +225,8 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 			Version: res.Version,
 			// The time taken.
 			ElapsedMs: res.Elapsed.Milliseconds(),
+			// The counters after this check, and the bubble of the heading.
+			Health: health.record(res.Online, time.Now()), HealthTip: healthTip,
 			// The reason, if offline.
 			Reason: res.Reason,
 			// The saved theme choice, from the cookie; empty means follow the system.
