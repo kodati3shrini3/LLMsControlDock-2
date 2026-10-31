@@ -12,6 +12,8 @@ import ( // import lists the standard-library packages this file uses.
 	"net"
 	// net/http provides requests and status codes.
 	"net/http"
+	// os gives this computer's own host name.
+	"os"
 	// strings makes host names lower case before they are compared.
 	"strings"
 ) // end of imports
@@ -85,10 +87,14 @@ func allowedHosts(listen string) map[string]bool {
 func hostGuard(next http.Handler, listen string) http.Handler {
 	// Work out the allowed names once.
 	allowed := allowedHosts(listen)
+	// Whether the page is open to other machines (set on the Settings page or by -listen).
+	lan := lanListen(listen)
+	// The port other machines must use.
+	_, port, _ := net.SplitHostPort(listen)
 	// Return a handler that checks the Host header and then calls the wrapped one.
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Host names are not case sensitive, so compare in lower case.
-		if !allowed[strings.ToLower(r.Host)] {
+		if !allowed[strings.ToLower(r.Host)] && !(lan && lanHostOK(r.Host, port)) {
 			// Never cache a refusal.
 			w.Header().Set("Cache-Control", "no-store")
 			// Refuse with a plain message.
@@ -100,3 +106,60 @@ func hostGuard(next http.Handler, listen string) http.Handler {
 		next.ServeHTTP(w, r)
 	}) // end of the wrapper
 } // end of hostGuard
+
+// lanListen says whether the listen address is open to other machines: any host part other than this computer's own loopback names.
+func lanListen(listen string) bool {
+	// Split it into host and port.
+	host, _, err := net.SplitHostPort(listen)
+	// An unusable address is treated as closed.
+	if err != nil {
+		// Closed.
+		return false
+	} // end of the split check
+	// The loopback names keep the page on this computer.
+	switch strings.ToLower(host) {
+	// This computer only.
+	case "127.0.0.1", "localhost", "::1":
+		// Closed.
+		return false
+	} // end of the loopback check
+	// Anything else (0.0.0.0, a network address, a name) is open to the network.
+	return true
+} // end of lanListen
+
+// lanHostOK accepts a Host header for a page that is open to the network: the right port, and a network address, "localhost" or this computer's own host name; any other name is refused, which keeps DNS rebinding out.
+func lanHostOK(hostport, port string) bool {
+	// Split the header into name and port.
+	host, p, err := net.SplitHostPort(hostport)
+	// A header without a port is only right when the port is the default web port.
+	if err != nil {
+		// The whole header is the name.
+		host, p = hostport, "80"
+	} // end of the split check
+	// The port must be ours.
+	if p != port {
+		// Refuse.
+		return false
+	} // end of the port check
+	// Brackets around an IPv6 address are not part of it.
+	host = strings.ToLower(strings.Trim(host, "[]"))
+	// A network address in numbers is fine.
+	if net.ParseIP(host) != nil {
+		// Accept.
+		return true
+	} // end of the address check
+	// The browser's own name for this computer.
+	if host == "localhost" {
+		// Accept.
+		return true
+	} // end of the localhost check
+	// This computer's own host name, with or without the .local ending that home networks add.
+	if name, err := os.Hostname(); err == nil && name != "" {
+		// Compare in lower case.
+		name = strings.ToLower(name)
+		// Either form.
+		return host == name || host == name+".local"
+	} // end of the host name check
+	// Anything else is refused.
+	return false
+} // end of lanHostOK

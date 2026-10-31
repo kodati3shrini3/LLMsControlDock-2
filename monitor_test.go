@@ -131,7 +131,7 @@ func TestMainPageShowsTheCharts(t *testing.T) {
 	// The default page.
 	page := pageWithCookie(t, rig, nil)
 	// The parts.
-	for _, w := range []string{`aria-labelledby="charts-title"`, ">Charts</span>", "Ollama&#39;s answers over the last 30 minutes", "State of Ollama", "Answer time", "Ollama answered 100 % of", `<svg class="chartsvg"`, `id="hatch"`, `class="cell cell-ok"`, "each time this page loads", `href="/?numbers=open#numbers"`, `<meta http-equiv="refresh"`} {
+	for _, w := range []string{`aria-labelledby="charts-title"`, ">Charts</span>", "Ollama&#39;s answers over the chart history", "State of Ollama", "Answer time", "Ollama answered 100 % of", `<svg class="chartsvg"`, `id="hatch"`, `class="cell cell-ok"`, "each time this page loads", `href="/?numbers=open#numbers"`, `<meta http-equiv="refresh"`} {
 		// Look for it.
 		if !strings.Contains(page, w) {
 			// Report the gap.

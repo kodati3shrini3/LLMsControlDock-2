@@ -1,0 +1,77 @@
+{{/* Settings page template: the values the person can change. The comments are template comments, so they never reach the browser. */}}
+<!DOCTYPE html>
+{{/* lang tells screen readers which language the page is written in; the theme and the text size come from the saved choices. */}}
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}{{if .Size}} data-size="{{.Size}}"{{end}}>
+<head>{{/* start of the head. */}}
+{{/* Text encoding. */}}
+<meta charset="utf-8">
+{{/* Fit the page to the width of the screen on phones. */}}
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* The title shown on the browser tab. */}}
+<title>Settings</title>
+{{/* Our one stylesheet. */}}
+<link rel="stylesheet" href="/app.css">
+</head>{{/* end of the head. */}}
+<body>{{/* start of the visible page. */}}
+{{/* The page content. */}}
+<main>
+{{/* One box holds everything. */}}
+<section class="panel">
+{{/* The back arrow in the top right corner of this box: a round link to the monitor; its words are in its tooltip and in its accessible name. It only follows a link and changes nothing. */}}
+<span class="tipbox backtop"><a class="backcircle" href="/" aria-label="Back to the monitor" aria-describedby="tipback"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg></a><span class="tip tip-icon" role="tooltip" id="tipback">Back to the monitor</span></span>
+{{/* The heading. */}}
+<h1>Settings</h1>
+{{/* What the page does. */}}
+<p>Check the values, change what you need and press <strong>Save settings</strong>. A value left empty (or equal to the default) uses the default. Values marked <strong>restart</strong> are used the next time the monitor starts; the others apply at once. The look of the page (light or dark, text size) is changed with the buttons at the top of the monitor page.</p>
+{{/* A note after saving. */}}
+{{if eq .Saved "saved"}}<p class="muted" role="status"><strong>Saved.</strong> {{if .RestartNeeded}}The values marked restart are used the next time the monitor starts.{{else}}The changes are in use now.{{end}}</p>{{end}}
+{{/* A note after "Back to defaults": the default values are filled in, but nothing is saved yet. */}}
+{{if eq .Saved "draft"}}<p class="warn" role="status"><strong>Nothing is saved yet.</strong> The default values are filled in below. Press <strong>Save settings</strong> to keep them, or <strong>Cancel</strong> to leave your settings as they were.</p>{{end}}
+{{/* A note about a damaged settings file or a missing folder. */}}
+{{if .Note}}<p class="warn"><strong>⚠</strong> {{.Note}}</p>{{end}}
+{{/* Problems with what was typed; nothing was saved. */}}
+{{if .Problems}}<div class="warn" role="alert"><p><strong>⚠ Not saved.</strong> Please correct:</p><ul>{{range .Problems}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+{{/* The form: it sends the page token and the typed values. */}}
+<form method="post" action="/settings">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* The table of settings: one row each, with what is in use now, the new value, the default and when it applies. */}}
+<table class="settingtable">
+{{/* The column headings. */}}
+<thead><tr><th scope="col">Setting</th><th scope="col">In use now</th><th scope="col">New value</th><th scope="col">Default</th><th scope="col">Applies</th></tr></thead>
+{{/* The body. */}}
+<tbody>
+{{/* One row each. */}}
+{{range .Rows}}
+<tr>
+<th scope="row">{{.Label}}<br><small class="muted">{{.Help}}</small></th>
+<td><span class="cellname">In use now: </span>{{.Now}}{{if .From}}<br><small class="muted">from: {{.From}}</small>{{end}}{{if .Pending}}<br><small class="muted"><strong>{{.Pending}}</strong></small>{{end}}</td>
+<td>
+<span class="cellname">New value: </span>
+{{/* The right control for this row. */}}
+{{if eq .Kind "text"}}<input class="stopfield{{if not .Typed}} notset{{end}}" style="width:15rem" name="{{.Name}}" type="text" inputmode="url" maxlength="300" autocomplete="off" aria-label="{{.Label}}" placeholder="{{.Default}}" value="{{.Typed}}">{{end}}
+{{if eq .Kind "number"}}<input class="numfield" name="{{.Name}}" type="number" inputmode="numeric" min="{{.Min}}" max="{{.Max}}" step="1" aria-label="{{.Label}}" value="{{.Typed}}">{{end}}
+{{if eq .Kind "yesno"}}<select class="keepselect" name="{{.Name}}" aria-label="{{.Label}}"><option value="no"{{if eq .Typed "no"}} selected{{end}}>No</option><option value="yes"{{if eq .Typed "yes"}} selected{{end}}>Yes</option></select>{{end}}
+</td>
+<td><span class="cellname">Default: </span>{{.Default}}</td>
+<td><span class="cellname">Applies: </span>{{.Applies}}</td>
+</tr>
+{{end}}
+</tbody>
+</table>
+{{/* The warning about other machines: the page has no password. */}}
+<p class="warn"><strong>⚠</strong> If you let other machines open this page, anyone on your network can use its buttons (unload, delete, stop). The page has no password, so turn this on only on a network you trust.</p>
+{{/* Where the files are kept. */}}
+<p class="muted">Saved in <code>{{if .Folder}}{{.Folder}}{{else}}(no folder found: kept only until the monitor stops){{end}}</code>. The check history file holds only the time, the result and the answer time of each check: no model names and no prompts. Turning the history off deletes that file.</p>
+{{/* The buttons. */}}
+<p><button type="submit" name="action" value="save" class="btn-plain">Save settings</button> <button type="submit" name="action" value="defaults" class="btn-plain">Back to defaults</button> <a class="btn-plain" href="/settings">Cancel</a></p>
+{{/* End of the form. */}}
+</form>
+{{/* A plain way back besides the arrow: the same button as on the other pages. */}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* End of the box. */}}
+</section>
+{{/* End of the page content. */}}
+</main>
+</body>{{/* end of the visible page. */}}
+</html>

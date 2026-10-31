@@ -23,6 +23,41 @@ import ( // import lists the standard-library packages this file uses.
 // defaultListen is where the page is served unless the user chooses otherwise: this machine only (requirement S1).
 const defaultListen = "127.0.0.1:8765"
 
+// openListen is the address used when the person allowed other machines: every network address of this computer, same port as the default.
+const openListen = "0.0.0.0:8765"
+
+// listenGiven says whether -listen was written on the command line (flag.Visit only walks the options that were set).
+func listenGiven() bool {
+	// Not given until seen.
+	given := false
+	// Walk the options that were set.
+	flag.Visit(func(f *flag.Flag) {
+		// The one we look for.
+		if f.Name == "listen" {
+			// Seen.
+			given = true
+		} // end of the name check
+	}) // end of the walk
+	// The answer.
+	return given
+} // end of listenGiven
+
+// chooseListen picks the listen address by precedence: the -listen option (when given), then "other machines allowed" from the settings, then this computer only; the second value names the layer.
+func chooseListen(flagValue string, flagGiven, allowOthers bool) (string, string) {
+	// The command line wins.
+	if flagGiven {
+		// Use it.
+		return flagValue, sourceFlag
+	} // end of the option case
+	// The saved setting opens the page to the network.
+	if allowOthers {
+		// Use the open address.
+		return openListen, sourceSaved
+	} // end of the saved case
+	// Otherwise this computer only.
+	return defaultListen, sourceDefault
+} // end of chooseListen
+
 // formatCheck turns one check result into the single status line the -check option prints.
 func formatCheck(res checkResult) string {
 	// A successful check says ONLINE, the version and the time taken.
@@ -100,7 +135,17 @@ func main() {
 	} // end of the links mode
 
 	// Choose the Ollama address by precedence: option, then environment variable, then default.
-	addr, err := resolve(*ollamaFlag, os.Getenv(envOllamaURL))
+	// The saved settings are read first (a damaged file is ignored with a note).
+	dir, dirNote := settingsFolder()
+	// Open the store.
+	store := openSettingsStore(dir, dirNote)
+	// Tell the person when the file was ignored.
+	if n := store.noteText(); n != "" {
+		// Print the note.
+		log.Print(n)
+	} // end of the note check
+	// The address: option, then environment variable, then saved setting, then default.
+	addr, err := resolveWithSaved(*ollamaFlag, os.Getenv(envOllamaURL), store.get().OllamaURL)
 	// If the address is unusable, stop with a clear message and a failure exit code.
 	if err != nil {
 		// log.Fatalf prints the message and exits with code 1.
@@ -133,14 +178,18 @@ func main() {
 	// Describe the web server: Addr is where to listen (the star reads the flag's value), Handler is the web interface from web.go wrapped in the Host-name check from guard.go,
 	// and ReadHeaderTimeout drops clients that take more than 5 seconds to send their request headers.
 	// The monitor holds the counters and the history of checks; it asks Ollama in the background every sampleEvery, so the charts have no gaps while the page is closed.
-	mon := newMonitor()
+	mon := newMonitorWith(store)
+	// The listen address: the -listen option if it was given, else "other machines allowed" from the settings, else this computer only.
+	listenAddr, listenSource := chooseListen(*listen, listenGiven(), store.get().AllowOthers)
+	// Tell the Settings page how the program was started.
+	mon.run = runInfo{Listen: listenAddr, ListenSource: listenSource}
 	// Start the background checks; they end with the program.
 	mon.start(context.Background(), addr.URL, defaultCheckTimeout, sampleEvery)
 	// The server, with the monitor built into the web interface.
-	server := &http.Server{Addr: *listen, Handler: hostGuard(newWebHandlerWith(addr, defaultCheckTimeout, mon), *listen), ReadHeaderTimeout: 5 * time.Second}
+	server := &http.Server{Addr: listenAddr, Handler: hostGuard(newWebHandlerWith(addr, defaultCheckTimeout, mon), listenAddr), ReadHeaderTimeout: 5 * time.Second}
 
 	// Tell the person which address we are about to serve on.
-	log.Printf("OllamaControlCenter listening on http://%s (press Ctrl+C to stop)", *listen)
+	log.Printf("OllamaControlCenter listening on http://%s (from %s; press Ctrl+C to stop)", listenAddr, listenSource)
 	// Closed when the shutdown that the Stop button started has finished.
 	stopped := make(chan struct{})
 	// The Stop button's last step: shut the web server down, waiting at most 5 seconds for requests that are still running.
@@ -151,6 +200,11 @@ func main() {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			// Release the timer at the end.
 			defer cancel()
+			// With the history file switched on, write the checks one last time, so a stop loses nothing.
+			if store.get().SaveHistory {
+				// A failed write is not fatal.
+				_ = store.saveSamples(mon.hist.all())
+			} // end of the history write
 			// Ask politely first.
 			if err := server.Shutdown(ctx); err != nil {
 				// Requests that would not finish are cut off.

@@ -146,6 +146,12 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	mux.HandleFunc("POST /textsize", sizeHandler(token))
 	// Route: a GET request for "/about" shows the read-only About page (see about.go).
 	mux.HandleFunc("GET /about", aboutHandler())
+	// Make the two Settings handlers: the first shows the page, the second saves the form (see settingspage.go).
+	settingsShow, settingsSave := settingsHandlers(addr, mon, token)
+	// Route: a GET request for "/settings" shows the Settings page.
+	mux.HandleFunc("GET /settings", settingsShow)
+	// Route: a POST request for "/settings" saves the settings.
+	mux.HandleFunc("POST /settings", settingsSave)
 	// Make the two unload handlers: the first asks "are you sure?", the second unloads (the checks are in unload.go).
 	unloadAsk, unloadConfirm := unloadHandlers(addr, token)
 	// Route: a POST request for "/unload" shows the warning page and changes nothing.
@@ -254,6 +260,9 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	// Route: a GET request for exactly "/" shows the page; other paths get 404 and other methods get 405 from the router.
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		// Ask Ollama once; the request's own context cancels the check if the browser goes away.
+		// The check timeout from the Settings page, or the built-in one.
+		timeout := mon.timeoutOr(timeout)
+		// Ask Ollama.
 		res := checkOllama(r.Context(), addr.URL, timeout)
 		// Fill in what the template shows.
 		data := pageData{
@@ -336,7 +345,11 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 		// The charts of the last 30 minutes, and the bubble of their heading.
 		now := time.Now()
 		// Build them from the history of checks.
-		data.Charts = buildCharts(mon.hist.since(now.Add(-chartWindow)), now, mon.background.Load(), data.NumbersOpen)
+		cfg := mon.store.get()
+		// The history length and the check interval from the settings.
+		window, every := cfg.window(), cfg.interval(sampleEvery)
+		// Build the charts for them.
+		data.Charts = buildChartsFor(mon.hist.since(now.Add(-window)), now, mon.background.Load(), data.NumbersOpen, window, every)
 		// The bubble.
 		data.ChartsTip = chartsTip
 		// The loaded models with their memory, from the same lists the event log used.
