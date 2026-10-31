@@ -134,10 +134,10 @@ func TestTablePageRealModels(t *testing.T) {
 func TestTableHelpForEveryHeading(t *testing.T) {
 	// Fake Ollama with the six real models.
 	body := pageFor(t, fullOllama(t, realModels, realPsBody))
-	// Ten column bubbles, two category bubbles and the bubble of the API health heading; the short tips of the row icons are counted apart.
-	if n := strings.Count(body, `role="tooltip"`) - strings.Count(body, `class="tip tip-icon"`); n != 13 {
+	// Ten column bubbles, two category bubbles and the bubbles of the API health and Event log headings; the short tips of the row icons are counted apart.
+	if n := strings.Count(body, `role="tooltip"`) - strings.Count(body, `class="tip tip-icon"`); n != 14 {
 		// Report the difference.
-		t.Errorf("%d bubbles, want 13", n)
+		t.Errorf("%d bubbles, want 14", n)
 	} // end of the bubble count
 	// Every column title must be a focusable heading.
 	for _, col := range installedColumns {
@@ -155,9 +155,9 @@ func TestTableHelpForEveryHeading(t *testing.T) {
 	// Find every aria-describedby value.
 	refs := regexp.MustCompile(`aria-describedby="([^"]+)"`).FindAllStringSubmatch(body, -1)
 	// There must be one per bubble (the row icons have their own, counted apart).
-	if n := len(refs) - strings.Count(body, `class="tip tip-icon"`); n != 13 {
+	if n := len(refs) - strings.Count(body, `class="tip tip-icon"`); n != 14 {
 		// Report the difference.
-		t.Errorf("%d aria-describedby attributes, want 13", n)
+		t.Errorf("%d aria-describedby attributes, want 14", n)
 	} // end of the reference count
 	// Each one must point at an element that exists.
 	for _, m := range refs {
@@ -180,16 +180,16 @@ func TestTableAccessibility(t *testing.T) {
 		// want is the expected number.
 		want int
 	}{ // the cases follow
-		// Ten column headings.
-		{`scope="col"`, 10},
+		// Ten column headings of the models table and two of the event log.
+		{`scope="col"`, 12},
 		// One row heading per model.
 		{`scope="row"`, 6},
 		// One group heading per non-empty category.
 		{`scope="colgroup"`, 2},
 		// The scroll box is a labelled region that the keyboard can reach.
-		{`role="region"`, 1},
-		// Thirteen headings (ten columns, two categories and API health) plus the scroll box can take the focus.
-		{`tabindex="0"`, 14},
+		{`role="region"`, 2},
+		// Fourteen headings (ten columns, two categories, API health and Event log) plus the two scroll boxes (models and event log) can take the focus.
+		{`tabindex="0"`, 16},
 	} { // end of the list
 		// Count it.
 		if n := strings.Count(body, c.text); n != c.want {
@@ -230,7 +230,7 @@ func TestTableNoModels(t *testing.T) {
 	// Fake Ollama with an empty list.
 	body := pageFor(t, fullOllama(t, nil, `{"models":[]}`))
 	// The note must appear and no table may be drawn.
-	if !strings.Contains(body, "No models are installed.") || strings.Contains(body, "<table") {
+	if !strings.Contains(body, "No models are installed.") || strings.Contains(body, `<table class="models"`) {
 		// Report the problem.
 		t.Errorf("unexpected page for an empty list")
 	} // end of the check
@@ -261,7 +261,7 @@ func TestTableListError(t *testing.T) {
 		} // end of the check
 	} // end of the loop
 	// No table may be drawn.
-	if strings.Contains(body, "<table") {
+	if strings.Contains(body, `<table class="models"`) {
 		// Report the problem.
 		t.Errorf("a table was drawn although the lists failed")
 	} // end of the table check
@@ -272,7 +272,7 @@ func TestTableWhenOffline(t *testing.T) {
 	// Ask the page with nothing listening.
 	_, _, body := get(t, handlerFor(t, "http://"+closedAddress(t)), http.MethodGet, "/")
 	// The note must appear and no table may be drawn.
-	if !strings.Contains(body, "The model tables appear when Ollama answers.") || strings.Contains(body, "<table") {
+	if !strings.Contains(body, "The model tables appear when Ollama answers.") || strings.Contains(body, `<table class="models"`) {
 		// Report the problem.
 		t.Errorf("unexpected page while offline")
 	} // end of the check

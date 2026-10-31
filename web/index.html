@@ -151,6 +151,28 @@
 <p class="muted healthline">{{if .Health.FailedRow}}<span class="symbol" aria-hidden="true">⚠</span> {{end}}Failed checks: <strong>{{.Health.FailedRow}}</strong> in a row, <strong>{{.Health.FailedTotal}}</strong> in total since this monitor started. Last successful check: <strong>{{.Health.LastOK}}</strong>.</p>
 {{/* End of the status panel. */}}
 </section>
+{{/* The event log: what changed between two checks, newest first. */}}
+<section class="panel" aria-labelledby="events-title">
+{{/* The heading with its help bubble. */}}
+<h2 id="events-title"><span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.EventsTip.ID}}">{{.EventsTip.Title}}</span><span class="tip" role="tooltip" id="{{.EventsTip.ID}}">{{template "tip" .EventsTip}}</span></span></h2>
+{{/* What the log is and is not. */}}
+<p class="muted">Changes seen between two checks, newest first. Kept in memory until the monitor stops. The monitor started at {{.Events.Started}}.{{if gt .Events.Total .Events.Shown}} Showing the newest {{.Events.Shown}} of {{.Events.Total}}.{{end}}</p>
+{{/* The lines. */}}
+{{if .Events.Rows}}
+<div class="scrollbox" tabindex="0" role="region" aria-label="Event log, scrolls sideways">
+<table class="models comparetable">
+<thead><tr><th scope="col">Time</th><th scope="col">What changed</th></tr></thead>
+<tbody>
+{{range .Events.Rows}}
+<tr><td>{{.Time}}</td><td><span class="symbol" aria-hidden="true">{{.Symbol}}</span> {{.Text}}</td></tr>
+{{end}}
+</tbody>
+</table>
+</div>
+{{else}}
+<p>Nothing seen yet.</p>
+{{end}}
+</section>
 {{/* The Installed models panel. */}}
 <section class="panel" aria-labelledby="installed-title">
 {{/* The panel heading, with the number of models when known. */}}
