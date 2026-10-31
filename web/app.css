@@ -1773,8 +1773,8 @@ html[data-size="medium"] svg[width="22"] {
   flex-wrap: wrap;
   /* Space between the parts when they wrap. */
   gap: 0.75rem 1rem;
-  /* Space above and below the bar. */
-  margin: 1.5rem 0 2rem;
+  /* Space above (the same as between the boxes, so every gap on the page is equal) and below the bar. */
+  margin: 1rem 0 2rem;
   /* Air inside. */
   padding: 0.9rem 1.1rem;
   /* The same solid outline and panel colour as the other boxes. */
