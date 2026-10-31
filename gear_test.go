@@ -1244,10 +1244,10 @@ func TestMainPageGearOnlyForNotLoaded(t *testing.T) {
 		// Report the problem.
 		t.Errorf("a loaded model has a gear")
 	} // end of the loaded check
-	// The loaded row has two empty slots: one where the performance icon would be, one where the gear would be.
-	if strings.Count(body, `class="gearslot"`) != 2 {
+	// The loaded row keeps no empty slots: its icons stand alone, so the delete icon and the Modelfile icon sit on one line.
+	if strings.Count(body, `class="gearslot"`) != 0 {
 		// Report the problem.
-		t.Errorf("the loaded row has no empty gear slot")
+		t.Errorf("the loaded row still has an empty slot, which pushes its icons onto different lines")
 	} // end of the slot check
 	// The gear comes before the state words in its cell.
 	if i, j := strings.Index(body, `class="gearform"`), strings.Index(body, `class="statelabel"`); !(i >= 0 && j >= 0 && i < strings.LastIndex(body, `class="statelabel"`)) {

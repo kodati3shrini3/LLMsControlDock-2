@@ -81,6 +81,8 @@ type pageData struct {
 	Charts chartsView
 	// ChartsTip is the help bubble of the heading "Charts".
 	ChartsTip tipView
+	// Memory is the memory part of the Charts box: the loaded models with their size, GPU share and unload time.
+	Memory memView
 	// NumbersOpen is true when the person opened the table of numbers under the charts (the address then ends in ?numbers=open); the page does not update by itself meanwhile.
 	NumbersOpen bool
 	// DetailsClosed is true when the person folded the monitoring details (API health and Event log) away; a cookie remembers it.
@@ -337,6 +339,8 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 		data.Charts = buildCharts(mon.hist.since(now.Add(-chartWindow)), now, mon.background.Load(), data.NumbersOpen)
 		// The bubble.
 		data.ChartsTip = chartsTip
+		// The loaded models with their memory, from the same lists the event log used.
+		data.Memory = buildMemory(evLoaded, res.Online, listsOK, now)
 		// Build the whole page in memory first, so a template error produces a clean 500 and not a half page.
 		var buf bytes.Buffer
 		// Run the template.
