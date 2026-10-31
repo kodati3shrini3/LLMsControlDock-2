@@ -24,6 +24,8 @@ const (
 	sourceEnv = "environment variable"
 	// sourceDefault means nobody set an address, so the built-in default is used.
 	sourceDefault = "default"
+	// sourceSaved means the value came from the Settings page (the settings file).
+	sourceSaved = "saved setting"
 ) // end of the source names
 
 // ollamaAddress holds the chosen address and the layer that supplied it.
@@ -36,10 +38,23 @@ type ollamaAddress struct {
 
 // resolve picks the address by precedence: option, then environment variable, then default; an empty text counts as "not set".
 func resolve(flagValue, envValue string) (ollamaAddress, error) {
+	// No saved setting.
+	return resolveWithSaved(flagValue, envValue, "")
+} // end of resolve
+
+// resolveWithSaved picks the address by precedence: option, then environment variable, then the saved setting, then default.
+func resolveWithSaved(flagValue, envValue, savedValue string) (ollamaAddress, error) {
 	// Start from the default layer.
 	raw := defaultOllamaURL
 	// Remember that the default supplied it, until a stronger layer overrides.
 	source := sourceDefault
+	// The saved setting beats the default.
+	if strings.TrimSpace(savedValue) != "" {
+		// Use the saved text.
+		raw = strings.TrimSpace(savedValue)
+		// Record the layer.
+		source = sourceSaved
+	} // end of the saved check
 	// If the environment variable has real content, it beats the default.
 	if strings.TrimSpace(envValue) != "" {
 		// Use the environment variable's text.
@@ -63,7 +78,7 @@ func resolve(flagValue, envValue string) (ollamaAddress, error) {
 	} // end of the error check
 	// Everything is fine: return the address and where it came from.
 	return ollamaAddress{URL: parsed, Source: source}, nil
-} // end of resolve
+} // end of resolveWithSaved
 
 // parseOllamaURL checks that text is an http or https address with a host, and returns it parsed.
 func parseOllamaURL(raw string) (*url.URL, error) {

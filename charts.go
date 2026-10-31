@@ -155,14 +155,38 @@ func watchedFor(d time.Duration) string {
 	return fmt.Sprintf("%d min %d s", sec/60, sec%60)
 } // end of watchedFor
 
-// buildCharts turns the checks of the last window into what the page draws.
+// buildCharts builds the charts with the built-in window and check interval (the page uses buildChartsFor with the saved settings).
 func buildCharts(samples []sample, now time.Time, background, numbersOpen bool) chartsView {
+	// The defaults.
+	return buildChartsFor(samples, now, background, numbersOpen, chartWindow, sampleEvery)
+} // end of buildCharts
+
+// spanWords writes a short duration in words: seconds under a minute, whole minutes when it divides evenly, otherwise seconds.
+func spanWords(d time.Duration) string {
+	// Whole seconds.
+	sec := int(d / time.Second)
+	// A whole number of minutes of one minute or more.
+	if sec >= 60 && sec%60 == 0 {
+		// Reuse the minutes wording.
+		return windowWords(d)
+	} // end of the minutes case
+	// One second is singular.
+	if sec == 1 {
+		// Singular.
+		return "1 second"
+	} // end of the singular case
+	// Plural seconds.
+	return fmt.Sprintf("%d seconds", sec)
+} // end of spanWords
+
+// buildChartsFor turns the checks of the last window into what the page draws; window is the history length and every is the time between two checks (both come from the settings).
+func buildChartsFor(samples []sample, now time.Time, background, numbersOpen bool, window, every time.Duration) chartsView {
 	// The start of the window.
-	start := now.Add(-chartWindow)
+	start := now.Add(-window)
 	// The basic fields.
-	v := chartsView{WindowText: windowWords(chartWindow), EverySeconds: int(sampleEvery / time.Second), Background: background, NumbersOpen: numbersOpen,
+	v := chartsView{WindowText: windowWords(window), EverySeconds: int(every / time.Second), Background: background, NumbersOpen: numbersOpen,
 		CellHeight: cellHeight, Width: chartWidth, Height: chartHeight, BaseY: chartHeight - chartPad,
-		StartLabel: start.Format(chartTimeLayout), MidLabel: start.Add(chartWindow / 2).Format(chartTimeLayout), EndLabel: now.Format(chartTimeLayout)}
+		StartLabel: start.Format(chartTimeLayout), MidLabel: start.Add(window / 2).Format(chartTimeLayout), EndLabel: now.Format(chartTimeLayout)}
 	// The width of one block, leaving a one-unit gap.
 	v.CellWidth = chartWidth/stateCells - 1
 	// Only the checks inside the window count.
@@ -191,7 +215,7 @@ func buildCharts(samples []sample, now time.Time, background, numbersOpen bool) 
 	// Walk the checks.
 	for _, s := range in {
 		// The block of this check.
-		i := int(s.At.Sub(start) * stateCells / chartWindow)
+		i := int(s.At.Sub(start) * stateCells / window)
 		// The very end belongs to the last block.
 		if i >= stateCells {
 			// Clamp.
@@ -250,7 +274,7 @@ func buildCharts(samples []sample, now time.Time, background, numbersOpen bool) 
 		} // end of the switch
 	} // end of the loop
 	// The text alternative of the state bar.
-	v.StateAlt = fmt.Sprintf("State of Ollama in the last %s, in %d blocks of 30 seconds: %d blocks answered, %d blocks had a failed check, %d blocks have no check yet.", v.WindowText, stateCells, okN, badN, noneN)
+	v.StateAlt = fmt.Sprintf("State of Ollama in the last %s, in %d blocks of %s: %d blocks answered, %d blocks had a failed check, %d blocks have no check yet.", v.WindowText, stateCells, spanWords(window/stateCells), okN, badN, noneN)
 	// Nothing measured yet.
 	if len(in) == 0 {
 		// Say so; the charts stay empty.
@@ -281,7 +305,7 @@ func buildCharts(samples []sample, now time.Time, background, numbersOpen bool) 
 		v.Summary += " Last failure at " + lastFail.Format(chartLastFailureLayout) + "."
 	} // end of the failure check
 	// A young monitor says how long it has been watching.
-	if watched := now.Sub(in[0].At); watched < chartWindow-time.Minute {
+	if watched := now.Sub(in[0].At); watched < window-time.Minute {
 		// The note.
 		v.Summary += " Watching for " + watchedFor(watched) + " so far."
 	} // end of the young check
@@ -313,12 +337,12 @@ func buildCharts(samples []sample, now time.Time, background, numbersOpen bool) 
 			continue
 		} // end of the failure check
 		// A long pause breaks the line too.
-		if !prev.IsZero() && s.At.Sub(prev) > chartGap {
+		if !prev.IsZero() && s.At.Sub(prev) > 3*every {
 			// End the line.
 			flush()
 		} // end of the pause check
 		// The position.
-		x := float64(s.At.Sub(start)) / float64(chartWindow) * chartWidth
+		x := float64(s.At.Sub(start)) / float64(window) * chartWidth
 		// Zero at the bottom, the top of the scale at the top.
 		y := float64(chartHeight-chartPad) - float64(s.Ms)/float64(top)*usable
 		// The text of the point.
@@ -357,4 +381,4 @@ func buildCharts(samples []sample, now time.Time, background, numbersOpen bool) 
 	} // end of the table
 	// Hand it back.
 	return v
-} // end of buildCharts
+} // end of buildChartsFor

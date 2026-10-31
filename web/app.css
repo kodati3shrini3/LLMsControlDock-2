@@ -2284,3 +2284,40 @@ html[data-size="medium"] svg[width="22"] {
   /* Never wider than the normal bubble. */
   max-width: min(26rem, 92vw);
 } /* end of rule */
+
+/* The About facts table on a narrow window: a narrower label column and long values (addresses, revisions) may break anywhere, so the table stays inside its card. */
+@media (max-width: 40rem) {
+  /* The labels take less room. */
+  .aboutfacts th {
+    /* A narrower fixed column. */
+    width: 6.5rem;
+  } /* end of rule */
+  /* Long values wrap instead of running past the card. */
+  .aboutfacts td {
+    /* Break a long word anywhere if needed. */
+    overflow-wrap: anywhere;
+  } /* end of rule */
+} /* end of media rule */
+
+/* The names of the Settings cells: hidden while the column headings are visible, shown when the table stacks on a narrow window. */
+.cellname {
+  /* Hidden on a wide window. */
+  display: none;
+  /* Quiet and semi-bold. */
+  color: var(--muted);
+  font-weight: 600;
+} /* end of rule */
+
+/* On a narrow window the cells stack, so each carries its own name; long paths and addresses wrap inside the box. */
+@media (max-width: 40rem) {
+  /* Show the names. */
+  .cellname {
+    /* Inline with the value. */
+    display: inline;
+  } /* end of rule */
+  /* Long words (folder paths, addresses) break instead of widening the page. */
+  .panel code, .settingtable td {
+    /* Break anywhere if needed. */
+    overflow-wrap: anywhere;
+  } /* end of rule */
+} /* end of media rule */
