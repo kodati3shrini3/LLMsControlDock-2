@@ -18,8 +18,8 @@ import ( // import lists the standard-library packages this file uses.
 var verifiedAddresses = map[int]string{
 	// NVIDIA blog article.
 	1: "https://developer.nvidia.com/blog/llm-benchmarking-fundamental-concepts",
-	// NVIDIA NIM metrics page.
-	2: "https://docs.nvidia.com/nim/benchmarking/llm/latest/metrics.html",
+	// NVIDIA NIM metrics page (the old address .../latest/metrics.html now leads here; re-read on 31 October 2026).
+	2: "https://docs.nvidia.com/nim/benchmarking/llm/metrics",
 	// Artificial Analysis methodology.
 	3: "https://artificialanalysis.ai/methodology/performance-benchmarking",
 	// MLPerf Inference paper.

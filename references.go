@@ -46,9 +46,9 @@ var compareReferences = []reference{
 		// Title.
 		Title: "Metrics (LLM section of the NVIDIA NIM Benchmarking Documentation)",
 		// Kind and version.
-		Where: "Documentation, version 2.0.0 (Latest) when read",
+		Where: "Documentation, version 2.0.0 (Latest); read again on 31 October 2026",
 		// Address.
-		URL: "https://docs.nvidia.com/nim/benchmarking/llm/latest/metrics.html",
+		URL: "https://docs.nvidia.com/nim/benchmarking/llm/metrics",
 		// What we take from it.
 		Used: "Definitions of the speed and delay figures, and the rule to compare results only when the definitions align.",
 	}, // end of source 2
