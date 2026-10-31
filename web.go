@@ -77,6 +77,10 @@ type pageData struct {
 	CompareCount int
 	// Paused is true when the person paused the automatic updates (a cookie remembers it).
 	Paused bool
+	// DetailsClosed is true when the person folded the monitoring details (API health and Event log) away; a cookie remembers it.
+	DetailsClosed bool
+	// DetailsTip is the help bubble of the twistie "Monitoring details".
+	DetailsTip tipView
 	// KeyOpen is true when the person opened the key to the symbols (the address then ends in ?key=open); the page does not update by itself meanwhile.
 	KeyOpen bool
 	// RefreshSeconds is how often the page updates itself while it is being watched.
@@ -116,6 +120,8 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	events := &eventLog{}
 	// The help bubble of its heading never changes either.
 	eventsTip := makeTip("tip-events", "Event log")
+	// The help bubble of the twistie that folds both away.
+	detailsTip := makeTip("tip-details", "Monitoring details")
 	// Create the page token: an unguessable value that every form on the page carries, so only this page can send a form (requirement S2).
 	token := mustToken()
 	// Create a router for the routes.
@@ -217,6 +223,8 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	mux.HandleFunc("POST /compare/csv", compareCSV)
 	// Route: a POST request for "/watch" pauses or resumes the automatic updates of the page.
 	mux.HandleFunc("POST /watch", watchHandler(token))
+	// Route: a POST request for "/details" folds or unfolds the monitoring details (API health and Event log).
+	mux.HandleFunc("POST /details", detailsHandler(token))
 	// The two steps of stopping the monitor.
 	stopAsk, stopConfirm := stopHandlers(token)
 	// Route: a POST request for "/stop" asks whether to stop the monitor and changes nothing.
@@ -263,6 +271,9 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 			CompareCount: perfHistory.testedModels(),
 			// Whether the automatic updates are paused.
 			Paused: watchPaused(r),
+			// Whether the monitoring details are folded away, and their help bubble.
+			DetailsClosed: detailsClosed(r),
+			DetailsTip:    detailsTip,
 			// Whether the key to the symbols is open.
 			KeyOpen: r.URL.Query().Get("key") == "open",
 			// The update interval.

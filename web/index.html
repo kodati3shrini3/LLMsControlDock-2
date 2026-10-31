@@ -133,6 +133,23 @@
 </header>{{/* end of the header. */}}
 {{/* The main content area. */}}
 <main>
+{{/* The twistie bar: one small form that folds or unfolds the two boxes below; the arrow is decoration, the words carry the meaning. */}}
+<div class="detailsbar">
+<form method="post" action="/details">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* Open: the button folds; folded: the button unfolds. */}}
+{{if .DetailsClosed}}
+<button type="submit" name="action" value="open" class="btn-plain detailsbtn" aria-expanded="false"><span aria-hidden="true">&#9656;</span> Monitoring details <span class="keyhint">(API health, Event log; click to show)</span></button>
+{{else}}
+<button type="submit" name="action" value="close" class="btn-plain detailsbtn" aria-expanded="true"><span aria-hidden="true">&#9662;</span> Monitoring details <span class="keyhint">(click to hide)</span></button>
+{{end}}
+</form>
+{{/* The help bubble of the twistie. */}}
+<span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.DetailsTip.ID}}">?</span><span class="tip" role="tooltip" id="{{.DetailsTip.ID}}">{{template "tip" .DetailsTip}}</span></span>
+</div>
+{{/* The two boxes are drawn only while the twistie is open. */}}
+{{if not .DetailsClosed}}
 {{/* The status panel; aria-live asks screen readers to announce changes. */}}
 <section class="panel" aria-label="API health" aria-live="polite">
 {{/* The panel heading, with its help bubble; the bubble says that this is the Ollama status. */}}
@@ -173,6 +190,8 @@
 <p>Nothing seen yet.</p>
 {{end}}
 </section>
+{{/* End of the folded part. */}}
+{{end}}
 {{/* The Installed models panel. */}}
 <section class="panel" aria-labelledby="installed-title">
 {{/* The panel heading, with the number of models when known. */}}

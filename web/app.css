@@ -1084,7 +1084,7 @@ button.btn-plain {
 } /* end of rule */
 
 /* Every icon box is its own anchor: the name is private to each box, so a bubble finds only its own icon. */
-.gearform .tipbox, .comparebar .tipbox, .controls .tipbox, .lookstack .tipbox {
+.gearform .tipbox, .comparebar .tipbox, .controls .tipbox, .lookstack .tipbox, .detailsbar .tipbox {
   /* The name the bubble uses to find this box. */
   anchor-name: --tipicon;
   /* Keep the name inside this box, so the boxes of other rows never get mixed up. */
@@ -2038,4 +2038,24 @@ html[data-size="medium"] svg[width="22"] {
   gap: 0.5rem 0.8rem;
   /* Centre them vertically. */
   align-items: center;
+} /* end of rule */
+
+/* The twistie bar above API health and Event log: the fold button and its help mark side by side. */
+.detailsbar {
+  /* Button and help mark on one line. */
+  display: flex;
+  /* Centred on the same line. */
+  align-items: center;
+  /* A little space between them. */
+  gap: 0.5rem;
+  /* Wrap on a narrow screen. */
+  flex-wrap: wrap;
+  /* The same gap above as between the boxes; nothing below, because the next box leaves its own gap. */
+  margin: 1rem 0 0;
+} /* end of rule */
+
+/* The fold button reads like a heading of the folded part. */
+.detailsbtn {
+  /* Bold, like the key twistie. */
+  font-weight: 600;
 } /* end of rule */
