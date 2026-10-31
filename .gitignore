@@ -33,3 +33,6 @@ settings.json
 .vscode/
 .idea/
 .DS_Store
+
+# Stray files from saving a comparison with the browser (PDF and CSV): they must never reach GitHub
+OllamaControlCenter-comparison*
