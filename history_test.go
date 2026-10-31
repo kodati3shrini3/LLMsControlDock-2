@@ -357,7 +357,7 @@ func TestRestorePageSaysWhenNothingWasKept(t *testing.T) {
 		t.Errorf("the restore page does not say nothing was kept: %s", body)
 	} // end of the check
 	// The key explains the history too.
-	_, _, page := get(t, rig.h, http.MethodGet, "/")
+	_, _, page := get(t, rig.h, http.MethodGet, "/?key=open")
 	// The key text.
 	if !strings.Contains(page, "how to download it again, and the parameters it had") {
 		// Report it.

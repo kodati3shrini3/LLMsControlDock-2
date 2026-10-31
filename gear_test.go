@@ -1254,7 +1254,9 @@ func TestMainPageGearOnlyForNotLoaded(t *testing.T) {
 		// Report the problem.
 		t.Errorf("gear position: %d %d", i, j)
 	} // end of the order check
-	// The key above the table explains the parameters icon.
+	// The key above the table explains the parameters icon; it is drawn only while it is open.
+	_, _, body = get(t, rig.h, http.MethodGet, "/?key=open")
+	// Look for the hint.
 	if !strings.Contains(body, "only for models that are not loaded") {
 		// Report the problem.
 		t.Errorf("no hint about the gear")
