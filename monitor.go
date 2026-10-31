@@ -161,6 +161,8 @@ type monitor struct {
 	background atomic.Bool
 	// store holds the saved settings (interval, timeout, history length, history file).
 	store *settingsStore
+	// denv is the operating system as seen by the desktop icon code; main sets the real one, and it stays "no desktop" in tests.
+	denv desktopEnv
 	// run says how the program was started (listen address and where it came from); main sets it once before serving.
 	run runInfo
 	// unsaved counts the checks since the history file was last written.
@@ -187,7 +189,7 @@ func newMonitor() *monitor {
 // newMonitorWith builds a monitor that reads its settings from the given store.
 func newMonitorWith(store *settingsStore) *monitor {
 	// Empty counters and an empty history, and the settings.
-	return &monitor{health: &apiHealth{}, hist: &sampleHistory{}, store: store}
+	return &monitor{health: &apiHealth{}, hist: &sampleHistory{}, store: store, denv: noDesktopEnv()}
 } // end of newMonitorWith
 
 // timeoutOr is how long one status check waits: the saved value, or def.

@@ -16,6 +16,8 @@ import ( // import lists the standard-library packages this file uses.
 	"net/http"
 	// os reads environment variables and ends the program with an exit code.
 	"os"
+	// strings cuts the port out of the listen address.
+	"strings"
 	// time provides durations such as the request-header timeout.
 	"time"
 ) // end of imports
@@ -57,6 +59,14 @@ func chooseListen(flagValue string, flagGiven, allowOthers bool) (string, string
 	// Otherwise this computer only.
 	return defaultListen, sourceDefault
 } // end of chooseListen
+
+// launchURL turns a listen address (host:port) into the address a browser on this computer opens.
+func launchURL(listen string) string {
+	// The port is the part after the last colon.
+	port := listen[strings.LastIndex(listen, ":")+1:]
+	// Always this computer.
+	return "http://127.0.0.1:" + port + "/"
+} // end of launchURL
 
 // formatCheck turns one check result into the single status line the -check option prints.
 func formatCheck(res checkResult) string {
@@ -103,6 +113,8 @@ func main() {
 	listen := flag.String("listen", defaultListen, "address and port for the monitor page, as host:port")
 	// Define an -ollama-url option; empty means "not given", so the environment variable or the default is used.
 	ollamaFlag := flag.String("ollama-url", "", "address of the Ollama server; overrides the OCC_OLLAMA_URL environment variable (default http://127.0.0.1:11434)")
+	// Define a -launch switch: what a double-click on the desktop icon runs; it opens the page and starts the monitor first when it is not running.
+	launchFlag := flag.Bool("launch", false, "open the monitor page in the browser, starting the monitor in the background first when it is not running (this is what the desktop icon runs)")
 	// Define a -check switch: false unless given on the command line.
 	checkFlag := flag.Bool("check", false, "check Ollama once, print one status line, and exit (0 = online, 1 = offline)")
 	// Define a -models switch: false unless given on the command line.
@@ -115,7 +127,7 @@ func main() {
 	// The one-shot modes cannot be combined; ask the person to choose one.
 	modes := 0
 	// Count the modes that were given.
-	for _, on := range []bool{*checkFlag, *modelsFlag, *linksFlag} {
+	for _, on := range []bool{*checkFlag, *modelsFlag, *linksFlag, *launchFlag} {
 		// One more mode.
 		if on {
 			// Count it.
@@ -125,7 +137,7 @@ func main() {
 	// More than one is not allowed.
 	if modes > 1 {
 		// log.Fatal prints the message and exits with code 1.
-		log.Fatal("use only one of -check, -models and -check-links")
+		log.Fatal("use only one of -check, -models, -check-links and -launch")
 	} // end of the combination check
 
 	// In -check-links mode, no Ollama is needed: open the reference addresses, print the result and leave.
@@ -178,7 +190,16 @@ func main() {
 	// Describe the web server: Addr is where to listen (the star reads the flag's value), Handler is the web interface from web.go wrapped in the Host-name check from guard.go,
 	// and ReadHeaderTimeout drops clients that take more than 5 seconds to send their request headers.
 	// The monitor holds the counters and the history of checks; it asks Ollama in the background every sampleEvery, so the charts have no gaps while the page is closed.
+	// In -launch mode, open the page (starting the monitor first when needed) and leave.
+	if *launchFlag {
+		// The address the page is served on, by the same precedence as below.
+		la, _ := chooseListen(*listen, listenGiven(), store.get().AllowOthers)
+		// Run it and leave with its exit code.
+		os.Exit(runLaunch(launchURL(la), store.dir))
+	} // end of the launch mode
 	mon := newMonitorWith(store)
+	// The real desktop, so the first-run banner and the Settings buttons can place the icon.
+	mon.denv = realDesktopEnv()
 	// The listen address: the -listen option if it was given, else "other machines allowed" from the settings, else this computer only.
 	listenAddr, listenSource := chooseListen(*listen, listenGiven(), store.get().AllowOthers)
 	// Tell the Settings page how the program was started.
