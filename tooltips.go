@@ -23,7 +23,7 @@ var loadedColumns = []string{"Model", "Size (as reported)", "Memory on GPU", "Lo
 var gearHeadings = []string{"Set in the model", "Ollama's default", "Allowed values", "Context size", "Temperature", "Top-k", "Top-p", "Min-p", "Repeat penalty", "Repeat window", "Seed", "Answer length limit", "Stop words", "Keep-alive time"}
 
 // healthHeadings are the headings of the Ollama status panel on the main page that have a help bubble; a test checks each has a text.
-var healthHeadings = []string{"API health", "Event log"}
+var healthHeadings = []string{"Monitoring details", "API health", "Event log"}
 
 // perfHeadings are the indicator names on the performance page that have a help bubble; a test checks each has a text.
 var perfHeadings = []string{"Answer speed", "Prompt reading speed", "Load time", "Total time", "Time to first word", "Tokens counted", "Embedding time", "Vector length", "Processor split", "Memory used", "Change since the previous run", "CPU cores", "CPU load", "Memory free", "Swap in use", "Other models loaded", "GPU"}
@@ -31,6 +31,15 @@ var perfHeadings = []string{"Answer speed", "Prompt reading speed", "Load time",
 // helpTexts holds every tooltip, keyed by the exact heading text it belongs to.
 // The wording was checked against Ollama's documentation; "Max context length" and "Embedding length" are not described there.
 var helpTexts = map[string]tooltip{
+	// The twistie that folds the status panel and the event log away.
+	"Monitoring details": {
+		// What it means.
+		Plain: "Folds the API health and Event log boxes away to save space; this browser remembers your choice.",
+		// A real case.
+		Example: "Folded, one line stays and the Installed models box moves up.",
+		// What it helps with.
+		Decide: "Whether you want the status in view or more room for the models.",
+	}, // end of Monitoring details
 	// The Ollama status panel on the main page.
 	"API health": {
 		// What it means.
