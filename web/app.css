@@ -2321,3 +2321,37 @@ html[data-size="medium"] svg[width="22"] {
     overflow-wrap: anywhere;
   } /* end of rule */
 } /* end of media rule */
+
+/* The program's icon beside the main heading. */
+.brandrow {
+  /* Icon and heading side by side. */
+  display: flex;
+  /* Level with each other. */
+  align-items: center;
+  /* Space between them. */
+  gap: 0.7rem;
+} /* end of rule */
+
+/* The heading inside the icon row needs no extra space above it. */
+.brandrow h1 {
+  /* Keep the row compact. */
+  margin: 0;
+} /* end of rule */
+
+/* The icon picture. */
+.appicon {
+  /* A little rounding matches the picture's own corners. */
+  border-radius: 10px;
+  /* Never stretched. */
+  flex: none;
+} /* end of rule */
+
+/* The question of the desktop icon: the picture and the words level with each other. */
+.iconquestion {
+  /* Side by side. */
+  display: flex;
+  /* Level with each other. */
+  align-items: center;
+  /* Space between them. */
+  gap: 0.7rem;
+} /* end of rule */

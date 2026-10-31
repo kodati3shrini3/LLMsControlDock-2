@@ -71,7 +71,29 @@ type settingsPage struct {
 	Note string
 	// Folder is the folder of the files (empty when none was found).
 	Folder string
+	// IconAvailable is true when this system can have a desktop icon; the section is hidden otherwise.
+	IconAvailable bool
+	// IconExists is true when the launcher is on the desktop now.
+	IconExists bool
+	// IconPath is the launcher's full path.
+	IconPath string
+	// IconNote is the plain sentence about what just happened (empty when nothing did).
+	IconNote string
 } // end of settingsPage
+
+// iconNotes are the sentences shown after a desktop icon button; the address carries only the key, so no free text is ever echoed.
+var iconNotes = map[string]string{
+	// Created.
+	"created": "Desktop icon created. On Ubuntu you may have to right-click it once and choose Allow Launching.",
+	// Removed.
+	"removed": "Desktop icon removed.",
+	// No desktop.
+	"unsupported": "This system has no desktop folder the program can use, so no icon was made.",
+	// A path with unusual characters.
+	"unusualpath": "The path of the program holds characters that cannot be used in a launcher (use letters, digits and . _ + - / only), so no icon was made. Move the program to a plainer folder and try again.",
+	// Anything else.
+	"failed": "The desktop icon could not be created or removed. Check that the folders are writable.",
+} // end of iconNotes
 
 // yesNo writes a flag as the words used in the form.
 func yesNo(on bool) string {
@@ -226,7 +248,13 @@ func settingsHandlers(addr ollamaAddress, mon *monitor, token string) (http.Hand
 		// The lines and the restart flag.
 		rows, restart := buildSettingsRows(cfg, addr, mon.run, typed)
 		// Everything the template needs.
-		data := settingsPage{Theme: themeFromRequest(r), Size: sizeFromRequest(r), Token: token, Rows: rows, Problems: problems, Saved: saved, RestartNeeded: restart, Note: mon.store.noteText(), Folder: folder}
+		desk := desktopIcon{env: mon.denv, dir: mon.store.dir}
+		// The icon section's facts.
+		iconAvail, iconExists, iconPath := desk.available(), desk.exists(), desk.desktopPath()
+		// The note after a button; unknown keys show nothing.
+		iconNote := iconNotes[r.URL.Query().Get("icon")]
+		// Everything the template needs.
+		data := settingsPage{IconAvailable: iconAvail, IconExists: iconExists, IconPath: iconPath, IconNote: iconNote, Theme: themeFromRequest(r), Size: sizeFromRequest(r), Token: token, Rows: rows, Problems: problems, Saved: saved, RestartNeeded: restart, Note: mon.store.noteText(), Folder: folder}
 		// Build the page in memory first, so a template error gives a clean 500.
 		var buf bytes.Buffer
 		// Fill the template.

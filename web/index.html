@@ -13,17 +13,47 @@
 <title>OllamaControlCenter</title>
 {{/* Load our own stylesheet; the safety policy allows only styles from this same address. */}}
 <link rel="stylesheet" href="/app.css">
+{{/* The program's icon on the browser tab. */}}
+<link rel="icon" type="image/png" href="/icon.png">
 {{/* While the page is being watched it reloads itself; Pause removes this line. It needs no script. */}}
 {{/* No automatic update while the key is open, so it does not vanish while it is being read. */}}
 {{if and (not .Paused) (not .KeyOpen) (not .NumbersOpen)}}<meta http-equiv="refresh" content="{{.RefreshSeconds}}">{{end}}
 </head>{{/* end of the head. */}}
 <body>{{/* start of the visible page. */}}
+{{/* The result of the icon button, shown once. */}}
+{{if .IconNote}}<p class="muted" role="status"><strong>{{.IconNote}}</strong></p>{{end}}
+{{/* The first-run question: only on a system with a desktop, and only until the person has answered. */}}
+{{if .DesktopBanner}}
+<section class="panel" role="region" aria-label="Desktop icon">
+{{/* The question. */}}
+<p class="iconquestion"><img class="appicon" src="/icon.png" width="40" height="40" alt=""> <strong>Create a desktop icon for OllamaControlCenter?</strong></p>
+{{/* What it does and where it goes. */}}
+<p class="muted">One click on it starts the monitor (if it is not running) and opens this page in your browser. It is created in <code>{{.DesktopDir}}</code> and points to <code>{{.DesktopExe}}</code>. On Ubuntu you may have to right-click the icon once and choose <strong>Allow Launching</strong>. You can remove it later on the Settings page.</p>
+{{/* The two answers: one small form with the page token. */}}
+<form method="post" action="/desktopicon">
+{{/* The page token proves the form comes from this page. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* Tells the monitor to stay on this page afterwards. */}}
+<input type="hidden" name="from" value="home">
+{{/* The buttons. */}}
+<p><button type="submit" name="action" value="create" class="btn-plain">Yes, create it</button> <button type="submit" name="action" value="decline" class="btn-plain">No, don't ask again</button></p>
+{{/* End of the form. */}}
+</form>
+{{/* End of the question box. */}}
+</section>
+{{end}}
 {{/* The page header. */}}
 <header class="headrow">
 {{/* The title block on the left. */}}
 <div>
+{{/* The icon and the main heading, side by side. */}}
+<div class="brandrow">
+{{/* The program's icon; it is decoration, so its text alternative is empty. */}}
+<img class="appicon" src="/icon.png" width="44" height="44" alt="">
 {{/* The main heading. */}}
 <h1>OllamaControlCenter</h1>
+{{/* End of the icon and heading. */}}
+</div>
 {{/* A quiet line under the title: who is behind the program, with a link that opens in a new window. */}}
 <p class="brandline">by <a href="{{.HeaderURL}}" target="_blank" rel="noopener noreferrer">{{.CompanyName}}<span class="sr-only"> (opens in a new window)</span></a> &middot; {{.CompanyAILine}}</p>
 {{/* Show which Ollama is being watched and which setting supplied the address; a password in it is already hidden. */}}

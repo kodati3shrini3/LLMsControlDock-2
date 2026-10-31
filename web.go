@@ -87,6 +87,12 @@ type pageData struct {
 	NumbersOpen bool
 	// DetailsClosed is true when the person folded the monitoring details (API health and Event log) away; a cookie remembers it.
 	DetailsClosed bool
+	// IconNote is the one-time sentence about the desktop icon that was just created (empty when there is none).
+	IconNote string
+	// DesktopBanner is true when the first-run question about a desktop icon is shown.
+	DesktopBanner bool
+	// DesktopDir and DesktopExe are the folder and the program the question names.
+	DesktopDir, DesktopExe string
 	// DetailsTip is the help bubble of the twistie "Monitoring details".
 	DetailsTip tipView
 	// KeyOpen is true when the person opened the key to the symbols (the address then ends in ?key=open); the page does not update by itself meanwhile.
@@ -144,6 +150,17 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	mux.HandleFunc("POST /theme", themeHandler(token))
 	// Route: a POST request for "/textsize" saves the chosen text size in a cookie (the checks are in size.go).
 	mux.HandleFunc("POST /textsize", sizeHandler(token))
+	// The desktop icon: the launcher, and the answer to the first-run question.
+	desktop := desktopIcon{env: mon.denv, dir: mon.store.dir}
+	// Route: a POST request for "/desktopicon" creates or removes the launcher, or records "no".
+	mux.HandleFunc("POST /desktopicon", desktopHandler(token, desktop))
+	// Route: a GET request for "/icon.png" sends the program's icon (the page header, the browser tab and the desktop icon use it).
+	mux.HandleFunc("GET /icon.png", func(w http.ResponseWriter, r *http.Request) {
+		// Tell the browser this is a PNG image.
+		w.Header().Set("Content-Type", "image/png")
+		// Send it.
+		w.Write(appIcon)
+	}) // end of the icon route
 	// Route: a GET request for "/about" shows the read-only About page (see about.go).
 	mux.HandleFunc("GET /about", aboutHandler())
 	// Make the two Settings handlers: the first shows the page, the second saves the form (see settingspage.go).
@@ -306,6 +323,22 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 			// When this page was made.
 			UpdatedAt: time.Now().Format("15:04:05 MST"),
 		} // end of the data
+		// The result of the icon button, shown once: read the short-lived note and delete it, so the automatic reload does not show it again.
+		if c, err := r.Cookie(iconFlashCookie); err == nil {
+			// Only the known words show a sentence.
+			data.IconNote = iconNotes[c.Value]
+			// Delete the note.
+			http.SetCookie(w, &http.Cookie{Name: iconFlashCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteStrictMode})
+		} // end of the note check
+		// The first-run question: only where a desktop exists and the person has not answered yet.
+		if desktop.available() && desktop.choice() == "" {
+			// Show it, naming the folder and the program.
+			data.DesktopBanner = true
+			// The folder.
+			data.DesktopDir, _ = desktop.env.desktopDir()
+			// The program.
+			data.DesktopExe, _ = desktop.env.exePath()
+		} // end of the banner check
 		// The lists that the event log compares; they stay empty when Ollama cannot be read.
 		var evInstalled []installedModel
 		// The loaded models, the same way.
