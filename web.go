@@ -67,6 +67,10 @@ type pageData struct {
 	Health healthView
 	// HealthTip is the help bubble of the panel heading "API health".
 	HealthTip tipView
+	// Events is the newest part of the event log of changes.
+	Events eventsView
+	// EventsTip is the help bubble of the panel heading "Event log".
+	EventsTip tipView
 	// Token is the page token that every form on the page carries.
 	Token string
 	// CompareCount is how many models have a saved performance test that can be compared.
@@ -108,6 +112,10 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 	health := &apiHealth{}
 	// The help bubble of the panel heading never changes, so build it once.
 	healthTip := makeTip("tip-health", "API health")
+	// The event log of changes also lives as long as the monitor runs.
+	events := &eventLog{}
+	// The help bubble of its heading never changes either.
+	eventsTip := makeTip("tip-events", "Event log")
 	// Create the page token: an unguessable value that every form on the page carries, so only this page can send a form (requirement S2).
 	token := mustToken()
 	// Create a router for the routes.
@@ -262,6 +270,12 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 			// When this page was made.
 			UpdatedAt: time.Now().Format("15:04:05 MST"),
 		} // end of the data
+		// The lists that the event log compares; they stay empty when Ollama cannot be read.
+		var evInstalled []installedModel
+		// The loaded models, the same way.
+		var evLoaded []loadedModel
+		// Whether both lists were read.
+		listsOK := false
 		// Only an online Ollama can be asked for its model lists.
 		if res.Online {
 			// Read the installed models; the request's context cancels the call if the browser goes away.
@@ -284,8 +298,14 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 				data.Table.Deleted = deletedRows(deletedList.list(), installed)
 				// The table can be drawn now.
 				data.HasTable = true
+				// The event log may compare these lists too.
+				evInstalled, evLoaded, listsOK = installed, loaded, true
 			} // end of the error check
 		} // end of the online check
+		// Write a line for every change since the previous check, then take the newest lines for the page.
+		events.observe(time.Now(), res.Online, res.Version, res.Reason, listsOK, evInstalled, evLoaded)
+		// The lines and the bubble of the heading.
+		data.Events, data.EventsTip = events.view(time.Now()), eventsTip
 		// Build the whole page in memory first, so a template error produces a clean 500 and not a half page.
 		var buf bytes.Buffer
 		// Run the template.
