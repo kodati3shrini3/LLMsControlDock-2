@@ -214,6 +214,22 @@
 </svg>
 <p class="chartaxis muted"><span>{{.Charts.StartLabel}}</span><span>{{.Charts.MidLabel}}</span><span>{{.Charts.EndLabel}}</span></p>
 <p class="muted">{{.Charts.AnswerAlt}}</p>
+{{/* The memory of the loaded models: one bar per model, relative to the largest, with its GPU share and unload time. */}}
+<p class="chartlabel">Memory of loaded models</p>
+{{if .Memory.Message}}
+<p>{{.Memory.Message}}</p>
+{{else}}
+<ul class="memlist">
+{{range .Memory.Rows}}
+<li>
+<span class="memname"><strong>{{.Name}}</strong> {{.Size}}</span>
+<svg class="membarsvg" viewBox="0 0 {{$.Memory.BarWidth}} {{$.Memory.BarHeight}}" role="img" aria-label="{{.Name}}: {{.Size}}, {{.Percent}} percent of the largest loaded model"><rect class="memback" x="0.5" y="0.5" width="{{$.Memory.BarWidth}}" height="{{$.Memory.BarHeight}}"/><rect class="memfill" x="0" y="0" width="{{.Fill}}" height="{{$.Memory.BarHeight}}"/></svg>
+<span class="muted">{{.Where}}; {{.Timer}}.</span>
+</li>
+{{end}}
+</ul>
+<p class="muted">Together {{.Memory.Total}}. Each bar compares a model with the largest loaded model; Ollama does not report how much memory the machine has, so no total is drawn. Times left are as of {{.UpdatedAt}}; the table below counts live.</p>
+{{end}}
 {{/* The twistie for the numbers: a link, so the choice needs no script; the page pauses while it is open. */}}
 {{if .Charts.NumbersOpen}}
 <p class="keytoggle" id="numbers"><a href="/#numbers"><span aria-hidden="true">&#9662;</span> The numbers <span class="keyhint">(click to hide)</span></a></p>
@@ -354,10 +370,10 @@
 <tr data-model="{{.Name}}" data-loaded="{{if .Loaded}}1{{else}}0{{end}}">{{/* start of a table row. */}}
 {{/* The model name is the row heading and stays visible while scrolling. */}}
 <th scope="row" class="stickycol">
-{{/* The performance icon comes before the name; a loaded model may be in use, so it gets an empty slot of the same width instead, and the names stay in line. */}}
-{{/* Two icons stacked in a fixed-width column: the performance icon on top (empty slot on a loaded model) and the delete icon just below it (for every model). */}}
+{{/* The performance icon comes before the name; a loaded model may be in use, so it gets none. */}}
+{{/* Icons stacked in a fixed-width column: the performance icon on top (not for a loaded model, whose column then holds the delete icon alone, level with the Modelfile icon next to it) and the delete icon just below it (for every model). */}}
 <span class="iconstack">
-{{if .Loaded}}<span class="gearslot" aria-hidden="true"></span>{{else}}
+{{if not .Loaded}}
 {{/* A small form that sends the model name and the page token to the performance page, which changes nothing. */}}
 <form class="gearform" method="post" action="/performance">
 {{/* The page token proves the form comes from this monitor. */}}
@@ -397,7 +413,7 @@
 {{.Name}}</th>
 {{/* The state cell: a dot (solid green when loaded, an empty ring when not) plus the words, so colour is never the only signal. */}}
 <td>
-{{/* Two small icons stacked in a fixed-width column, centred above each other: the Modelfile page icon on top (for every model) and the gear just below it (only for a model that is not loaded; a loaded model gets an empty slot, so the state words stay in line). */}}
+{{/* Two small icons stacked in a fixed-width column, centred above each other: the Modelfile page icon on top (for every model) and the gear just below it (only for a model that is not loaded; on a loaded row the Modelfile icon is alone, level with the delete icon of the first column). */}}
 <span class="iconstack">
 {{/* A small form that sends the model name and the page token to the Modelfile page, which only reads and changes nothing. */}}
 <form class="gearform" method="post" action="/modelfile">
@@ -415,7 +431,7 @@
 </span>
 {{/* End of the form. */}}
 </form>
-{{if .Loaded}}<span class="gearslot" aria-hidden="true"></span>{{else}}
+{{if not .Loaded}}
 {{/* A small form that sends the model name and the page token to the settings page, which changes nothing. */}}
 <form class="gearform" method="post" action="/gear">
 {{/* The page token proves the form comes from this monitor. */}}

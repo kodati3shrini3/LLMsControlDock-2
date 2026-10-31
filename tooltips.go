@@ -43,7 +43,7 @@ var helpTexts = map[string]tooltip{
 	// The charts under the event log.
 	"Charts": {
 		// What it means.
-		Plain: "Ollama's answers over the last 30 minutes: how often it answered and how fast.",
+		Plain: "Ollama's answers over the last 30 minutes, and the memory of loaded models: how often it answered, how fast.",
 		// A real case.
 		Example: "A hatched block in the state bar means a check failed in that half minute.",
 		// What it helps with.

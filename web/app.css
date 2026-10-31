@@ -1084,7 +1084,7 @@ button.btn-plain {
 } /* end of rule */
 
 /* Every icon box is its own anchor: the name is private to each box, so a bubble finds only its own icon. */
-.gearform .tipbox, .comparebar .tipbox, .controls .tipbox, .lookstack .tipbox, .detailsbar .tipbox {
+.gearform .tipbox, .comparebar .tipbox, .controls .tipbox, .lookstack .tipbox, .detailsbar .tipbox, .backtop {
   /* The name the bubble uses to find this box. */
   anchor-name: --tipicon;
   /* Keep the name inside this box, so the boxes of other rows never get mixed up. */
@@ -2156,4 +2156,131 @@ html[data-size="medium"] svg[width="22"] {
 .chartlegend {
   /* Small gap above. */
   margin: 0.25rem 0;
+} /* end of rule */
+
+/* The list of loaded models in the Charts box. */
+.memlist {
+  /* No bullets: each model has its own bar. */
+  list-style: none;
+  /* No indent. */
+  padding: 0;
+  /* Space above and below the list. */
+  margin: 0.5rem 0;
+} /* end of rule */
+
+/* One loaded model. */
+.memlist li {
+  /* Space between models. */
+  margin: 0 0 0.9rem;
+} /* end of rule */
+
+/* The name and size line above a bar. */
+.memname {
+  /* On its own line. */
+  display: block;
+  /* A little space below. */
+  margin-bottom: 0.15rem;
+} /* end of rule */
+
+/* The bar drawing: full width, but never huge on a wide screen. */
+.membarsvg {
+  /* Fill the box up to the limit below. */
+  width: 100%;
+  /* Not wider than this, so the bars stay compact. */
+  max-width: 30rem;
+  /* The height follows the shape of the drawing. */
+  height: auto;
+  /* On its own line. */
+  display: block;
+  /* A little space around it. */
+  margin: 0.15rem 0;
+} /* end of rule */
+
+/* The empty frame of a bar: an outline keeps its full length visible without colour. */
+.memback {
+  /* Nothing inside. */
+  fill: transparent;
+  /* The border colour of the page. */
+  stroke: var(--border);
+  /* A thin outline. */
+  stroke-width: 1;
+} /* end of rule */
+
+/* The filled part of a bar. */
+.memfill {
+  /* The accent colour of the page. */
+  fill: var(--cat-accent);
+} /* end of rule */
+
+/* A box that holds the round back arrow is the base for placing it. */
+.panel:has(> .backtop) {
+  /* The arrow is placed against this box. */
+  position: relative;
+} /* end of rule */
+
+/* The area of the arrow: in the top right corner of its own box, level with the heading. */
+.backtop {
+  /* Placed against the box. */
+  position: absolute;
+  /* Level with the first line of the heading. */
+  top: 0.62rem;
+  /* In from the right edge by the same inner space as the text. */
+  right: 1rem;
+} /* end of rule */
+
+/* The About card has more room above its heading, so its arrow sits lower to stay level with it. */
+.aboutcard .backtop {
+  /* Lower by the extra room. */
+  top: calc(0.62rem + 0.75rem);
+} /* end of rule */
+
+/* What follows the arrow (the heading) stops before it, so a long heading never runs under the arrow. */
+.backtop + * {
+  /* Room for the arrow and a little air. */
+  padding-right: 3.2rem;
+} /* end of rule */
+
+/* The round back arrow: an outline in the border colour, so it is visible without colour. */
+.backcircle {
+  /* Centre the arrow in the circle. */
+  display: inline-flex;
+  /* Centre vertically. */
+  align-items: center;
+  /* Centre horizontally. */
+  justify-content: center;
+  /* A big enough target to hit with a finger. */
+  width: 2.4rem;
+  /* As high as wide, so it is round. */
+  height: 2.4rem;
+  /* The outline of the page. */
+  border: 2px solid var(--border);
+  /* A circle. */
+  border-radius: 50%;
+  /* The panel colour inside. */
+  background: var(--panel);
+  /* The text colour for the arrow. */
+  color: var(--text);
+  /* No underline. */
+  text-decoration: none;
+} /* end of rule */
+
+/* Pointing at it or reaching it with the keyboard turns it to the accent colour. */
+.backcircle:hover,
+.backcircle:focus-visible {
+  /* The accent colour for the outline. */
+  border-color: var(--cat-accent);
+  /* And for the arrow. */
+  color: var(--cat-accent);
+} /* end of rule */
+
+/* The bubble of the back arrow ends at the right edge of the arrow, so it never runs out of the window. */
+.backtop .tip-icon {
+  /* No left anchor. */
+  left: auto;
+  /* Its right edge lines up with the arrow. */
+  right: anchor(right);
+  /* As wide as its words. */
+  width: max-content;
+  /* Never wider than the normal bubble. */
+  max-width: min(26rem, 92vw);
 } /* end of rule */
