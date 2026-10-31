@@ -62,6 +62,8 @@ type cmpGroupView struct {
 	Cols []tipView
 	// Rows are the models.
 	Rows []cmpRow
+	// Retest holds the names of the models of this group that Ollama still has, when there are at least two; the button of the group re-test passes them on.
+	Retest []string
 } // end of cmpGroupView
 
 // comparePage is everything the comparison template needs.
@@ -370,6 +372,11 @@ func buildCompare(runs []perfRun, skipped int, installed map[string]modelDetails
 		for _, m := range g.Models {
 			// One row.
 			v.Rows = append(v.Rows, cmpRow{Busy: m.Run.Busy, Cells: groupRowCells(g, m)})
+			// A model Ollama still has can be tested again; one that is gone cannot.
+			if _, still := installed[m.Run.Model]; known && still {
+				// Keep its real name (the shown name may carry a note).
+				v.Retest = append(v.Retest, m.Run.Model)
+			} // end of the installed check
 			// Count the busy tests.
 			if m.Run.Busy {
 				// One more.
@@ -391,6 +398,11 @@ func buildCompare(runs []perfRun, skipped int, installed map[string]modelDetails
 			// Say so.
 			p.Findings = append(p.Findings, g.Title+": no ranking yet, because fewer than two models can be compared like for like.")
 		} // end of the sentence switch
+		// The button needs at least two models to be worth a group run.
+		if len(v.Retest) < 2 {
+			// No button for this group.
+			v.Retest = nil
+		} // end of the count check
 		// Keep the group.
 		p.Groups = append(p.Groups, v)
 	} // end of the group loop

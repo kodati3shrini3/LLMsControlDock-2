@@ -1,0 +1,95 @@
+{{/* Re-test of a comparison group: the question before it starts, the progress while it runs, and the notes when nothing can be tested. The comments are template comments, so they never reach the browser. */}}
+<!DOCTYPE html>
+{{/* lang tells screen readers which language the page is written in. */}}
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}{{if .Size}} data-size="{{.Size}}"{{end}}>
+<head>{{/* start of the head. */}}
+{{/* Text encoding. */}}
+<meta charset="utf-8">
+{{/* Fit the page to the width of the screen on phones. */}}
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* While the re-test runs, the page asks again every 5 seconds; when it ends, the page stays as it is. No script is needed. */}}
+{{if and (eq .Kind "status") .Running}}<meta http-equiv="refresh" content="5">{{end}}
+{{/* The title shown on the browser tab. */}}
+<title>Re-test a group - OllamaControlCenter</title>
+{{/* Our one stylesheet. */}}
+<link rel="stylesheet" href="/app.css">
+</head>{{/* end of the head. */}}
+<body>{{/* start of the visible page. */}}
+<main>
+{{/* A panel that holds the page. */}}
+<section class="panel" aria-live="polite">
+{{/* ---- The question before the re-test starts. ---- */}}
+{{if eq .Kind "ask"}}
+<h1>Re-test the group "{{.Title}}"?</h1>
+<p>The models marked Yes are tested one after another. Each one is loaded into memory, tested, and then unloaded. A test usually takes under a minute; a very large model can take several minutes to load. Nothing is tested until you press the button below.</p>
+<p class="muted">Every test adds a new result. The old results stay in the history. Tests made close together in time can be ranked together; a long group can run past the {{.SittingHours}}-hour limit that the comparison page uses.</p>
+{{template "retestrows" .}}
+{{/* The two choices; the second goes back to the monitor page. */}}
+<div class="cmpactions">
+<form method="post" action="/compare/retest/run"><input type="hidden" name="token" value="{{.Token}}"><input type="hidden" name="title" value="{{.Title}}">{{range .Models}}<input type="hidden" name="model" value="{{.}}">{{end}}<button type="submit" class="btn-plain">Yes, re-test {{.WillCount}} {{if eq .WillCount 1}}model{{else}}models{{end}}</button></form>
+<a class="btn-plain" href="/">Cancel, do not test</a>
+</div>
+{{/* ---- Nothing can be tested. ---- */}}
+{{else if eq .Kind "nothing"}}
+<h1>Nothing to re-test in "{{.Title}}"</h1>
+<p>None of these models can be tested right now. A model that is loaded in memory may be in use, so it is left alone; unload it first, then try again.</p>
+{{template "retestrows" .}}
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* ---- Ollama could not be read. ---- */}}
+{{else if eq .Kind "error"}}
+<h1>The re-test did not start</h1>
+<p role="alert"><span class="symbol" aria-hidden="true">⚠</span> Ollama could not be read: {{.Detail}}</p>
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* ---- No re-test since the monitor started. ---- */}}
+{{else if eq .Kind "none"}}
+<h1>No re-test has been started</h1>
+<p>Nothing has been re-tested since this monitor started. Open the comparison page and use the button of a group.</p>
+<p><a class="btn-plain" href="/">Back to the monitor</a></p>
+{{/* ---- The progress. ---- */}}
+{{else}}
+<h1>{{if .Running}}Re-testing the group "{{.Title}}"{{else}}Re-test of the group "{{.Title}}" has ended{{end}}</h1>
+{{/* What is going on, in words. */}}
+{{if .Running}}
+<p>{{if .StopAsked}}<span class="symbol" aria-hidden="true">⏸</span> You asked to stop: the model being tested finishes, and the others are not started.{{else}}<span class="symbol" aria-hidden="true">▶</span> The models are tested one after another. This page updates itself every 5 seconds.{{end}}</p>
+{{else}}
+<p>Ended at {{.Finished}}. The new results are saved; open the comparison to see them.</p>
+{{end}}
+<p><strong>{{.Counts}}</strong></p>
+{{template "retestrows" .}}
+<div class="cmpactions">
+{{/* While it runs, the stop button; it never cuts a test in half. */}}
+{{if and .Running (not .StopAsked)}}
+<form method="post" action="/compare/retest/stop"><input type="hidden" name="token" value="{{.Token}}"><button type="submit" class="btn-plain">Stop after this model</button></form>
+{{end}}
+{{/* When it has ended, the way to the comparison, which is shown by a form because it is asked for with a page token. */}}
+{{if .Done}}
+<form method="post" action="/compare"><input type="hidden" name="token" value="{{.Token}}"><button type="submit" class="btn-plain">Show the comparison</button></form>
+{{end}}
+<a class="btn-plain" href="/">Back to the monitor</a>
+</div>
+{{end}}
+{{/* End of the panel. */}}
+</section>
+{{/* End of the content. */}}
+</main>
+</body>{{/* end of the visible page. */}}
+</html>{{/* end of the page. */}}
+{{/* The table of models, shared by the three pages; the columns depend on the page. */}}
+{{define "retestrows"}}
+<div class="scrollbox" tabindex="0" role="region" aria-label="Models of the group, scrolls sideways">
+<table class="models comparetable">
+<thead><tr><th scope="col">Model</th><th scope="col">{{if eq .Kind "status"}}Previous test{{else}}Last tested{{end}}</th><th scope="col">{{if eq .Kind "status"}}Answer length known before{{else}}Answer length known{{end}}</th>{{if eq .Kind "status"}}<th scope="col">Progress</th>{{else}}<th scope="col">Will be re-tested?</th>{{end}}</tr></thead>
+<tbody>
+{{range .Rows}}
+<tr><th scope="row">{{.Name}}</th><td>{{.Last}}</td><td>{{.CharsKnown}}</td>
+{{if eq $.Kind "status"}}
+<td>{{if eq .State "done"}}<span class="symbol" aria-hidden="true">✔</span> Tested{{else if eq .State "testing"}}<span class="symbol" aria-hidden="true">▶</span> Testing now{{else if eq .State "failed"}}<span class="symbol" aria-hidden="true">✖</span> Failed{{else if eq .State "skipped"}}<span class="symbol" aria-hidden="true">–</span> Skipped{{else if eq .State "stopped"}}<span class="symbol" aria-hidden="true">⏸</span> Not started (you stopped){{else}}<span class="symbol" aria-hidden="true">…</span> Waiting{{end}}{{if .Note}}: {{.Note}}{{end}}</td>
+{{else}}
+<td>{{.Will}}</td>
+{{end}}
+</tr>
+{{end}}
+</tbody>
+</table>
+</div>
+{{end}}

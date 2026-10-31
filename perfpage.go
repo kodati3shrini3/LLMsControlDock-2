@@ -20,8 +20,6 @@ import ( // import lists the standard-library packages this file uses.
 	"net/http"
 	// strings joins and searches text.
 	"strings"
-	// sync keeps two tests from running at the same time.
-	"sync"
 	// time stamps the safety copy of removed results.
 	"time"
 ) // end of imports
@@ -464,8 +462,6 @@ func perfHandlers(addr ollamaAddress, token string, store *perfStore, hist *hist
 		// Build it.
 		tips[h] = makeTip(fmt.Sprintf("tip-perf-%d", i), h)
 	} // end of the loop
-	// Only one test may run at a time: two would disturb each other's figures.
-	var runLock sync.Mutex
 	// show builds the page in memory first, so a template error produces a clean 500 and not a half page.
 	show := func(w http.ResponseWriter, r *http.Request, status int, data perfPage) {
 		// Add what every version needs.
@@ -606,14 +602,14 @@ func perfHandlers(addr ollamaAddress, token string, store *perfStore, hist *hist
 			return
 		} // end of the checks
 		// Only one test at a time.
-		if !runLock.TryLock() {
+		if !testLock.TryLock() {
 			// Say so.
 			show(w, r, http.StatusOK, perfPage{Kind: "running", Model: name})
 			// Stop here.
 			return
 		} // end of the lock check
 		// Release it when done.
-		defer runLock.Unlock()
+		defer testLock.Unlock()
 		// Tell the Stop page that a test is running, and how to undo it: unload the model the test loaded.
 		defer activeWork.begin("a performance test of "+name+" (Stop cancels it and unloads the model first)", func(ctx context.Context) {
 			// Ask Ollama to unload the model; the answer does not matter here.

@@ -46,6 +46,10 @@
 {{if $g.Headline}}<p><strong>{{$g.Headline}}</strong></p>{{end}}
 {{/* Why there is no ranking, or that the model has no peer. */}}
 {{range $g.Notes}}<p class="muted">{{.}}</p>{{end}}
+{{/* The button that tests every model of this group again; it first asks, and changes nothing by itself. */}}
+{{if $g.Retest}}
+<form method="post" action="/compare/retest" class="cmpretest"><input type="hidden" name="token" value="{{$.Token}}"><input type="hidden" name="title" value="{{$g.Title}}">{{range $g.Retest}}<input type="hidden" name="model" value="{{.}}">{{end}}<button type="submit" class="btn-plain">Re-test this group ({{len $g.Retest}} models)</button> <span class="muted">Adds a new result for each model, with the answer length that older results lack.</span></form>
+{{end}}
 {{/* The scroll box, reachable with Tab so keyboard users can scroll the table sideways. */}}
 <div class="scrollbox" tabindex="0" role="region" aria-label="{{$g.Title}}, scrolls sideways">
 <table class="models comparetable">
