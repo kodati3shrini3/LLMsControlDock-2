@@ -23,7 +23,7 @@ var loadedColumns = []string{"Model", "Size (as reported)", "Memory on GPU", "Lo
 var gearHeadings = []string{"Set in the model", "Ollama's default", "Allowed values", "Context size", "Temperature", "Top-k", "Top-p", "Min-p", "Repeat penalty", "Repeat window", "Seed", "Answer length limit", "Stop words", "Keep-alive time"}
 
 // healthHeadings are the headings of the Ollama status panel on the main page that have a help bubble; a test checks each has a text.
-var healthHeadings = []string{"Monitoring details", "API health", "Event log"}
+var healthHeadings = []string{"Monitoring details", "API health", "Event log", "Charts"}
 
 // perfHeadings are the indicator names on the performance page that have a help bubble; a test checks each has a text.
 var perfHeadings = []string{"Answer speed", "Prompt reading speed", "Load time", "Total time", "Time to first word", "Tokens counted", "Embedding time", "Vector length", "Processor split", "Memory used", "Change since the previous run", "CPU cores", "CPU load", "Memory free", "Swap in use", "Other models loaded", "GPU"}
@@ -40,6 +40,15 @@ var helpTexts = map[string]tooltip{
 		// What it helps with.
 		Decide: "Whether you want the status in view or more room for the models.",
 	}, // end of Monitoring details
+	// The charts under the event log.
+	"Charts": {
+		// What it means.
+		Plain: "Ollama's answers over the last 30 minutes: how often it answered and how fast.",
+		// A real case.
+		Example: "A hatched block in the state bar means a check failed in that half minute.",
+		// What it helps with.
+		Decide: "Whether Ollama is slowing down or dropping out before you start a long test.",
+	}, // end of Charts
 	// The Ollama status panel on the main page.
 	"API health": {
 		// What it means.

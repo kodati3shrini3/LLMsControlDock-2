@@ -77,6 +77,12 @@ type pageData struct {
 	CompareCount int
 	// Paused is true when the person paused the automatic updates (a cookie remembers it).
 	Paused bool
+	// Charts is what the Charts box draws, and ChartsTip is the help bubble of its heading.
+	Charts chartsView
+	// ChartsTip is the help bubble of the heading "Charts".
+	ChartsTip tipView
+	// NumbersOpen is true when the person opened the table of numbers under the charts (the address then ends in ?numbers=open); the page does not update by itself meanwhile.
+	NumbersOpen bool
 	// DetailsClosed is true when the person folded the monitoring details (API health and Event log) away; a cookie remembers it.
 	DetailsClosed bool
 	// DetailsTip is the help bubble of the twistie "Monitoring details".
@@ -110,17 +116,23 @@ func secureHeaders(next http.Handler) http.Handler {
 
 // newWebHandler builds the whole web interface: the page at "/" and the stylesheet at "/app.css".
 func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
+	// Without a background check: each page load is one check (the tests and the plain handler use this).
+	return newWebHandlerWith(addr, timeout, newMonitor())
+} // end of newWebHandler
+
+// newWebHandlerWith builds the web interface around a monitor that main may have started in the background.
+func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) http.Handler {
 	// Read the template once; Must stops the program at start-up if the template is broken, which a test would catch first.
 	page := template.Must(template.New("index").Parse(indexTemplateText))
-	// The counters of failed checks live as long as the monitor runs.
-	health := &apiHealth{}
 	// The help bubble of the panel heading never changes, so build it once.
 	healthTip := makeTip("tip-health", "API health")
 	// The event log of changes also lives as long as the monitor runs.
 	events := &eventLog{}
 	// The help bubble of its heading never changes either.
 	eventsTip := makeTip("tip-events", "Event log")
-	// The help bubble of the twistie that folds both away.
+	// The help bubble of the Charts heading.
+	chartsTip := makeTip("tip-charts", "Charts")
+	// The help bubble of the twistie that folds the boxes away.
 	detailsTip := makeTip("tip-details", "Monitoring details")
 	// Create the page token: an unguessable value that every form on the page carries, so only this page can send a form (requirement S2).
 	token := mustToken()
@@ -254,7 +266,7 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 			// The time taken.
 			ElapsedMs: res.Elapsed.Milliseconds(),
 			// The counters after this check, and the bubble of the heading.
-			Health: health.record(res.Online, time.Now()), HealthTip: healthTip,
+			Health: mon.pageCheck(res, time.Now()), HealthTip: healthTip,
 			// The reason, if offline.
 			Reason: res.Reason,
 			// The saved theme choice, from the cookie; empty means follow the system.
@@ -274,6 +286,8 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 			// Whether the monitoring details are folded away, and their help bubble.
 			DetailsClosed: detailsClosed(r),
 			DetailsTip:    detailsTip,
+			// Whether the table of numbers under the charts is open.
+			NumbersOpen: r.URL.Query().Get("numbers") == "open",
 			// Whether the key to the symbols is open.
 			KeyOpen: r.URL.Query().Get("key") == "open",
 			// The update interval.
@@ -317,6 +331,12 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 		events.observe(time.Now(), res.Online, res.Version, res.Reason, listsOK, evInstalled, evLoaded)
 		// The lines and the bubble of the heading.
 		data.Events, data.EventsTip = events.view(time.Now()), eventsTip
+		// The charts of the last 30 minutes, and the bubble of their heading.
+		now := time.Now()
+		// Build them from the history of checks.
+		data.Charts = buildCharts(mon.hist.since(now.Add(-chartWindow)), now, mon.background.Load(), data.NumbersOpen)
+		// The bubble.
+		data.ChartsTip = chartsTip
 		// Build the whole page in memory first, so a template error produces a clean 500 and not a half page.
 		var buf bytes.Buffer
 		// Run the template.

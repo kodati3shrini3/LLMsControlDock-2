@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="/app.css">
 {{/* While the page is being watched it reloads itself; Pause removes this line. It needs no script. */}}
 {{/* No automatic update while the key is open, so it does not vanish while it is being read. */}}
-{{if and (not .Paused) (not .KeyOpen)}}<meta http-equiv="refresh" content="{{.RefreshSeconds}}">{{end}}
+{{if and (not .Paused) (not .KeyOpen) (not .NumbersOpen)}}<meta http-equiv="refresh" content="{{.RefreshSeconds}}">{{end}}
 </head>{{/* end of the head. */}}
 <body>{{/* start of the visible page. */}}
 {{/* The page header. */}}
@@ -29,7 +29,7 @@
 {{/* Show which Ollama is being watched and which setting supplied the address; a password in it is already hidden. */}}
 <p class="muted">Watching Ollama at <code>{{.Address}}</code> (from {{.AddressSource}})</p>
 {{/* Says whether the page updates by itself, and how fresh it is; the symbol and the words carry the meaning. */}}
-<p class="muted" id="watchline">{{if and .KeyOpen (not .Paused)}}<svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg> Paused while the key to the symbols is open. Page made at {{.UpdatedAt}}. Close the key to carry on watching.{{else if .Paused}}<svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg> Paused: the page does not update by itself. Page made at {{.UpdatedAt}}.{{else}}<svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg> Watching: the page updates itself every {{.RefreshSeconds}} seconds. Page made at {{.UpdatedAt}}.{{end}}</p>
+<p class="muted" id="watchline">{{if and (or .KeyOpen .NumbersOpen) (not .Paused)}}<svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg> Paused while the {{if .NumbersOpen}}numbers of the charts are{{else}}key to the symbols is{{end}} open. Page made at {{.UpdatedAt}}. Close {{if .NumbersOpen}}the numbers{{else}}the key{{end}} to carry on watching.{{else if .Paused}}<svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg> Paused: the page does not update by itself. Page made at {{.UpdatedAt}}.{{else}}<svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg> Watching: the page updates itself every {{.RefreshSeconds}} seconds. Page made at {{.UpdatedAt}}.{{end}}</p>
 {{/* End of the title block. */}}
 </div>
 {{/* The right side of the header: the monitor controls, then the theme switch. */}}
@@ -188,6 +188,51 @@
 </div>
 {{else}}
 <p>Nothing seen yet.</p>
+{{end}}
+</section>
+{{/* The charts: the state of Ollama and its answer time over the last 30 minutes, drawn as pictures with a text alternative. */}}
+<section class="panel" aria-labelledby="charts-title">
+{{/* The heading with its help bubble. */}}
+<h2 id="charts-title"><span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.ChartsTip.ID}}">{{.ChartsTip.Title}}</span><span class="tip" role="tooltip" id="{{.ChartsTip.ID}}">{{template "tip" .ChartsTip}}</span></span></h2>
+{{/* How the numbers are made. */}}
+<p class="muted">The last {{.Charts.WindowText}}, checked every {{.Charts.EverySeconds}} seconds {{if .Charts.Background}}in the background, also while this page is closed{{else}}each time this page loads{{end}}. Kept in memory until the monitor stops. Times are in the zone shown.</p>
+{{/* The summary; the warning sign and the words both show a failure. */}}
+<p class="chartsummary">{{if .Charts.HasFailure}}<span class="symbol" aria-hidden="true">⚠</span> {{end}}<strong>{{.Charts.Summary}}</strong></p>
+{{/* The state bar: one block per half minute. */}}
+<p class="chartlabel">State of Ollama</p>
+<svg class="chartsvg" viewBox="0 0 {{.Charts.Width}} {{.Charts.CellHeight}}" role="img" aria-label="{{.Charts.StateAlt}}">
+<defs><pattern id="hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="4" height="4" class="hatchbg"/><line x1="0" y1="0" x2="0" y2="4" class="hatchline"/></pattern></defs>
+{{range .Charts.Cells}}<rect class="cell cell-{{.Class}}" x="{{.X}}" y="0" width="{{$.Charts.CellWidth}}" height="{{$.Charts.CellHeight}}"/>{{end}}
+</svg>
+<p class="muted chartlegend">Filled: Ollama answered. Hatched: a check failed. Empty: no check in that half minute.</p>
+{{/* The answer-time chart. */}}
+<p class="chartlabel">Answer time</p>
+<svg class="chartsvg" viewBox="0 0 {{.Charts.Width}} {{.Charts.Height}}" aria-hidden="true">
+<line class="chartbase" x1="0" y1="{{.Charts.BaseY}}" x2="{{.Charts.Width}}" y2="{{.Charts.BaseY}}"/>
+{{range .Charts.Segments}}<polyline class="chartline" points="{{.}}"/>{{end}}
+{{range .Charts.Dots}}<circle class="chartdot" cx="{{.X}}" cy="{{.Y}}" r="2.5"/>{{end}}
+</svg>
+<p class="chartaxis muted"><span>{{.Charts.StartLabel}}</span><span>{{.Charts.MidLabel}}</span><span>{{.Charts.EndLabel}}</span></p>
+<p class="muted">{{.Charts.AnswerAlt}}</p>
+{{/* The twistie for the numbers: a link, so the choice needs no script; the page pauses while it is open. */}}
+{{if .Charts.NumbersOpen}}
+<p class="keytoggle" id="numbers"><a href="/#numbers"><span aria-hidden="true">&#9662;</span> The numbers <span class="keyhint">(click to hide)</span></a></p>
+{{if .Charts.Rows}}
+<div class="scrollbox" tabindex="0" role="region" aria-label="The newest checks, scrolls sideways">
+<table class="models comparetable">
+<thead><tr><th scope="col">Time</th><th scope="col">State</th><th scope="col">Answer time</th></tr></thead>
+<tbody>
+{{range .Charts.Rows}}
+<tr><td>{{.Time}}</td><td>{{if .Online}}<span class="symbol" aria-hidden="true">✔</span> Answered{{else}}<span class="symbol" aria-hidden="true">✖</span> Failed{{end}}</td><td>{{.Answer}}</td></tr>
+{{end}}
+</tbody>
+</table>
+</div>
+{{else}}
+<p>No checks yet.</p>
+{{end}}
+{{else}}
+<p class="keytoggle" id="numbers"><a href="/?numbers=open#numbers"><span aria-hidden="true">&#9656;</span> The numbers <span class="keyhint">(click to show the newest checks)</span></a></p>
 {{end}}
 </section>
 {{/* End of the folded part. */}}

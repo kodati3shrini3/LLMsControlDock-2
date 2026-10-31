@@ -135,9 +135,9 @@ func TestTableHelpForEveryHeading(t *testing.T) {
 	// Fake Ollama with the six real models.
 	body := pageFor(t, fullOllama(t, realModels, realPsBody))
 	// Ten column bubbles, two category bubbles and the bubbles of the API health and Event log headings; the short tips of the row icons are counted apart.
-	if n := strings.Count(body, `role="tooltip"`) - strings.Count(body, `class="tip tip-icon"`); n != 15 {
+	if n := strings.Count(body, `role="tooltip"`) - strings.Count(body, `class="tip tip-icon"`); n != 16 {
 		// Report the difference.
-		t.Errorf("%d bubbles, want 15", n)
+		t.Errorf("%d bubbles, want 16", n)
 	} // end of the bubble count
 	// Every column title must be a focusable heading.
 	for _, col := range installedColumns {
@@ -155,9 +155,9 @@ func TestTableHelpForEveryHeading(t *testing.T) {
 	// Find every aria-describedby value.
 	refs := regexp.MustCompile(`aria-describedby="([^"]+)"`).FindAllStringSubmatch(body, -1)
 	// There must be one per bubble (the row icons have their own, counted apart).
-	if n := len(refs) - strings.Count(body, `class="tip tip-icon"`); n != 15 {
+	if n := len(refs) - strings.Count(body, `class="tip tip-icon"`); n != 16 {
 		// Report the difference.
-		t.Errorf("%d aria-describedby attributes, want 15", n)
+		t.Errorf("%d aria-describedby attributes, want 16", n)
 	} // end of the reference count
 	// Each one must point at an element that exists.
 	for _, m := range refs {
@@ -189,7 +189,7 @@ func TestTableAccessibility(t *testing.T) {
 		// The scroll box is a labelled region that the keyboard can reach.
 		{`role="region"`, 2},
 		// Fourteen headings (ten columns, two categories, API health and Event log) plus the two scroll boxes (models and event log) can take the focus.
-		{`tabindex="0"`, 17},
+		{`tabindex="0"`, 18},
 	} { // end of the list
 		// Count it.
 		if n := strings.Count(body, c.text); n != c.want {
