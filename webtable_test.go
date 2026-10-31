@@ -134,10 +134,10 @@ func TestTablePageRealModels(t *testing.T) {
 func TestTableHelpForEveryHeading(t *testing.T) {
 	// Fake Ollama with the six real models.
 	body := pageFor(t, fullOllama(t, realModels, realPsBody))
-	// Ten column bubbles plus two category bubbles; the short tips of the row icons are counted apart.
-	if n := strings.Count(body, `role="tooltip"`) - strings.Count(body, `class="tip tip-icon"`); n != 12 {
+	// Ten column bubbles, two category bubbles and the bubble of the API health heading; the short tips of the row icons are counted apart.
+	if n := strings.Count(body, `role="tooltip"`) - strings.Count(body, `class="tip tip-icon"`); n != 13 {
 		// Report the difference.
-		t.Errorf("%d bubbles, want 12", n)
+		t.Errorf("%d bubbles, want 13", n)
 	} // end of the bubble count
 	// Every column title must be a focusable heading.
 	for _, col := range installedColumns {
@@ -155,9 +155,9 @@ func TestTableHelpForEveryHeading(t *testing.T) {
 	// Find every aria-describedby value.
 	refs := regexp.MustCompile(`aria-describedby="([^"]+)"`).FindAllStringSubmatch(body, -1)
 	// There must be one per bubble (the row icons have their own, counted apart).
-	if n := len(refs) - strings.Count(body, `class="tip tip-icon"`); n != 12 {
+	if n := len(refs) - strings.Count(body, `class="tip tip-icon"`); n != 13 {
 		// Report the difference.
-		t.Errorf("%d aria-describedby attributes, want 12", n)
+		t.Errorf("%d aria-describedby attributes, want 13", n)
 	} // end of the reference count
 	// Each one must point at an element that exists.
 	for _, m := range refs {
@@ -188,8 +188,8 @@ func TestTableAccessibility(t *testing.T) {
 		{`scope="colgroup"`, 2},
 		// The scroll box is a labelled region that the keyboard can reach.
 		{`role="region"`, 1},
-		// Twelve headings plus the scroll box can take the focus.
-		{`tabindex="0"`, 13},
+		// Thirteen headings (ten columns, two categories and API health) plus the scroll box can take the focus.
+		{`tabindex="0"`, 14},
 	} { // end of the list
 		// Count it.
 		if n := strings.Count(body, c.text); n != c.want {
