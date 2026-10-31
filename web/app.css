@@ -2059,3 +2059,101 @@ html[data-size="medium"] svg[width="22"] {
   /* Bold, like the key twistie. */
   font-weight: 600;
 } /* end of rule */
+
+/* The charts: the drawings fill the box and scale with it. */
+.chartsvg {
+  /* Full width of the box. */
+  width: 100%;
+  /* The height follows the shape of the drawing. */
+  height: auto;
+  /* No gap under it from the line box. */
+  display: block;
+} /* end of rule */
+
+/* One block of the state bar: an outline keeps every block visible without colour. */
+.cell {
+  /* The outline colour. */
+  stroke: var(--border);
+  /* A thin outline. */
+  stroke-width: 1;
+} /* end of rule */
+
+/* Ollama answered in this half minute: filled. */
+.cell-ok {
+  /* The green of the page. */
+  fill: var(--ok);
+} /* end of rule */
+
+/* A check failed in this half minute: hatched, so it differs by pattern and not only by colour. */
+.cell-bad {
+  /* The diagonal pattern. */
+  fill: url(#hatch);
+} /* end of rule */
+
+/* No check in this half minute: empty. */
+.cell-none {
+  /* Nothing inside. */
+  fill: transparent;
+} /* end of rule */
+
+/* The background of the hatch pattern. */
+.hatchbg {
+  /* The panel colour. */
+  fill: var(--panel);
+} /* end of rule */
+
+/* The stripes of the hatch pattern. */
+.hatchline {
+  /* The red of the page. */
+  stroke: var(--bad);
+  /* Thick enough to see. */
+  stroke-width: 2;
+} /* end of rule */
+
+/* The zero line of the answer-time chart. */
+.chartbase {
+  /* The border colour. */
+  stroke: var(--border);
+  /* A thin line. */
+  stroke-width: 1;
+} /* end of rule */
+
+/* The answer-time line. */
+.chartline {
+  /* The accent colour. */
+  stroke: var(--cat-accent);
+  /* A clear line. */
+  stroke-width: 2;
+  /* No filling. */
+  fill: none;
+} /* end of rule */
+
+/* One answered check as a dot on the line. */
+.chartdot {
+  /* The accent colour. */
+  fill: var(--cat-accent);
+} /* end of rule */
+
+/* The times under the chart: start, middle and end. */
+.chartaxis {
+  /* Three labels in one row. */
+  display: flex;
+  /* First at the left, last at the right. */
+  justify-content: space-between;
+  /* Small gap above. */
+  margin: 0.25rem 0;
+} /* end of rule */
+
+/* The small titles above each drawing. */
+.chartlabel {
+  /* Bold. */
+  font-weight: 600;
+  /* Space above, little below. */
+  margin: 0.75rem 0 0.25rem;
+} /* end of rule */
+
+/* The line that explains the blocks. */
+.chartlegend {
+  /* Small gap above. */
+  margin: 0.25rem 0;
+} /* end of rule */

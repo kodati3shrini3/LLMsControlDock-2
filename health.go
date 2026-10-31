@@ -54,6 +54,22 @@ func (h *apiHealth) record(online bool, now time.Time) healthView {
 		// One more in total.
 		h.failedTotal++
 	} // end of the online check
+	// What the page shows.
+	return h.viewLocked()
+} // end of record
+
+// view returns what the page shows now, without counting a check.
+func (h *apiHealth) view() healthView {
+	// One request at a time.
+	h.mu.Lock()
+	// Release at the end.
+	defer h.mu.Unlock()
+	// What the page shows.
+	return h.viewLocked()
+} // end of view
+
+// viewLocked builds the view; the caller holds the lock.
+func (h *apiHealth) viewLocked() healthView {
 	// The text for the last good check.
 	last := healthNever
 	// There was one.
@@ -63,4 +79,4 @@ func (h *apiHealth) record(online bool, now time.Time) healthView {
 	} // end of the last-check text
 	// What the page shows.
 	return healthView{FailedRow: h.failedRow, FailedTotal: h.failedTotal, LastOK: last}
-} // end of record
+} // end of viewLocked

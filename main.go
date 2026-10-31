@@ -132,7 +132,12 @@ func main() {
 
 	// Describe the web server: Addr is where to listen (the star reads the flag's value), Handler is the web interface from web.go wrapped in the Host-name check from guard.go,
 	// and ReadHeaderTimeout drops clients that take more than 5 seconds to send their request headers.
-	server := &http.Server{Addr: *listen, Handler: hostGuard(newWebHandler(addr, defaultCheckTimeout), *listen), ReadHeaderTimeout: 5 * time.Second}
+	// The monitor holds the counters and the history of checks; it asks Ollama in the background every sampleEvery, so the charts have no gaps while the page is closed.
+	mon := newMonitor()
+	// Start the background checks; they end with the program.
+	mon.start(context.Background(), addr.URL, defaultCheckTimeout, sampleEvery)
+	// The server, with the monitor built into the web interface.
+	server := &http.Server{Addr: *listen, Handler: hostGuard(newWebHandlerWith(addr, defaultCheckTimeout, mon), *listen), ReadHeaderTimeout: 5 * time.Second}
 
 	// Tell the person which address we are about to serve on.
 	log.Printf("OllamaControlCenter listening on http://%s (press Ctrl+C to stop)", *listen)
