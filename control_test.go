@@ -377,8 +377,8 @@ func TestControlIconsAndZone(t *testing.T) {
 func TestKeyAndDrawnIcons(t *testing.T) {
 	// A fake and a rig.
 	rig, _ := perfRig(t, newPerfFake())
-	// The main page.
-	_, _, body := get(t, rig.h, http.MethodGet, "/")
+	// The main page with the key open (it is closed by default).
+	_, _, body := get(t, rig.h, http.MethodGet, "/?key=open")
 	// None of the old emoji-like characters may remain on the page.
 	for _, bad := range []string{"📄", "⚙", "📈", "⚖"} {
 		// Look for it.
@@ -465,7 +465,7 @@ func TestKeyBox(t *testing.T) {
 		t.Errorf(".panelhead has no space below it")
 	} // end of the space check
 	// The key sits in the panel of the models table, after the heading row and before the table.
-	_, _, body := get(t, rig.h, http.MethodGet, "/")
+	_, _, body := get(t, rig.h, http.MethodGet, "/?key=open")
 	// The three places.
 	head, key, table := strings.Index(body, `class="panelhead"`), strings.Index(body, `<ul class="legend`), strings.Index(body, `<table class="models"`)
 	// The order must be heading row, key, table.

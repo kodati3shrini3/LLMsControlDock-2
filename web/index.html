@@ -14,7 +14,8 @@
 {{/* Load our own stylesheet; the safety policy allows only styles from this same address. */}}
 <link rel="stylesheet" href="/app.css">
 {{/* While the page is being watched it reloads itself; Pause removes this line. It needs no script. */}}
-{{if not .Paused}}<meta http-equiv="refresh" content="{{.RefreshSeconds}}">{{end}}
+{{/* No automatic update while the key is open, so it does not vanish while it is being read. */}}
+{{if and (not .Paused) (not .KeyOpen)}}<meta http-equiv="refresh" content="{{.RefreshSeconds}}">{{end}}
 </head>{{/* end of the head. */}}
 <body>{{/* start of the visible page. */}}
 {{/* The page header. */}}
@@ -28,7 +29,7 @@
 {{/* Show which Ollama is being watched and which setting supplied the address; a password in it is already hidden. */}}
 <p class="muted">Watching Ollama at <code>{{.Address}}</code> (from {{.AddressSource}})</p>
 {{/* Says whether the page updates by itself, and how fresh it is; the symbol and the words carry the meaning. */}}
-<p class="muted" id="watchline">{{if .Paused}}<svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg> Paused: the page does not update by itself. Page made at {{.UpdatedAt}}.{{else}}<svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg> Watching: the page updates itself every {{.RefreshSeconds}} seconds. Page made at {{.UpdatedAt}}.{{end}}</p>
+<p class="muted" id="watchline">{{if and .KeyOpen (not .Paused)}}<svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg> Paused while the key to the symbols is open. Page made at {{.UpdatedAt}}. Close the key to carry on watching.{{else if .Paused}}<svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg> Paused: the page does not update by itself. Page made at {{.UpdatedAt}}.{{else}}<svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><path d="M4 2.5v11l9-5.5z"/></svg> Watching: the page updates itself every {{.RefreshSeconds}} seconds. Page made at {{.UpdatedAt}}.{{end}}</p>
 {{/* End of the title block. */}}
 </div>
 {{/* The right side of the header: the monitor controls, then the theme switch. */}}
@@ -193,6 +194,14 @@
 {{else}}
 {{/* A hint above the table so people know the dotted headings have help. */}}
 {{/* A key above the table: what each symbol and the dotted headings do. */}}
+{{/* The twistie: a plain link that opens or closes the key; the program draws the page again, so no script is needed. */}}
+{{if .KeyOpen}}
+<p class="keytoggle" id="key"><a href="/#key"><span aria-hidden="true">&#9662;</span> Key to the symbols <span class="keyhint">(click to hide)</span></a></p>
+{{else}}
+<p class="keytoggle" id="key"><a href="/?key=open#key"><span aria-hidden="true">&#9656;</span> Key to the symbols <span class="keyhint">(click to show)</span></a></p>
+{{end}}
+{{/* The key itself, drawn only while it is open. */}}
+{{if .KeyOpen}}
 <ul class="legend muted" aria-label="How to read this table">
 <li><span class="sym"><span class="dotsample">Aa</span></span><span><strong>Dotted headings</strong>: point at one, or press Tab, to see what it means</span></li>
 <li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M7 8l-4 4 4 4"/><path d="M17 8l4 4-4 4"/></svg></span><span><strong>Sideways scroll</strong>: the table scrolls sideways</span></li>
@@ -203,6 +212,7 @@
 <li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/></svg></span><span><strong>Restore</strong>: on a greyed, deleted row; how to download it again, and the parameters it had</span></li>
 <li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M7 21h10"/><path d="M4 7h16"/><path d="M4 7l-2.5 7a3.5 3.5 0 0 0 5 0z"/><path d="M20 7l-2.5 7a3.5 3.5 0 0 0 5 0z"/></svg></span><span><strong>Compare tested models</strong>: the button at the top right of this panel</span></li>
 </ul>
+{{end}}
 {{/* The scroll box: it can be reached with Tab, so keyboard users can scroll the table sideways. */}}
 <div class="scrollbox" tabindex="0" role="region" aria-label="Installed models table, scrolls sideways">
 {{/* The table. */}}

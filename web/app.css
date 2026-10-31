@@ -1990,3 +1990,38 @@ html[data-size="medium"] svg[width="22"] {
   /* Break long addresses. */
   overflow-wrap: anywhere;
 } /* end of rule */
+
+/* The twistie line above the key: a small arrow, the name and a hint, all one link. */
+.keytoggle {
+  /* Space above and below. */
+  margin: 0.4rem 0 0.75rem;
+  /* Bold, like a heading of the key. */
+  font-weight: 600;
+} /* end of rule */
+
+/* The link keeps the text colour; underline appears on hover and focus so it still reads as clickable. */
+.keytoggle a {
+  /* The normal text colour. */
+  color: inherit;
+  /* No line until hover or focus. */
+  text-decoration: none;
+  /* A comfortable click area. */
+  display: inline-block;
+  /* Vertical padding makes the target taller. */
+  padding: 0.3rem 0;
+} /* end of rule */
+
+/* Hover and keyboard focus show the underline. */
+.keytoggle a:hover,
+.keytoggle a:focus-visible {
+  /* Underline. */
+  text-decoration: underline;
+} /* end of rule */
+
+/* The hint after the name is lighter. */
+.keyhint {
+  /* Normal weight. */
+  font-weight: 400;
+  /* The muted colour of the page. */
+  color: var(--muted);
+} /* end of rule */

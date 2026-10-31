@@ -73,6 +73,8 @@ type pageData struct {
 	CompareCount int
 	// Paused is true when the person paused the automatic updates (a cookie remembers it).
 	Paused bool
+	// KeyOpen is true when the person opened the key to the symbols (the address then ends in ?key=open); the page does not update by itself meanwhile.
+	KeyOpen bool
 	// RefreshSeconds is how often the page updates itself while it is being watched.
 	RefreshSeconds int
 	// UpdatedAt is the time of day this page was made, so a person can see how fresh it is.
@@ -243,6 +245,8 @@ func newWebHandler(addr ollamaAddress, timeout time.Duration) http.Handler {
 			CompareCount: perfHistory.testedModels(),
 			// Whether the automatic updates are paused.
 			Paused: watchPaused(r),
+			// Whether the key to the symbols is open.
+			KeyOpen: r.URL.Query().Get("key") == "open",
 			// The update interval.
 			RefreshSeconds: watchRefreshSeconds,
 			// When this page was made.
