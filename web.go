@@ -192,6 +192,12 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	// Route: a POST request for "/modelfile" shows a model's Modelfile, read-only.
 	mux.HandleFunc("POST /modelfile", modelfileHandler(addr, token))
 	// Make the four performance handlers: the start page, the test run, and the two steps of clearing the saved results (the checks are in perfpage.go); the history lives in the person's configuration folder.
+	// Earlier versions kept the results, the deleted models and the snapshots next to the program; copy them once to the data folder (the old folders are left in place).
+	for _, msg := range migrateOldData(oldDataRoot(), dataRoot()) {
+		// Say so in the log.
+		log.Print(msg)
+	} // end of the copy loop
+	// Where the results live now.
 	histPath, histNote := defaultHistoryPath()
 	// An earlier version named the results folder with a capital P; rename it before anything is opened, so the saved results are found.
 	if msg := moveOldHistoryFolder(histPath); msg != "" {
