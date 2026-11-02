@@ -91,6 +91,29 @@ func moveOldHistoryFolder(historyPath string) string {
 	return ""
 } // end of moveOldHistoryFolder
 
+// canCreateBelow says whether a folder can be made at dir: the nearest part of the path that exists must be a folder (a plain file in the way makes it impossible).
+func canCreateBelow(dir string) bool {
+	// Walk up until something exists.
+	for {
+		// Look at this level.
+		st, err := os.Stat(dir)
+		// It exists: it must be a folder.
+		if err == nil {
+			// The answer.
+			return st.IsDir()
+		} // end of the exists case
+		// The next level up.
+		parent := filepath.Dir(dir)
+		// The top was reached without finding anything: nothing blocks it here.
+		if parent == dir {
+			// Nothing is in the way.
+			return true
+		} // end of the top check
+		// Look one level up.
+		dir = parent
+	} // end of the loop
+} // end of canCreateBelow
+
 // mustStat returns the file information of a path that was just found to exist; a failure gives nil, which SameFile treats as "not the same".
 func mustStat(p string) os.FileInfo {
 	// Look at it.
@@ -131,8 +154,15 @@ func openPerfStore(path, note string) *perfStore {
 	} // end of the memory case
 	// Look at the file.
 	info, err := os.Stat(path)
-	// No file yet is normal.
+	// No file yet is normal, as long as the folder can be made later: Linux answers "not a directory" when a parent is a plain file (handled below as another problem), Windows answers "path not found" (the same words as "no file yet"), so the nearest existing parent is checked here.
 	if errors.Is(err, os.ErrNotExist) {
+		// A parent that is not a folder: the file could never be saved.
+		if !canCreateBelow(filepath.Dir(path)) {
+			// Keep the results in memory only, and say why.
+			s.path, s.note = "", "The results folder cannot be created below "+filepath.Dir(path)+", so results are kept only until the monitor stops."
+			// Done.
+			return s
+		} // end of the parent check
 		// Start empty.
 		return s
 	} // end of the missing-file case

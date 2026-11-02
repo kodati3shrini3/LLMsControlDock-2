@@ -52,7 +52,7 @@ func TestOldResultsFolderIsRenamed(t *testing.T) {
 		} // end of the read check
 	} // end of the files loop
 	// The folder under the old name is gone (on a computer that ignores capitals the two names are one folder, so only check when they differ).
-	if _, err := os.Stat(old); err == nil && historyFolderName != oldHistoryFolderName {
+	if _, err := os.Stat(old); err == nil && historyFolderName != oldHistoryFolderName && !ignoresCapitals(t, root) {
 		// A case-blind disk answers for the new folder too; look at the real entry names.
 		ents, _ := os.ReadDir(root)
 		// Every entry.
@@ -102,3 +102,48 @@ func TestOldResultsFolderIsRenamed(t *testing.T) {
 		t.Errorf("message %q for memory only", msg)
 	} // end of the memory check
 } // end of TestOldResultsFolderIsRenamed
+
+// ignoresCapitals says whether the disk of dir treats "A" and "a" as the same name (Windows and macOS usually do; Linux does not).
+func ignoresCapitals(t *testing.T, dir string) bool {
+	// Mark this as a helper.
+	t.Helper()
+	// A file with a lower-case name in a folder of its own.
+	probe := filepath.Join(t.TempDir(), "probe")
+	// Make it.
+	if err := os.WriteFile(probe, []byte("x"), 0o600); err != nil {
+		// Stop.
+		t.Fatal(err)
+	} // end of the write check
+	// Ask for it with a capital letter.
+	_, err := os.Stat(filepath.Join(filepath.Dir(probe), "PROBE"))
+	// Found: the disk ignores capitals.
+	return err == nil
+} // end of ignoresCapitals
+
+// TestCanCreateBelow checks that a plain file in the way is noticed on every system, and that missing folders are not a problem.
+func TestCanCreateBelow(t *testing.T) {
+	// A folder, a plain file in it.
+	base := t.TempDir()
+	// The file.
+	plain := filepath.Join(base, "plain-file")
+	// Make it.
+	if err := os.WriteFile(plain, []byte("x"), 0o600); err != nil {
+		// Stop.
+		t.Fatal(err)
+	} // end of the write check
+	// A real folder: fine.
+	if !canCreateBelow(base) {
+		// Report it.
+		t.Error("an existing folder was refused")
+	} // end of the folder check
+	// Folders that do not exist yet below a real folder: fine.
+	if !canCreateBelow(filepath.Join(base, "a", "b")) {
+		// Report it.
+		t.Error("missing folders below a real folder were refused")
+	} // end of the missing check
+	// A plain file in the way: refused, directly and further down.
+	if canCreateBelow(plain) || canCreateBelow(filepath.Join(plain, "sub")) {
+		// Report it.
+		t.Error("a plain file in the way was accepted")
+	} // end of the file check
+} // end of TestCanCreateBelow

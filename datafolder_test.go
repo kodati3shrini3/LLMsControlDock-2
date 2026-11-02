@@ -8,6 +8,8 @@ import ( // import lists the packages this test file uses.
 	"os"
 	// path/filepath joins file names.
 	"path/filepath"
+	// runtime tells which system the test runs on.
+	"runtime"
 	// strings searches the log sentences.
 	"strings"
 	// testing is Go's built-in test framework.
@@ -175,7 +177,7 @@ func TestMigrateOldData(t *testing.T) {
 		} // end of the check
 	} // end of the loop
 	// The copy is private and no temporary folder is left.
-	if st, err := os.Stat(filepath.Join(newRoot, "performanceCompare")); err != nil || st.Mode().Perm() != 0o700 {
+	if st, err := os.Stat(filepath.Join(newRoot, "performanceCompare")); err != nil || (modesApply() && st.Mode().Perm() != 0o700) {
 		// Report the problem.
 		t.Errorf("new folder: %v %v", st, err)
 	} // end of the privacy check
@@ -476,3 +478,9 @@ func TestHistoryUsesStateFolder(t *testing.T) {
 		t.Error("history file stayed behind")
 	} // end of the removal check
 } // end of TestHistoryUsesStateFolder
+
+// modesApply says whether file permission bits mean anything on this system: Go's documentation says that on Windows only the owner-writable bit is used (it sets the read-only attribute), so private files there rest on the per-user access rules of the folders in %AppData% and %LocalAppData%, not on 0600 and 0700.
+func modesApply() bool {
+	// Only Windows lacks Unix permission bits.
+	return runtime.GOOS != "windows"
+} // end of modesApply

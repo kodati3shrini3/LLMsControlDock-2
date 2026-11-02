@@ -489,7 +489,7 @@ func TestDownloadsAreAlsoSavedAsCopies(t *testing.T) {
 		t.Fatalf("copy %q err %v", b, err)
 	} // end of the read check
 	// Only the owner may read it.
-	if st, _ := os.Stat(p); st.Mode().Perm() != 0o600 {
+	if st, _ := os.Stat(p); modesApply() && st.Mode().Perm() != 0o600 {
 		// Report it.
 		t.Errorf("mode %v", st.Mode().Perm())
 	} // end of the mode check

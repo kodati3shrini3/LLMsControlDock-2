@@ -42,7 +42,7 @@ func TestEverySubPageTemplateHasTheBackArrow(t *testing.T) {
 		// The main page and the shared bubble texts have none; every other page has exactly one.
 		want := 1
 		// The two exceptions.
-		if f == "web/index.html" || f == "web/tips.html" {
+		if g := filepath.ToSlash(f); g == "web/index.html" || g == "web/tips.html" {
 			// None.
 			want = 0
 		} // end of the exception check

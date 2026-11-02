@@ -26,6 +26,8 @@ import ( // import lists the packages this test file uses.
 	"sync"
 	// testing is Go's built-in test framework.
 	"testing"
+	// time gives the small delay of the fake Ollama.
+	"time"
 ) // end of imports
 
 // secretText is the answer text of the fake; it must never reach a page of the monitor's own making or the saved file.
@@ -192,6 +194,8 @@ func (f *perfFake) start(t *testing.T) string {
 			} // end of the thinking check
 			// The last piece carries the figures.
 			last := map[string]any{"response": "", "done": true, "done_reason": "stop", "total_duration": load + prompt + eval, "load_duration": load, "prompt_eval_count": 200, "prompt_eval_duration": prompt, "eval_count": 64, "eval_duration": eval}
+			// The first piece comes a few milliseconds late, so that even a coarse clock (Windows) measures a time above zero.
+			time.Sleep(3 * time.Millisecond)
 			// The flusher sends each line at once.
 			fl, _ := w.(http.Flusher)
 			// Both pieces.
@@ -275,35 +279,25 @@ func (f *perfFake) unloadCount() int {
 	return len(f.unloads)
 } // end of unloadCount
 
-// quietMachine points the machine readers at a calm fake machine for one test and restores them afterwards.
+// quietMachine points the machine readers at a calm fake machine for one test and restores them afterwards; it replaces the readers themselves, so it works the same on every system (the Linux file reader has its own test in sysinfo_linux_test.go).
 func quietMachine(t *testing.T) {
 	// Mark this as a helper.
 	t.Helper()
-	// A folder that plays the role of /proc.
-	dir := t.TempDir()
-	// The files.
-	for name, text := range map[string]string{
-		// Four-core machine, quiet.
-		"cpuinfo": "processor\t: 0\nmodel name\t: Test Processor 9000\n",
-		// Load of 0.5 on 4 cores.
-		"loadavg": "0.50 0.40 0.30 1/200 123\n",
-		// 16 GB total, 8 GB free, swap 2 GB with 1 GB free (in kilobytes).
-		"meminfo": "MemTotal:       16000000 kB\nMemAvailable:    8000000 kB\nSwapTotal:       2000000 kB\nSwapFree:        1000000 kB\n",
-	} { // end of the files
-		// Write each.
-		if err := os.WriteFile(filepath.Join(dir, name), []byte(text), 0o600); err != nil {
-			// Stop the test.
-			t.Fatalf("fixture: %v", err)
-		} // end of the write check
-	} // end of the loop
-	// Remember the real readers.
-	oldProc, oldGPU := procDir, gpuQuery
-	// Use the fixtures.
-	procDir = dir
+	// Remember the real readers and the graphics-card query.
+	oldMem, oldCPU, oldLoad, oldGPU := readMemInfo, readCPUName, readLoad1, gpuQuery
+	// Put them back at the end.
+	t.Cleanup(func() { readMemInfo, readCPUName, readLoad1, gpuQuery = oldMem, oldCPU, oldLoad, oldGPU })
+	// 16.384 GB total, 8.192 GB free, swap 2.048 GB with 1.024 GB in use.
+	readMemInfo = func() (memInfo, error) {
+		// The figures.
+		return memInfo{TotalBytes: 16_384_000_000, AvailBytes: 8_192_000_000, HaveSwap: true, SwapTotalBytes: 2_048_000_000, SwapUsedBytes: 1_024_000_000}, nil
+	} // end of the memory reader
+	// A named processor.
+	readCPUName = func() string { return "Test Processor 9000" }
+	// A load of 0.5, far below half of the cores of any machine.
+	readLoad1 = func() float64 { return 0.5 }
 	// A card that is idle and shares its memory.
 	gpuQuery = func(ctx context.Context) (string, error) { return "Test GPU, [N/A], [N/A], 0 %", nil }
-	// Put the real readers back at the end.
-	t.Cleanup(func() { procDir, gpuQuery = oldProc, oldGPU })
 } // end of quietMachine
 
 // perfRig builds a web handler for a fake, with the history in a folder of the test; it returns the rig and the history file path.
@@ -314,16 +308,12 @@ func perfRig(t *testing.T, f *perfFake) (themeRig, string) {
 	quietMachine(t)
 	// The history goes into a folder of this test, never into the real configuration folder.
 	dir := t.TempDir()
-	// Remember the real lookup.
-	old := userConfigDir
-	// Use the test folder.
 	// Keep the real lookups and put them back afterwards.
 	saveFolderLookups(t)
+	// Use the test folder.
 	userConfigDir = func() (string, error) { return dir, nil }
 	// Data and state follow the same fake folder.
 	userDataDir, userStateDir = userConfigDir, userConfigDir
-	// Put it back at the end.
-	t.Cleanup(func() { userConfigDir = old })
 	// Start the fake and build the handler.
 	h := handlerFor(t, f.start(t))
 	// Fetch the main page.
@@ -499,7 +489,7 @@ func TestPerfRunGenerate(t *testing.T) {
 		// Look at the file.
 		info, err := os.Stat(hist)
 		// It must exist with mode 0600.
-		if err != nil || info.Mode().Perm() != 0o600 {
+		if err != nil || (modesApply() && info.Mode().Perm() != 0o600) {
 			// Report the problem.
 			t.Errorf("history file permissions: %v %v", info, err)
 		} // end of the mode check
