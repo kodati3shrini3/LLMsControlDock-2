@@ -1,0 +1,154 @@
+# Build and test OllamaControlCenter on GitHub. It runs ONLY when a person clicks "Run workflow" in the Actions tab; it never runs by itself and it never publishes a release.
+name: Build and test (manual)
+
+# The only trigger is the manual button.
+on:
+  # A person starts it from the Actions tab (or with: gh workflow run).
+  workflow_dispatch:
+
+# The workflow may only read the repository; it has no secrets and no write rights.
+permissions:
+  contents: read
+
+# The program uses no C code, so every build is one self-contained file.
+env:
+  CGO_ENABLED: "0"
+  # The Go version used for building: the newest line that Go still supports (see https://go.dev/doc/devel/release).
+  GO_VERSION: "1.27"
+
+jobs:
+  # Job 1: check the code on Linux, build every executable and the list of checksums.
+  build:
+    # A Linux machine builds all of them (Go cross-compiles).
+    runs-on: ubuntu-24.04
+    # Never let a stuck job run for hours.
+    timeout-minutes: 20
+    # The version number is handed on to the other jobs.
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      # Get the code, without leaving the access token in the folder.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Install Go.
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+      # Read the version number from the program's own source.
+      - name: Read the version
+        id: version
+        run: |
+          version="$(sed -n 's/^const appVersion = "\(.*\)"$/\1/p' about.go)"
+          test -n "$version"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Building version $version with $(go version)"
+      # Go's own checker for suspicious code.
+      - name: go vet
+        run: go vet ./...
+      # All tests (they assume Linux, so they run here).
+      - name: go test
+        run: go test -count=1 ./...
+      # Build one file for each system, then the checksum list.
+      - name: Build every executable
+        run: |
+          mkdir dist
+          for target in linux/arm64 linux/amd64 windows/amd64 windows/arm64 darwin/arm64 darwin/amd64; do
+            os="${target%/*}"; arch="${target#*/}"; ext=""
+            if [ "$os" = "windows" ]; then ext=".exe"; fi
+            GOOS="$os" GOARCH="$arch" go build -trimpath -o "dist/OllamaControlCenter-$os-$arch$ext" .
+          done
+          cd dist
+          sha256sum OllamaControlCenter-* > SHA256SUMS
+          cat SHA256SUMS
+      # Keep the files for 14 days so they can be downloaded and tested.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: OllamaControlCenter-${{ steps.version.outputs.version }}-executables
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
+
+  # Job 2: start each executable on a real machine of its own kind and ask it for its pages.
+  run-on-each-system:
+    needs: build
+    # One failing system must not hide the results of the others.
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { runner: ubuntu-24.04,     file: OllamaControlCenter-linux-amd64 }
+          - { runner: ubuntu-24.04-arm, file: OllamaControlCenter-linux-arm64 }
+          - { runner: windows-2025,     file: OllamaControlCenter-windows-amd64.exe }
+          - { runner: windows-11-arm,   file: OllamaControlCenter-windows-arm64.exe }
+          - { runner: macos-15,         file: OllamaControlCenter-darwin-arm64 }
+          - { runner: macos-15-intel,   file: OllamaControlCenter-darwin-amd64 }
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 10
+    steps:
+      # Get the files built in job 1.
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: OllamaControlCenter-${{ needs.build.outputs.version }}-executables
+          path: dist
+      # Start the program and check its pages (no Ollama is installed on these machines, so the pages must say so and still answer).
+      - name: Start-up check
+        shell: bash
+        env:
+          FILE: ${{ matrix.file }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          set -eu
+          cd dist
+          # The file must match its checksum.
+          grep " ${FILE}\$" SHA256SUMS > one.sum
+          if command -v sha256sum > /dev/null; then sha256sum -c one.sum; else shasum -a 256 -c one.sum; fi
+          chmod +x "./$FILE"
+          # Start it in the background on its normal address.
+          "./$FILE" > run.log 2>&1 &
+          pid=$!
+          # Stop it when this step ends, however it ends.
+          trap 'kill "$pid" 2> /dev/null || true' EXIT
+          # Wait up to 30 seconds for the main page.
+          ok=0
+          for i in $(seq 1 30); do
+            if curl -fsS -o main.html http://127.0.0.1:8765/ 2> /dev/null; then ok=1; break; fi
+            sleep 1
+          done
+          if [ "$ok" != "1" ]; then echo "The program did not answer within 30 seconds"; cat run.log; exit 1; fi
+          # The main page names the program, the About page carries the version, the Settings page answers.
+          grep -q "<title>OllamaControlCenter</title>" main.html
+          curl -fsS http://127.0.0.1:8765/about | grep -q "$VERSION"
+          curl -fsS -o /dev/null http://127.0.0.1:8765/settings
+          echo "PASS: $FILE answered on $RUNNER_OS $RUNNER_ARCH"
+          cat run.log
+
+  # Job 3: run the tests on the other systems too. The tests were written on Linux, so failures are EXPECTED on Windows and macOS for now: they are reported, they do not stop the workflow, and they become the list of tests to make portable.
+  tests-on-each-system:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04-arm, windows-2025, windows-11-arm, macos-15, macos-15-intel]
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: true
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: false
+      # Run every test and list the failing ones in the summary of the run.
+      - name: go test
+        shell: bash
+        run: |
+          go test -count=1 ./... 2>&1 | tee test.log
+          status="${PIPESTATUS[0]}"
+          {
+            echo "### Tests on ${{ matrix.runner }}: exit code $status"
+            grep -E '^--- FAIL' test.log | sort -u || true
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
