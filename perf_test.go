@@ -334,7 +334,7 @@ func perfRig(t *testing.T, f *perfFake) (themeRig, string) {
 	// The token is 32 characters after the marker.
 	tok := body[i+len(`name="token" value="`) : i+len(`name="token" value="`)+32]
 	// Hand back the rig and the file path.
-	return themeRig{h: h, token: tok}, filepath.Join(dir, "OllamaControlCenter", "performance.json")
+	return themeRig{h: h, token: tok}, filepath.Join(dir, "OllamaControlCenter", "performanceCompare", "performance.json")
 } // end of perfRig
 
 // perfPost sends a form to a performance route as the page's own form would.
@@ -1090,43 +1090,27 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 } // end of TestMain
 
-// TestDefaultHistoryPath checks where the saved results go: next to the project when the program runs from its bin folder, next to the program elsewhere, and in the configuration folder when the program's place is unknown.
+// TestDefaultHistoryPath checks where the saved results go: always in the data folder inside the configuration folder, wherever the program is, and memory only (with a reason) when there is no configuration folder.
 func TestDefaultHistoryPath(t *testing.T) {
 	// Put the real lookups back when the test ends.
 	oldExe, oldCfg := executablePath, userConfigDir
 	// Restore them.
 	t.Cleanup(func() { executablePath, userConfigDir = oldExe, oldCfg })
-	// The configuration folder, for the fallback.
+	// A configuration folder.
 	userConfigDir = func() (string, error) { return "/cfg", nil }
-	// The cases.
-	for _, c := range []struct {
-		// exe is where the program is.
-		exe string
-		// err is the failure of the lookup, when there is one.
-		err error
-		// want is the expected file.
-		want string
-	}{
-		// From the bin folder of the project.
-		{"/home/u/OllamaControlCenter/bin/OllamaControlCenter", nil, "/home/u/OllamaControlCenter/performanceCompare/performance.json"},
-		// From any other folder: next to the program.
-		{"/opt/occ/OllamaControlCenter", nil, "/opt/occ/performanceCompare/performance.json"},
-		// Unknown place: the configuration folder.
-		{"", errors.New("no path"), "/cfg/OllamaControlCenter/performance.json"},
-	} {
-		// Use this case.
-		executablePath = func() (string, error) { return c.exe, c.err }
+	// Wherever the program is, the answer is the same.
+	for _, exe := range []string{"/home/u/OllamaControlCenter/bin/OllamaControlCenter", "/opt/occ/OllamaControlCenter", ""} {
+		// Use this program place.
+		executablePath = func() (string, error) { return exe, nil }
 		// Ask.
 		got, note := defaultHistoryPath()
 		// Compare.
-		if filepath.ToSlash(got) != c.want || note != "" {
+		if filepath.ToSlash(got) != "/cfg/OllamaControlCenter/performanceCompare/performance.json" || note != "" {
 			// Report it.
-			t.Errorf("exe %q: path %q note %q, want %q", c.exe, got, note, c.want)
+			t.Errorf("exe %q: path %q note %q", exe, got, note)
 		} // end of the check
 	} // end of the loop
-	// No program place and no configuration folder: memory only, with a reason.
-	executablePath = func() (string, error) { return "", errors.New("no path") }
-	// No folder either.
+	// No configuration folder: memory only, with a reason.
 	userConfigDir = func() (string, error) { return "", errors.New("none") }
 	// Ask.
 	if got, note := defaultHistoryPath(); got != "" || note == "" {

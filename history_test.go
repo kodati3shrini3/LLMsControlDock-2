@@ -303,42 +303,31 @@ func TestHistoryFolderStaysOutOfGitHub(t *testing.T) {
 	} // end of the ignore check
 } // end of TestHistoryFolderStaysOutOfGitHub
 
-// TestDefaultHistoryDir checks the folder choice: next to the program, one level above bin, with a fallback in the config folder.
+// TestDefaultHistoryDir checks the folder choice: always "history" in the data folder inside the configuration folder, wherever the program is.
 func TestDefaultHistoryDir(t *testing.T) {
 	// Keep and restore the two lookups.
 	oldExe, oldCfg := executablePath, userConfigDir
 	// Put them back afterwards.
 	t.Cleanup(func() { executablePath, userConfigDir = oldExe, oldCfg })
-	// A program inside bin.
-	executablePath = func() (string, error) { return "/p/OllamaControlCenter/bin/occ", nil }
-	// The folder.
-	if d, _ := defaultHistoryDir(); d != filepath.Join("/p/OllamaControlCenter", "history") {
-		// Report it.
-		t.Errorf("bin case gave %q", d)
-	} // end of the bin check
-	// A program elsewhere.
-	executablePath = func() (string, error) { return "/p/occ", nil }
-	// The folder.
-	if d, _ := defaultHistoryDir(); d != filepath.Join("/p", "history") {
-		// Report it.
-		t.Errorf("plain case gave %q", d)
-	} // end of the plain check
-	// Unknown program place: the config folder.
-	executablePath = func() (string, error) { return "", http.ErrNotSupported }
-	// A config folder.
+	// A configuration folder.
 	userConfigDir = func() (string, error) { return "/cfg", nil }
-	// The folder.
-	if d, _ := defaultHistoryDir(); d != filepath.Join("/cfg", "OllamaControlCenter", "history") {
-		// Report it.
-		t.Errorf("fallback gave %q", d)
-	} // end of the fallback check
+	// A program inside bin, and one elsewhere: the same answer.
+	for _, exe := range []string{"/p/OllamaControlCenter/bin/occ", "/p/occ"} {
+		// Use this program place.
+		executablePath = func() (string, error) { return exe, nil }
+		// The folder.
+		if d, _ := defaultHistoryDir(); d != filepath.Join("/cfg", "OllamaControlCenter", "history") {
+			// Report it.
+			t.Errorf("exe %q gave %q", exe, d)
+		} // end of the check
+	} // end of the loop
 	// Nothing at all.
 	userConfigDir = func() (string, error) { return "", http.ErrNotSupported }
 	// The folder and the reason.
 	if d, note := defaultHistoryDir(); d != "" || note == "" {
 		// Report it.
 		t.Errorf("no-folder case gave %q, %q", d, note)
-	} // end of the none check
+	} // end of the no-folder check
 } // end of TestDefaultHistoryDir
 
 // TestRestorePageSaysWhenNothingWasKept checks a model deleted without a snapshot says so on the restore page.

@@ -73,29 +73,17 @@ type historyStore struct {
 	note string
 } // end of historyStore
 
-// defaultHistoryDir picks the folder: "history" next to the program's folder (the same project folder as the performance results), or in the user's config folder when the program's place is unknown.
+// defaultHistoryDir picks the folder: "history" inside the program's data folder (the person's configuration folder, the same on every system); empty text and a reason mean nothing can be kept.
 func defaultHistoryDir() (string, string) {
-	// Next to the program, one level above a "bin" folder.
-	if exe, err := executablePath(); err == nil && exe != "" {
-		// The folder the program is in.
-		dir := filepath.Dir(exe)
-		// A program inside "bin" belongs to the project folder above it.
-		if filepath.Base(dir) == "bin" {
-			// Go one level up.
-			dir = filepath.Dir(dir)
-		} // end of the bin check
-		// The history folder.
-		return filepath.Join(dir, historyDirName), ""
-	} // end of the program check
-	// Otherwise the user's own config folder.
-	dir, err := userConfigDir()
-	// Nothing found.
-	if err != nil || dir == "" {
+	// The one data folder.
+	root := dataRoot()
+	// None found.
+	if root == "" {
 		// Say so in words.
 		return "", "No folder for the history was found, so no snapshots are kept."
 	} // end of the lookup check
-	// The history folder in the config folder.
-	return filepath.Join(dir, "OllamaControlCenter", historyDirName), ""
+	// The history folder in the data folder.
+	return filepath.Join(root, historyDirName), ""
 } // end of defaultHistoryDir
 
 // unsafeNameChars matches every character that is not safe inside a file name.

@@ -45,7 +45,7 @@ type perfStore struct {
 	note string
 } // end of perfStore
 
-// historyFolderName is the folder, next to the project, that holds the saved performance results.
+// historyFolderName is the folder, inside the data folder, that holds the saved performance results.
 const historyFolderName = "performanceCompare"
 
 // oldHistoryFolderName is the name earlier versions used for that folder (with a capital P); a folder with this name is moved to the new name once.
@@ -107,29 +107,17 @@ func mustStat(p string) os.FileInfo {
 // executablePath finds the running program; a test replaces it.
 var executablePath = os.Executable
 
-// defaultHistoryPath returns the history file: in a folder named performanceCompare next to the project (the program normally runs from the project's bin folder, so that is the folder above it), or, when the program's own place cannot be found, in the person's configuration folder; an empty text and a reason mean memory only.
+// defaultHistoryPath returns the results file: in a folder named performanceCompare inside the program's data folder (the person's configuration folder, the same on every system); an empty text and a reason mean memory only.
 func defaultHistoryPath() (string, string) {
-	// Where is the running program?
-	if exe, err := executablePath(); err == nil && exe != "" {
-		// The folder that holds it.
-		dir := filepath.Dir(exe)
-		// A program in a folder called bin belongs to the project one level up.
-		if filepath.Base(dir) == "bin" {
-			// Go up one level.
-			dir = filepath.Dir(dir)
-		} // end of the bin check
-		// The results live in their own folder there.
-		return filepath.Join(dir, historyFolderName, "performance.json"), ""
-	} // end of the program check
-	// Ask for the configuration folder instead.
-	dir, err := userConfigDir()
+	// The one data folder.
+	root := dataRoot()
 	// None found.
-	if err != nil || dir == "" {
+	if root == "" {
 		// Memory only.
 		return "", "No folder for the results was found, so they are kept only until the monitor stops."
 	} // end of the lookup check
-	// The file lives in a folder of its own.
-	return filepath.Join(dir, "OllamaControlCenter", "performance.json"), ""
+	// The results live in their own folder there.
+	return filepath.Join(root, historyFolderName, "performance.json"), ""
 } // end of defaultHistoryPath
 
 // openPerfStore opens the history at the given path (an empty path means memory only); a file that cannot be read is left untouched and the store stays in memory.
