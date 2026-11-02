@@ -62,7 +62,7 @@
 {{/* The warning about other machines: the page has no password. */}}
 <p class="warn"><strong>⚠</strong> If you let other machines open this page, anyone on your network can use its buttons (unload, delete, stop). The page has no password, so turn this on only on a network you trust.</p>
 {{/* Where the files are kept. */}}
-<p class="muted">Saved in <code>{{if .Folder}}{{.Folder}}{{else}}(no folder found: kept only until the monitor stops){{end}}</code>. The check history file holds only the time, the result and the answer time of each check: no model names and no prompts. Turning the history off deletes that file.</p>
+<p class="muted">Settings are saved in <code>{{if .Folder}}{{.Folder}}{{else}}(no folder found: kept only until the monitor stops){{end}}</code>. Results, saved copies and deleted models are saved in <code>{{if .DataFolder}}{{.DataFolder}}{{else}}(no folder found){{end}}</code>. The check history and the log are saved in <code>{{if .StateFolder}}{{.StateFolder}}{{else}}(no folder found){{end}}</code>. These are the standard places of this system. The check history file holds only the time, the result and the answer time of each check: no model names and no prompts. Turning the history off deletes that file.</p>
 {{/* The buttons. */}}
 <p><button type="submit" name="action" value="save" class="btn-plain">Save settings</button> <button type="submit" name="action" value="defaults" class="btn-plain">Back to defaults</button> <a class="btn-plain" href="/settings">Cancel</a></p>
 {{/* End of the form. */}}

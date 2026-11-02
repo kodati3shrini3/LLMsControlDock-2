@@ -168,9 +168,22 @@ func desktopFileText(exe, icon string) string {
 type desktopIcon struct {
 	// env is the operating system as seen by the program.
 	env desktopEnv
-	// dir is the settings folder (empty means no folder: nothing can be kept).
+	// dir is the settings folder (empty means no folder: nothing can be kept); the person's answer is kept there.
 	dir string
+	// dataDir is the data folder, where the icon picture is kept; empty means the same folder as dir.
+	dataDir string
 } // end of desktopIcon
+
+// iconDir returns the folder of the icon picture: the data folder when one is set, else the settings folder.
+func (d desktopIcon) iconDir() string {
+	// A data folder was set.
+	if d.dataDir != "" {
+		// Use it.
+		return d.dataDir
+	} // end of the data check
+	// Otherwise the settings folder.
+	return d.dir
+} // end of iconDir
 
 // available says whether this system can have a launcher (a desktop exists and the settings folder is known).
 func (d desktopIcon) available() bool {
@@ -299,14 +312,14 @@ func (d desktopIcon) create() error {
 		return errUnusualPath
 	} // end of the path check
 	// Where the picture goes.
-	icon := filepath.Join(d.dir, iconFileName)
+	icon := filepath.Join(d.iconDir(), iconFileName)
 	// The picture's path must be plain too.
 	if !safePathPattern.MatchString(icon) {
 		// Refuse.
 		return errUnusualPath
 	} // end of the icon path check
 	// Write the picture.
-	if err := writeFile(d.dir, iconFileName, appIcon); err != nil {
+	if err := writeFile(d.iconDir(), iconFileName, appIcon); err != nil {
 		// Report it.
 		return err
 	} // end of the picture check
@@ -339,9 +352,9 @@ func (d desktopIcon) remove() error {
 		} // end of the delete check
 	} // end of the launcher case
 	// The picture.
-	if d.dir != "" {
+	if d.iconDir() != "" {
 		// Delete it; a missing file is fine.
-		if err := os.Remove(filepath.Join(d.dir, iconFileName)); err != nil && !os.IsNotExist(err) {
+		if err := os.Remove(filepath.Join(d.iconDir(), iconFileName)); err != nil && !os.IsNotExist(err) {
 			// Report it.
 			return err
 		} // end of the delete check

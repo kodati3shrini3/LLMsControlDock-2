@@ -73,7 +73,7 @@ type historyStore struct {
 	note string
 } // end of historyStore
 
-// defaultHistoryDir picks the folder: "history" inside the program's data folder (the person's configuration folder, the same on every system); empty text and a reason mean nothing can be kept.
+// defaultHistoryDir picks the folder: "history" inside the program's data folder (each system's standard place for data, see datafolder.go); empty text and a reason mean nothing can be kept.
 func defaultHistoryDir() (string, string) {
 	// The one data folder.
 	root := dataRoot()

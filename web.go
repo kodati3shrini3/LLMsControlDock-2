@@ -151,7 +151,7 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	// Route: a POST request for "/textsize" saves the chosen text size in a cookie (the checks are in size.go).
 	mux.HandleFunc("POST /textsize", sizeHandler(token))
 	// The desktop icon: the launcher, and the answer to the first-run question.
-	desktop := desktopIcon{env: mon.denv, dir: mon.store.dir}
+	desktop := desktopIcon{env: mon.denv, dir: mon.store.dir, dataDir: dataRoot()}
 	// Route: a POST request for "/desktopicon" creates or removes the launcher, or records "no".
 	mux.HandleFunc("POST /desktopicon", desktopHandler(token, desktop))
 	// Route: a GET request for "/icon.png" sends the program's icon (the page header, the browser tab and the desktop icon use it).
@@ -192,8 +192,8 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	// Route: a POST request for "/modelfile" shows a model's Modelfile, read-only.
 	mux.HandleFunc("POST /modelfile", modelfileHandler(addr, token))
 	// Make the four performance handlers: the start page, the test run, and the two steps of clearing the saved results (the checks are in perfpage.go); the history lives in the person's configuration folder.
-	// Earlier versions kept the results, the deleted models and the snapshots next to the program; copy them once to the data folder (the old folders are left in place).
-	for _, msg := range migrateOldData(oldDataRoot(), dataRoot()) {
+	// Earlier versions kept the results, the deleted models and the snapshots next to the program (versions before 0.25.0) or in the configuration folder (version 0.25.0); copy them once to the data folder (the old folders are left in place).
+	for _, msg := range migrateOldData(dataRoot(), configRoot(), oldDataRoot()) {
 		// Say so in the log.
 		log.Print(msg)
 	} // end of the copy loop

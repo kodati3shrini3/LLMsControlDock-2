@@ -317,7 +317,11 @@ func perfRig(t *testing.T, f *perfFake) (themeRig, string) {
 	// Remember the real lookup.
 	old := userConfigDir
 	// Use the test folder.
+	// Keep the real lookups and put them back afterwards.
+	saveFolderLookups(t)
 	userConfigDir = func() (string, error) { return dir, nil }
+	// Data and state follow the same fake folder.
+	userDataDir, userStateDir = userConfigDir, userConfigDir
 	// Put it back at the end.
 	t.Cleanup(func() { userConfigDir = old })
 	// Start the fake and build the handler.
@@ -1080,6 +1084,8 @@ func TestMain(m *testing.M) {
 	} // end of the folder check
 	// Use it as the configuration folder.
 	userConfigDir = func() (string, error) { return dir, nil }
+	// Data and state follow the same folder.
+	userDataDir, userStateDir = userConfigDir, userConfigDir
 	// The program's own place is not used by the tests, so no test can write a folder next to the test program.
 	executablePath = func() (string, error) { return "", errors.New("not used in tests") }
 	// Run the tests.
@@ -1097,7 +1103,11 @@ func TestDefaultHistoryPath(t *testing.T) {
 	// Restore them.
 	t.Cleanup(func() { executablePath, userConfigDir = oldExe, oldCfg })
 	// A configuration folder.
+	// Keep the real lookups and put them back afterwards.
+	saveFolderLookups(t)
 	userConfigDir = func() (string, error) { return "/cfg", nil }
+	// Data and state follow the same fake folder.
+	userDataDir, userStateDir = userConfigDir, userConfigDir
 	// Wherever the program is, the answer is the same.
 	for _, exe := range []string{"/home/u/OllamaControlCenter/bin/OllamaControlCenter", "/opt/occ/OllamaControlCenter", ""} {
 		// Use this program place.
@@ -1111,7 +1121,11 @@ func TestDefaultHistoryPath(t *testing.T) {
 		} // end of the check
 	} // end of the loop
 	// No configuration folder: memory only, with a reason.
+	// Keep the real lookups and put them back afterwards.
+	saveFolderLookups(t)
 	userConfigDir = func() (string, error) { return "", errors.New("none") }
+	// Data and state follow the same fake folder.
+	userDataDir, userStateDir = userConfigDir, userConfigDir
 	// Ask.
 	if got, note := defaultHistoryPath(); got != "" || note == "" {
 		// Report it.

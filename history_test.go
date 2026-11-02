@@ -310,7 +310,11 @@ func TestDefaultHistoryDir(t *testing.T) {
 	// Put them back afterwards.
 	t.Cleanup(func() { executablePath, userConfigDir = oldExe, oldCfg })
 	// A configuration folder.
+	// Keep the real lookups and put them back afterwards.
+	saveFolderLookups(t)
 	userConfigDir = func() (string, error) { return "/cfg", nil }
+	// Data and state follow the same fake folder.
+	userDataDir, userStateDir = userConfigDir, userConfigDir
 	// A program inside bin, and one elsewhere: the same answer.
 	for _, exe := range []string{"/p/OllamaControlCenter/bin/occ", "/p/occ"} {
 		// Use this program place.
@@ -322,7 +326,11 @@ func TestDefaultHistoryDir(t *testing.T) {
 		} // end of the check
 	} // end of the loop
 	// Nothing at all.
+	// Keep the real lookups and put them back afterwards.
+	saveFolderLookups(t)
 	userConfigDir = func() (string, error) { return "", http.ErrNotSupported }
+	// Data and state follow the same fake folder.
+	userDataDir, userStateDir = userConfigDir, userConfigDir
 	// The folder and the reason.
 	if d, note := defaultHistoryDir(); d != "" || note == "" {
 		// Report it.

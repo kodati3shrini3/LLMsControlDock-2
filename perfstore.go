@@ -22,8 +22,8 @@ const historyFileVersion = 1
 // maxHistoryFile is the largest history file the monitor will read (8 MiB, far more than 200 runs need).
 const maxHistoryFile = 8 * 1024 * 1024
 
-// userConfigDir finds the person's configuration folder; a test replaces it so it never touches the real one.
-var userConfigDir = os.UserConfigDir
+// userConfigDir finds the base folder for configuration (see baseDirFor in datafolder.go); a test replaces it so it never touches the real one.
+var userConfigDir = osUserConfigDir
 
 // historyFile is the shape of the file on disk.
 type historyFile struct {
@@ -107,7 +107,7 @@ func mustStat(p string) os.FileInfo {
 // executablePath finds the running program; a test replaces it.
 var executablePath = os.Executable
 
-// defaultHistoryPath returns the results file: in a folder named performanceCompare inside the program's data folder (the person's configuration folder, the same on every system); an empty text and a reason mean memory only.
+// defaultHistoryPath returns the results file: in a folder named performanceCompare inside the program's data folder (each system's standard place for data, see datafolder.go); an empty text and a reason mean memory only.
 func defaultHistoryPath() (string, string) {
 	// The one data folder.
 	root := dataRoot()
