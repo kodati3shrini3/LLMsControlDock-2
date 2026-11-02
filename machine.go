@@ -6,12 +6,8 @@ import ( // import lists the standard-library packages this file uses.
 	"context"
 	// net/url holds the parsed address type.
 	"net/url"
-	// os reads the files that describe the machine.
-	"os"
 	// os/exec runs the graphics-card tool, only when it is already installed.
 	"os/exec"
-	// path/filepath joins the folder and file names.
-	"path/filepath"
 	// runtime tells how many processor cores there are.
 	"runtime"
 	// strconv turns text into numbers.
@@ -50,7 +46,7 @@ type machineSnapshot struct {
 	GPUUtil int `json:"gpu_util"`
 } // end of machineSnapshot
 
-// procDir is where Linux describes the machine; a test points it at a folder of its own.
+// procDir is where Linux describes the machine (used only by the Linux reader in sysinfo_linux.go); a test points it at a folder of its own.
 var procDir = "/proc"
 
 // gpuQuery asks the graphics-card tool for one CSV line; a test replaces it. The tool is never required.
@@ -80,36 +76,6 @@ func isLocalAddress(u *url.URL) bool {
 	return h == "127.0.0.1" || h == "localhost" || h == "::1"
 } // end of isLocalAddress
 
-// readKB reads the memory table of /proc/meminfo into a map of kilobytes.
-func readKB() map[string]float64 {
-	// The result.
-	out := map[string]float64{}
-	// Read the file; a missing file gives an empty table.
-	data, err := os.ReadFile(filepath.Join(procDir, "meminfo"))
-	// Not readable.
-	if err != nil {
-		// Nothing to report.
-		return out
-	} // end of the read check
-	// Go through the lines.
-	for _, line := range strings.Split(string(data), "\n") {
-		// A line looks like "MemTotal:  127000 kB".
-		f := strings.Fields(line)
-		// Skip lines of another shape.
-		if len(f) < 2 {
-			// Next line.
-			continue
-		} // end of the shape check
-		// Read the number.
-		if v, err := strconv.ParseFloat(f[1], 64); err == nil {
-			// Store it under the name without the colon.
-			out[strings.TrimSuffix(f[0], ":")] = v
-		} // end of the number check
-	} // end of the loop
-	// Hand back the table.
-	return out
-} // end of readKB
-
 // snapshotMachine reads what the machine says about itself; for Ollama on another computer it reports only that.
 func snapshotMachine(ctx context.Context, local bool) machineSnapshot {
 	// Start with "not reported" values.
@@ -123,44 +89,23 @@ func snapshotMachine(ctx context.Context, local bool) machineSnapshot {
 	} // end of the remote case
 	// The processor count is always known.
 	s.Cores = runtime.NumCPU()
-	// The processor name, when Linux lists one.
-	if data, err := os.ReadFile(filepath.Join(procDir, "cpuinfo")); err == nil {
-		// Look for the first "model name" line.
-		for _, line := range strings.Split(string(data), "\n") {
-			// Found.
-			if strings.HasPrefix(strings.ToLower(line), "model name") {
-				// Keep the text after the colon.
-				if i := strings.Index(line, ":"); i >= 0 {
-					// Trim spaces.
-					s.CPUName = strings.TrimSpace(line[i+1:])
-				} // end of the colon check
-				// Only the first one.
-				break
-			} // end of the name check
-		} // end of the loop
-	} // end of the cpuinfo read
-	// The load average: the first number is the last minute.
-	if data, err := os.ReadFile(filepath.Join(procDir, "loadavg")); err == nil {
-		// Split into numbers.
-		if f := strings.Fields(string(data)); len(f) > 0 {
-			// Read the first.
-			if v, err := strconv.ParseFloat(f[0], 64); err == nil {
-				// Keep it.
-				s.Load1 = v
-			} // end of the number check
-		} // end of the field check
-	} // end of the loadavg read
-	// Memory in kilobytes (1024 bytes each); gigabytes are decimal, like every size the monitor shows (1 GB = 1,000,000,000 bytes).
-	kb := readKB()
-	// Total and available memory.
-	s.MemTotalGB, s.MemFreeGB = kb["MemTotal"]*1024/1e9, kb["MemAvailable"]*1024/1e9
-	// Swap, only when the machine reports a swap total at all.
-	if t, ok := kb["SwapTotal"]; ok {
-		// Total swap.
-		s.SwapTotalGB = t * 1024 / 1e9
-		// Swap in use is total minus free.
-		s.SwapUsedGB = (t - kb["SwapFree"]) * 1024 / 1e9
-	} // end of the swap check
+	// The processor name, when the system gives one.
+	s.CPUName = readCPUName()
+	// The load average of the last minute, when the system has one (Windows has none).
+	if v := readLoad1(); v >= 0 {
+		// Keep it.
+		s.Load1 = v
+	} // end of the load check
+	// The memory figures, read the same way on every system; gigabytes are decimal, like every size the monitor shows (1 GB = 1,000,000,000 bytes).
+	if mi, err := readMemInfo(); err == nil {
+		// Total and available memory.
+		s.MemTotalGB, s.MemFreeGB = float64(mi.TotalBytes)/1e9, float64(mi.AvailBytes)/1e9
+		// Swap, only when the system reported it.
+		if mi.HaveSwap {
+			// Total swap and the part in use.
+			s.SwapTotalGB, s.SwapUsedGB = float64(mi.SwapTotalBytes)/1e9, float64(mi.SwapUsedBytes)/1e9
+		} // end of the swap check
+	} // end of the memory check
 	// The graphics card, when its own tool is already on the machine.
 	if line, err := gpuQuery(ctx); err == nil && line != "" {
 		// The line is "name, memory used, memory total, utilization".
