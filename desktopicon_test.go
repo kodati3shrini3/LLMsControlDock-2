@@ -513,3 +513,116 @@ func TestDesktopDeclineAndNoDesktop(t *testing.T) {
 		t.Errorf("icon route: %d %q", code, hdr.Get("Content-Type"))
 	} // end of the icon check
 } // end of TestDesktopDeclineAndNoDesktop
+
+// TestDesktopStaleness checks when the launcher counts as out of date.
+func TestDesktopStaleness(t *testing.T) {
+	// The pretend desktop and the two folders.
+	f := newFakeDesktop(t)
+	// The settings folder.
+	set := filepath.Join(f.home, ".config", "OllamaControlCenter")
+	// The data folder, where the picture lives now.
+	data := filepath.Join(f.home, ".local", "share", "OllamaControlCenter")
+	// The manager.
+	d := desktopIcon{env: f.env, dir: set, dataDir: data}
+	// No launcher: nothing to refresh.
+	if stale, _, _ := d.staleness(); stale {
+		// Report it.
+		t.Error("a missing launcher was called stale")
+	} // end of the missing check
+	// Create it: now it is current.
+	if err := d.create(); err != nil {
+		// Stop.
+		t.Fatal(err)
+	} // end of the create check
+	// Current.
+	if stale, _, _ := d.staleness(); stale {
+		// Report it.
+		t.Error("a fresh launcher was called stale")
+	} // end of the current check
+	// Path of the launcher.
+	path := filepath.Join(f.desk, desktopFileName)
+	// An old launcher: the picture is in the old place (as version 0.25.0 wrote it).
+	oldIcon := filepath.Join(set, iconFileName)
+	// Write it.
+	if err := os.WriteFile(path, []byte(desktopFileText(f.exe, oldIcon)), 0o755); err != nil {
+		// Stop.
+		t.Fatal(err)
+	} // end of the write check
+	// Stale, with both paths named.
+	stale, got, want := d.staleness()
+	// Compare.
+	if !stale || got != oldIcon || want != filepath.Join(data, iconFileName) {
+		// Report it.
+		t.Errorf("old icon: stale %v, old %q, new %q", stale, got, want)
+	} // end of the old-icon check
+	// A launcher for another copy of the program.
+	if err := os.WriteFile(path, []byte(desktopFileText(filepath.Join(f.home, "elsewhere", "occ"), filepath.Join(data, iconFileName))), 0o755); err != nil {
+		// Stop.
+		t.Fatal(err)
+	} // end of the write check
+	// Stale, with the same picture path.
+	stale, got, want = d.staleness()
+	// Compare.
+	if !stale || got != want {
+		// Report it.
+		t.Errorf("old program: stale %v, old %q, new %q", stale, got, want)
+	} // end of the old-program check
+	// Updating makes it current again.
+	if err := d.create(); err != nil {
+		// Stop.
+		t.Fatal(err)
+	} // end of the update check
+	// Current.
+	if stale, _, _ := d.staleness(); stale {
+		// Report it.
+		t.Error("still stale after the update")
+	} // end of the after check
+} // end of TestDesktopStaleness
+
+// TestDesktopStaleWarningOnPage checks the warning and the "Update the icon" button on the Settings page, and that the button fixes it.
+func TestDesktopStaleWarningOnPage(t *testing.T) {
+	// The rig.
+	r := newDesktopRig(t)
+	// A current launcher first.
+	d := desktopIcon{env: r.f.env, dir: r.mon.store.dir, dataDir: dataRoot()}
+	// Create it.
+	if err := d.create(); err != nil {
+		// Stop.
+		t.Fatal(err)
+	} // end of the create check
+	// The page: no warning.
+	_, _, body := get(t, r.h, http.MethodGet, "/settings")
+	// No warning, the usual button.
+	if strings.Contains(body, "out of date") || strings.Contains(body, "Update the icon") || !strings.Contains(body, "Create the icon again") {
+		// Report it.
+		t.Error("a current launcher shows a warning")
+	} // end of the current check
+	// Make the launcher old.
+	old := filepath.Join(r.mon.store.dir, iconFileName)
+	// Write it.
+	if err := os.WriteFile(filepath.Join(r.f.desk, desktopFileName), []byte(desktopFileText(r.f.exe, old)), 0o755); err != nil {
+		// Stop.
+		t.Fatal(err)
+	} // end of the write check
+	// The page: the warning and the button.
+	_, _, body = get(t, r.h, http.MethodGet, "/settings")
+	// Both must show, with the old path named.
+	if !strings.Contains(body, "out of date") || !strings.Contains(body, "Update the icon") || !strings.Contains(body, old) {
+		// Report it.
+		t.Errorf("no warning for an old launcher")
+	} // end of the stale check
+	// Press the button (the action is "create").
+	form := url.Values{"token": {r.token}, "action": {"create"}}
+	// Send it.
+	if resp := post(t, r.h, "/desktopicon", form, fromThisPage); resp.StatusCode != http.StatusSeeOther {
+		// Report it.
+		t.Errorf("update status = %d", resp.StatusCode)
+	} // end of the post check
+	// The page again: no warning.
+	_, _, body = get(t, r.h, http.MethodGet, "/settings")
+	// Gone.
+	if strings.Contains(body, "out of date") {
+		// Report it.
+		t.Error("the warning stayed after the update")
+	} // end of the fixed check
+} // end of TestDesktopStaleWarningOnPage

@@ -83,6 +83,12 @@ type settingsPage struct {
 	IconPath string
 	// IconNote is the plain sentence about what just happened (empty when nothing did).
 	IconNote string
+	// IconStale is true when the launcher on the desktop differs from what the program would write now.
+	IconStale bool
+	// IconOld is the picture path the launcher holds now.
+	IconOld string
+	// IconNew is the picture path the launcher should hold.
+	IconNew string
 } // end of settingsPage
 
 // iconNotes are the sentences shown after a desktop icon button; the address carries only the key, so no free text is ever echoed.
@@ -267,10 +273,12 @@ func settingsHandlers(addr ollamaAddress, mon *monitor, token string) (http.Hand
 		desk := desktopIcon{env: mon.denv, dir: mon.store.dir, dataDir: dataRoot()}
 		// The icon section's facts.
 		iconAvail, iconExists, iconPath := desk.available(), desk.exists(), desk.desktopPath()
+		// Whether the launcher is out of date, and the two picture paths.
+		iconStale, iconOld, iconNew := desk.staleness()
 		// The note after a button; unknown keys show nothing.
 		iconNote := iconNotes[r.URL.Query().Get("icon")]
 		// Everything the template needs.
-		data := settingsPage{IconAvailable: iconAvail, IconExists: iconExists, IconPath: iconPath, IconNote: iconNote, Theme: themeFromRequest(r), Size: sizeFromRequest(r), Token: token, Rows: rows, Problems: problems, Saved: saved, RestartNeeded: restart, Note: mon.store.noteText(), Folder: folder, DataFolder: dataFolder, StateFolder: stateFolder}
+		data := settingsPage{IconAvailable: iconAvail, IconExists: iconExists, IconPath: iconPath, IconNote: iconNote, IconStale: iconStale && iconAvail, IconOld: iconOld, IconNew: iconNew, Theme: themeFromRequest(r), Size: sizeFromRequest(r), Token: token, Rows: rows, Problems: problems, Saved: saved, RestartNeeded: restart, Note: mon.store.noteText(), Folder: folder, DataFolder: dataFolder, StateFolder: stateFolder}
 		// Build the page in memory first, so a template error gives a clean 500.
 		var buf bytes.Buffer
 		// Fill the template.
