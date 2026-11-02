@@ -285,21 +285,14 @@ func (d desktopIcon) decline() error {
 	return d.remember("declined")
 } // end of decline
 
-// create writes the icon picture next to the settings and the launcher on the desktop, then remembers the answer.
-func (d desktopIcon) create() error {
-	// A desktop must exist.
-	dir, ok := d.env.desktopDir()
-	// Refuse without one.
-	if !ok || d.dir == "" {
-		// Not supported.
-		return errDesktopUnsupported
-	} // end of the support check
+// launcherPaths returns the program path and the picture path a launcher should hold now, both checked to be plain; it returns an error when the program's place is unknown or holds unusual characters.
+func (d desktopIcon) launcherPaths() (string, string, error) {
 	// The program's own file.
 	exe, err := d.env.exePath()
 	// Report a failure.
 	if err != nil {
 		// Report it.
-		return err
+		return "", "", err
 	} // end of the program check
 	// The path as the system sees it.
 	if resolved, err := filepath.EvalSymlinks(exe); err == nil {
@@ -309,15 +302,86 @@ func (d desktopIcon) create() error {
 	// Only plain characters are allowed.
 	if !safePathPattern.MatchString(exe) {
 		// Refuse.
-		return errUnusualPath
+		return "", "", errUnusualPath
 	} // end of the path check
 	// Where the picture goes.
 	icon := filepath.Join(d.iconDir(), iconFileName)
 	// The picture's path must be plain too.
 	if !safePathPattern.MatchString(icon) {
 		// Refuse.
-		return errUnusualPath
+		return "", "", errUnusualPath
 	} // end of the icon path check
+	// Both are fine.
+	return exe, icon, nil
+} // end of launcherPaths
+
+// staleness says whether the launcher on the desktop differs from what the program would write now (for example after an upgrade moved the picture, or after the program was moved); it returns the picture path the launcher holds and the one it should hold. A missing or unreadable launcher is not stale, because there is nothing to refresh.
+func (d desktopIcon) staleness() (bool, string, string) {
+	// No launcher, nothing to refresh.
+	p := d.desktopPath()
+	// No desktop.
+	if p == "" {
+		// Not stale.
+		return false, "", ""
+	} // end of the path check
+	// Open the launcher.
+	f, err := os.Open(p)
+	// Missing: not stale.
+	if err != nil {
+		// Not stale.
+		return false, "", ""
+	} // end of the open check
+	// Close it at the end.
+	defer f.Close()
+	// Read at most 8 KiB; a real launcher is far smaller.
+	have, err := io.ReadAll(io.LimitReader(f, 8192))
+	// Unreadable: not stale.
+	if err != nil {
+		// Not stale.
+		return false, "", ""
+	} // end of the read check
+	// What the program would write now.
+	exe, icon, err := d.launcherPaths()
+	// Without plain paths nothing can be compared.
+	if err != nil {
+		// Not stale.
+		return false, "", ""
+	} // end of the paths check
+	// The same text: current.
+	if string(have) == desktopFileText(exe, icon) {
+		// Not stale.
+		return false, icon, icon
+	} // end of the compare
+	// The picture path the launcher holds now.
+	old := ""
+	// Look at each line.
+	for _, line := range strings.Split(string(have), "\n") {
+		// The picture line.
+		if strings.HasPrefix(line, "Icon=") {
+			// Keep the path.
+			old = strings.TrimPrefix(line, "Icon=")
+		} // end of the picture line
+	} // end of the line loop
+	// Stale.
+	return true, old, icon
+} // end of staleness
+
+// create writes the icon picture next to the data and the launcher on the desktop, then remembers the answer.
+func (d desktopIcon) create() error {
+	// A desktop must exist.
+	dir, ok := d.env.desktopDir()
+	// Refuse without one.
+	if !ok || d.dir == "" {
+		// Not supported.
+		return errDesktopUnsupported
+	} // end of the support check
+	// The paths the launcher should hold.
+	exe, icon, err := d.launcherPaths()
+	// Report a failure.
+	if err != nil {
+		// Report it.
+		return err
+	} // end of the paths check
 	// Write the picture.
 	if err := writeFile(d.iconDir(), iconFileName, appIcon); err != nil {
 		// Report it.
