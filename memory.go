@@ -6,16 +6,11 @@ import ( // import lists the standard-library packages this file uses.
 	"errors"
 	// net/url holds the parsed address type.
 	"net/url"
-	// os reads files.
-	"os"
 	// strconv turns the number text into a number.
 	"strconv"
 	// strings splits the file into lines.
 	"strings"
 ) // end of imports
-
-// meminfoPath is the Linux file that lists the computer's memory.
-const meminfoPath = "/proc/meminfo"
 
 // availableMemoryFunc reads the free memory; it is a variable so tests can replace it.
 var availableMemoryFunc = availableMemory
@@ -50,24 +45,22 @@ func parseMemAvailable(text string) (int64, bool) {
 	return 0, false
 } // end of parseMemAvailable
 
-// availableMemory returns how much memory programs can still use on this computer, in bytes (Linux only; other systems report an error).
+// availableMemory returns how much memory programs can still use on this computer, in bytes (Linux, Windows and macOS; other systems report an error).
 func availableMemory() (int64, error) {
-	// Read the file; on systems without it this fails, which is reported as unknown.
-	data, err := os.ReadFile(meminfoPath)
-	// No file.
+	// Read the figures the same way on every system.
+	mi, err := readMemInfo()
+	// The system did not report them.
 	if err != nil {
-		// A fixed message.
-		return 0, errors.New("this system does not report its free memory")
+		// Hand the reason back.
+		return 0, err
 	} // end of the read check
-	// Find the value.
-	n, ok := parseMemAvailable(string(data))
-	// Not found.
-	if !ok {
+	// A zero or negative figure means the value was not found.
+	if mi.AvailBytes <= 0 {
 		// A fixed message.
 		return 0, errors.New("the free memory could not be read")
-	} // end of the parse check
+	} // end of the value check
 	// Hand it back.
-	return n, nil
+	return mi.AvailBytes, nil
 } // end of availableMemory
 
 // ollamaIsLocal says whether the monitored Ollama runs on this same computer, so that this computer's free memory is the right number to show.
