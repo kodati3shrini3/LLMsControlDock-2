@@ -135,26 +135,39 @@ func (a appSettings) problems() []string {
 type settingsStore struct {
 	// mu protects everything below.
 	mu sync.Mutex
-	// dir is the folder of the files; empty means memory only.
+	// dir is the configuration folder (the settings); empty means memory only.
 	dir string
+	// stateDir is the state folder (the check history); empty means the same folder as dir.
+	stateDir string
 	// cur is the current settings.
 	cur appSettings
 	// note says why the file is not used or was ignored (empty when all is well).
 	note string
 } // end of settingsStore
 
-// settingsFolder finds the folder of the settings file; the second value is a plain note when none was found.
+// settingsFolder finds the configuration folder of the settings file (each system's standard place, see datafolder.go); the second value is a plain note when none was found.
 func settingsFolder() (string, string) {
-	// The person's configuration folder (a test replaces userConfigDir).
-	dir, err := userConfigDir()
+	// The program's own folder inside the configuration base (a test replaces userConfigDir).
+	dir := configRoot()
 	// No folder: memory only.
-	if err != nil || dir == "" {
+	if dir == "" {
 		// Say so.
 		return "", "No folder for the settings was found, so they are kept only until the monitor stops."
 	} // end of the lookup check
-	// The program's own folder inside it, the same one the performance results use.
-	return filepath.Join(dir, "OllamaControlCenter"), ""
+	// The folder.
+	return dir, ""
 } // end of settingsFolder
+
+// stateFolder returns the folder of the check history: the state folder when one is set, else the settings folder; empty means memory only.
+func (s *settingsStore) stateFolder() string {
+	// A state folder was set.
+	if s.stateDir != "" {
+		// Use it.
+		return s.stateDir
+	} // end of the state check
+	// Otherwise the settings folder.
+	return s.dir
+} // end of stateFolder
 
 // openSettingsStore reads the settings file when there is one; a damaged or out-of-range file is ignored with a note, never trusted.
 func openSettingsStore(dir, note string) *settingsStore {
@@ -293,15 +306,15 @@ func (s *settingsStore) put(a appSettings) error {
 				return err
 			} // end of the write check
 		} // end of the file case
-		// Without the history setting no history file may stay behind.
-		if !a.SaveHistory {
-			// Remove it; a missing file is fine.
-			if err := os.Remove(filepath.Join(s.dir, checkHistoryFileName)); err != nil && !os.IsNotExist(err) {
-				// Report it.
-				return err
-			} // end of the remove check
-		} // end of the history removal
 	} // end of the folder case
+	// Without the history setting no history file may stay behind.
+	if sf := s.stateFolder(); sf != "" && !a.SaveHistory {
+		// Remove it; a missing file is fine.
+		if err := os.Remove(filepath.Join(sf, checkHistoryFileName)); err != nil && !os.IsNotExist(err) {
+			// Report it.
+			return err
+		} // end of the remove check
+	} // end of the history removal
 	// Keep the new values.
 	s.cur = a
 	// A successful save clears an old note about an ignored file.
@@ -321,7 +334,7 @@ type checkHistoryFile struct {
 // saveSamples writes the check history to its file; it does nothing without a folder.
 func (s *settingsStore) saveSamples(items []sample) error {
 	// Without a folder there is nowhere to write.
-	if s.dir == "" {
+	if s.stateFolder() == "" {
 		// Nothing to do.
 		return nil
 	} // end of the memory case
@@ -333,18 +346,18 @@ func (s *settingsStore) saveSamples(items []sample) error {
 		return err
 	} // end of the encode check
 	// Write it.
-	return writeFile(s.dir, checkHistoryFileName, data)
+	return writeFile(s.stateFolder(), checkHistoryFileName, data)
 } // end of saveSamples
 
 // loadSamples reads the saved check history and keeps the checks inside the window; a missing or damaged file gives nothing.
 func (s *settingsStore) loadSamples(window time.Duration, now time.Time) []sample {
 	// Without a folder there is nothing to read.
-	if s.dir == "" {
+	if s.stateFolder() == "" {
 		// Nothing.
 		return nil
 	} // end of the memory case
 	// Open the file.
-	f, err := os.Open(filepath.Join(s.dir, checkHistoryFileName))
+	f, err := os.Open(filepath.Join(s.stateFolder(), checkHistoryFileName))
 	// A missing file is normal.
 	if err != nil {
 		// Nothing.

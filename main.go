@@ -149,8 +149,15 @@ func main() {
 	// Choose the Ollama address by precedence: option, then environment variable, then default.
 	// The saved settings are read first (a damaged file is ignored with a note).
 	dir, dirNote := settingsFolder()
+	// Version 0.25.0 kept the check history and the icon picture in the configuration folder; copy them once to the state and data folders (the old files are left in place).
+	for _, msg := range migrateOldFiles(dir, dataRoot(), stateRoot()) {
+		// Say so in the log.
+		log.Print(msg)
+	} // end of the copy loop
 	// Open the store.
 	store := openSettingsStore(dir, dirNote)
+	// The check history belongs in the state folder.
+	store.stateDir = stateRoot()
 	// Tell the person when the file was ignored.
 	if n := store.noteText(); n != "" {
 		// Print the note.
@@ -195,7 +202,7 @@ func main() {
 		// The address the page is served on, by the same precedence as below.
 		la, _ := chooseListen(*listen, listenGiven(), store.get().AllowOthers)
 		// Run it and leave with its exit code.
-		os.Exit(runLaunch(launchURL(la), store.dir))
+		os.Exit(runLaunch(launchURL(la), store.stateFolder()))
 	} // end of the launch mode
 	mon := newMonitorWith(store)
 	// The real desktop, so the first-run banner and the Settings buttons can place the icon.

@@ -244,7 +244,11 @@ func delRig(t *testing.T) (themeRig, *delFake, string) {
 	// Use it as the config folder (the tests never learn the program's own path).
 	old := userConfigDir
 	// The replacement.
+	// Keep the real lookups and put them back afterwards.
+	saveFolderLookups(t)
 	userConfigDir = func() (string, error) { return dir, nil }
+	// Data and state follow the same fake folder.
+	userDataDir, userStateDir = userConfigDir, userConfigDir
 	// Put it back afterwards.
 	t.Cleanup(func() { userConfigDir = old })
 	// The fake library; every path answers 404 until a test says otherwise, and the real network is never used.

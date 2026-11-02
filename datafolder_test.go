@@ -12,6 +12,8 @@ import ( // import lists the packages this test file uses.
 	"strings"
 	// testing is Go's built-in test framework.
 	"testing"
+	// time gives the moment of a check.
+	"time"
 ) // end of imports
 
 // writeTestFile writes one file for a test, making its folder first.
@@ -68,14 +70,22 @@ func TestDataRootAndOldDataRoot(t *testing.T) {
 	// Put them back afterwards.
 	t.Cleanup(func() { executablePath, userConfigDir = oldExe, oldCfg })
 	// A configuration folder.
+	// Keep the real lookups and put them back afterwards.
+	saveFolderLookups(t)
 	userConfigDir = func() (string, error) { return "/cfg", nil }
+	// Data and state follow the same fake folder.
+	userDataDir, userStateDir = userConfigDir, userConfigDir
 	// The new folder.
 	if got := dataRoot(); got != filepath.Join("/cfg", "OllamaControlCenter") {
 		// Report the problem.
 		t.Errorf("dataRoot = %q", got)
 	} // end of the new-folder check
 	// No configuration folder.
+	// Keep the real lookups and put them back afterwards.
+	saveFolderLookups(t)
 	userConfigDir = func() (string, error) { return "", errors.New("none") }
+	// Data and state follow the same fake folder.
+	userDataDir, userStateDir = userConfigDir, userConfigDir
 	// Nothing.
 	if got := dataRoot(); got != "" {
 		// Report the problem.
@@ -121,7 +131,7 @@ func TestMigrateOldData(t *testing.T) {
 	// A snapshot.
 	writeTestFile(t, filepath.Join(oldRoot, "history", "2026-11-02_17-54-00+0100_m.json"), "SNAP")
 	// Copy.
-	msgs := migrateOldData(oldRoot, newRoot)
+	msgs := migrateOldData(newRoot, oldRoot)
 	// One sentence per folder.
 	if len(msgs) != 3 {
 		// Report the problem.
@@ -177,7 +187,7 @@ func TestMigrateOldData(t *testing.T) {
 	// New data is never overwritten by a second start, even when the old files change.
 	writeTestFile(t, filepath.Join(oldRoot, "performanceCompare", "performance.json"), "CHANGED")
 	// Second start.
-	if msgs := migrateOldData(oldRoot, newRoot); len(msgs) != 0 {
+	if msgs := migrateOldData(newRoot, oldRoot); len(msgs) != 0 {
 		// Report the problem.
 		t.Errorf("second run: %q", msgs)
 	} // end of the second-run check
@@ -199,7 +209,7 @@ func TestMigrateSkipsOtherPeoplesFolders(t *testing.T) {
 	// Another one.
 	writeTestFile(t, filepath.Join(oldRoot, "history", "report.pdf"), "X")
 	// Copy.
-	if msgs := migrateOldData(oldRoot, newRoot); len(msgs) != 0 {
+	if msgs := migrateOldData(newRoot, oldRoot); len(msgs) != 0 {
 		// Report the problem.
 		t.Errorf("messages: %q", msgs)
 	} // end of the message check
@@ -209,7 +219,7 @@ func TestMigrateSkipsOtherPeoplesFolders(t *testing.T) {
 		t.Error("a folder was created for somebody else's files")
 	} // end of the creation check
 	// Unknown or equal places do nothing.
-	if migrateOldData("", newRoot) != nil || migrateOldData(oldRoot, "") != nil || migrateOldData(oldRoot, oldRoot) != nil {
+	if migrateOldData(newRoot, "") != nil || migrateOldData("", oldRoot) != nil || migrateOldData(oldRoot, oldRoot) != nil {
 		// Report the problem.
 		t.Error("an unknown or equal place did something")
 	} // end of the place check
@@ -234,7 +244,7 @@ func TestMigrateRules(t *testing.T) {
 	// A leftover temporary folder from an earlier attempt.
 	writeTestFile(t, filepath.Join(newRoot, "performanceCompare.copying", "junk.json"), "junk")
 	// Copy.
-	if msgs := migrateOldData(oldRoot, newRoot); len(msgs) != 1 || !strings.Contains(msgs[0], "Copied 1 saved file(s)") {
+	if msgs := migrateOldData(newRoot, oldRoot); len(msgs) != 1 || !strings.Contains(msgs[0], "Copied 1 saved file(s)") {
 		// Report the problem.
 		t.Fatalf("messages: %q", msgs)
 	} // end of the message check
@@ -256,7 +266,7 @@ func TestMigrateRules(t *testing.T) {
 		t.Fatalf("fixture: %v", err)
 	} // end of the folder check
 	// Copy again.
-	if msgs := migrateOldData(oldRoot, newRoot); len(msgs) != 0 {
+	if msgs := migrateOldData(newRoot, oldRoot); len(msgs) != 0 {
 		// Report the problem.
 		t.Errorf("an existing folder was touched: %q", msgs)
 	} // end of the existing check
@@ -284,7 +294,11 @@ func TestStartupCopiesOldData(t *testing.T) {
 	// The configuration folder.
 	cfg := filepath.Join(base, "cfg")
 	// Use it.
+	// Keep the real lookups and put them back afterwards.
+	saveFolderLookups(t)
 	userConfigDir = func() (string, error) { return cfg, nil }
+	// Data and state follow the same fake folder.
+	userDataDir, userStateDir = userConfigDir, userConfigDir
 	// Build the web interface the way the program does.
 	handlerFor(t, "http://127.0.0.1:11434")
 	// The old results are now in the data folder.
@@ -293,3 +307,172 @@ func TestStartupCopiesOldData(t *testing.T) {
 		t.Errorf("not copied at start-up: %q, %v", b, err)
 	} // end of the copy check
 } // end of TestStartupCopiesOldData
+
+// saveFolderLookups remembers the three folder lookups and puts them back when the test ends.
+func saveFolderLookups(t *testing.T) {
+	// Remember the current ones.
+	c, d, s := userConfigDir, userDataDir, userStateDir
+	// Put them back at the end.
+	t.Cleanup(func() { userConfigDir, userDataDir, userStateDir = c, d, s })
+} // end of saveFolderLookups
+
+// TestBaseDirFor checks the standard folders of every system, from each system's own rules, without needing that system.
+func TestBaseDirFor(t *testing.T) {
+	// A fixed home folder lookup.
+	home := func() (string, error) { return "/home/ann", nil }
+	// A lookup from a map.
+	env := func(m map[string]string) func(string) string { return func(k string) string { return m[k] } }
+	// The cases.
+	for _, tc := range []struct {
+		// name describes the case.
+		name string
+		// goos is the system.
+		goos string
+		// kind is config, data or state.
+		kind string
+		// env is the environment.
+		env map[string]string
+		// want is the expected folder.
+		want string
+		// fail says an error is expected.
+		fail bool
+	}{
+		// Linux defaults (XDG Base Directory Specification).
+		{"linux config", "linux", kindConfig, nil, "/home/ann/.config", false},
+		{"linux data", "linux", kindData, nil, "/home/ann/.local/share", false},
+		{"linux state", "linux", kindState, nil, "/home/ann/.local/state", false},
+		// Linux with the variables set.
+		{"linux xdg data", "linux", kindData, map[string]string{"XDG_DATA_HOME": "/x/data"}, "/x/data", false},
+		{"linux xdg state", "linux", kindState, map[string]string{"XDG_STATE_HOME": "/x/state"}, "/x/state", false},
+		// A relative path is invalid and ignored, as the specification says.
+		{"linux relative ignored", "linux", kindConfig, map[string]string{"XDG_CONFIG_HOME": "rel/path"}, "/home/ann/.config", false},
+		// Windows: roaming for configuration, local for data and state.
+		{"windows config", "windows", kindConfig, map[string]string{"AppData": `C:\Users\ann\AppData\Roaming`, "LocalAppData": `C:\Users\ann\AppData\Local`}, `C:\Users\ann\AppData\Roaming`, false},
+		{"windows data", "windows", kindData, map[string]string{"AppData": `C:\R`, "LocalAppData": `C:\L`}, `C:\L`, false},
+		{"windows state", "windows", kindState, map[string]string{"AppData": `C:\R`, "LocalAppData": `C:\L`}, `C:\L`, false},
+		{"windows missing", "windows", kindData, nil, "", true},
+		// macOS: Application Support for all three.
+		{"mac config", "darwin", kindConfig, nil, "/home/ann/Library/Application Support", false},
+		{"mac data", "darwin", kindData, nil, "/home/ann/Library/Application Support", false},
+		{"mac state", "darwin", kindState, nil, "/home/ann/Library/Application Support", false},
+	} { // end of the cases
+		// Ask.
+		got, err := baseDirFor(tc.goos, tc.kind, env(tc.env), home)
+		// Compare.
+		if (err != nil) != tc.fail || got != tc.want {
+			// Report the problem.
+			t.Errorf("%s: got %q, %v; want %q (fail=%v)", tc.name, got, err, tc.want, tc.fail)
+		} // end of the compare
+	} // end of the loop
+	// No home folder on Linux and macOS.
+	noHome := func() (string, error) { return "", errors.New("none") }
+	// Both must fail.
+	if _, err := baseDirFor("linux", kindData, env(nil), noHome); err == nil {
+		// Report the problem.
+		t.Error("linux without a home folder was accepted")
+	} // end of the Linux check
+	// macOS.
+	if _, err := baseDirFor("darwin", kindData, env(nil), noHome); err == nil {
+		// Report the problem.
+		t.Error("macOS without a home folder was accepted")
+	} // end of the macOS check
+} // end of TestBaseDirFor
+
+// TestThreeRootsAndMoves checks the three folders and the copying of version 0.25.0's files to them.
+func TestThreeRootsAndMoves(t *testing.T) {
+	// Keep and restore the lookups.
+	saveFolderLookups(t)
+	// A fresh place with three base folders.
+	base := t.TempDir()
+	// The base folders.
+	userConfigDir = func() (string, error) { return filepath.Join(base, "c"), nil }
+	// Data.
+	userDataDir = func() (string, error) { return filepath.Join(base, "d"), nil }
+	// State.
+	userStateDir = func() (string, error) { return filepath.Join(base, "s"), nil }
+	// The three roots.
+	cfg, data, state := configRoot(), dataRoot(), stateRoot()
+	// Each has the program's own folder.
+	if cfg != filepath.Join(base, "c", "OllamaControlCenter") || data != filepath.Join(base, "d", "OllamaControlCenter") || state != filepath.Join(base, "s", "OllamaControlCenter") {
+		// Report the problem.
+		t.Fatalf("roots: %q %q %q", cfg, data, state)
+	} // end of the roots check
+	// Version 0.25.0 kept everything in the configuration folder.
+	writeTestFile(t, filepath.Join(cfg, "settings.json"), `{}`)
+	// The history file.
+	writeTestFile(t, filepath.Join(cfg, checkHistoryFileName), `{"version":1}`)
+	// The icon picture.
+	writeTestFile(t, filepath.Join(cfg, iconFileName), `png`)
+	// The results.
+	writeTestFile(t, filepath.Join(cfg, "performanceCompare", "performance.json"), `{"runs":[]}`)
+	// Copy the folders and the files.
+	msgs := append(migrateOldData(data, cfg, ""), migrateOldFiles(cfg, data, state)...)
+	// Three copies were made.
+	if len(msgs) != 3 {
+		// Report the problem.
+		t.Errorf("messages: %v", msgs)
+	} // end of the count check
+	// Each file is in its proper folder.
+	for _, p := range []string{filepath.Join(data, "performanceCompare", "performance.json"), filepath.Join(data, iconFileName), filepath.Join(state, checkHistoryFileName)} {
+		// It must exist.
+		if _, err := os.Stat(p); err != nil {
+			// Report the problem.
+			t.Errorf("missing %s: %v", p, err)
+		} // end of the check
+	} // end of the loop
+	// The old files stay, and the settings stay where they are.
+	for _, p := range []string{filepath.Join(cfg, "settings.json"), filepath.Join(cfg, checkHistoryFileName), filepath.Join(cfg, iconFileName)} {
+		// It must still exist.
+		if _, err := os.Stat(p); err != nil {
+			// Report the problem.
+			t.Errorf("old file gone %s: %v", p, err)
+		} // end of the check
+	} // end of the loop
+	// A second run copies nothing (no overwrite).
+	if again := append(migrateOldData(data, cfg, ""), migrateOldFiles(cfg, data, state)...); len(again) != 0 {
+		// Report the problem.
+		t.Errorf("second run: %v", again)
+	} // end of the second-run check
+	// The same folder for all three (macOS): nothing to move.
+	if m := migrateOldFiles(cfg, cfg, cfg); len(m) != 0 {
+		// Report the problem.
+		t.Errorf("same folder: %v", m)
+	} // end of the same-folder check
+} // end of TestThreeRootsAndMoves
+
+// TestHistoryUsesStateFolder checks that the check history is written to and read from the state folder, and removed from it when the history is turned off.
+func TestHistoryUsesStateFolder(t *testing.T) {
+	// Two folders.
+	cfg, state := t.TempDir(), t.TempDir()
+	// A store with both.
+	s := openSettingsStore(cfg, "")
+	// The state folder.
+	s.stateDir = state
+	// Save one check.
+	now := time.Now()
+	// Write.
+	if err := s.saveSamples([]sample{{At: now, Online: true}}); err != nil {
+		// Report the problem.
+		t.Fatal(err)
+	} // end of the save check
+	// It is in the state folder, not the settings folder.
+	if _, err := os.Stat(filepath.Join(state, checkHistoryFileName)); err != nil {
+		// Report the problem.
+		t.Errorf("not in the state folder: %v", err)
+	} // end of the state check
+	// Not in the configuration folder.
+	if _, err := os.Stat(filepath.Join(cfg, checkHistoryFileName)); err == nil {
+		// Report the problem.
+		t.Error("history written to the configuration folder")
+	} // end of the config check
+	// Turning the history off removes it.
+	if err := s.put(appSettings{OllamaURL: "http://127.0.0.1:11434"}); err != nil {
+		// Report the problem.
+		t.Fatal(err)
+	} // end of the put check
+	// Gone.
+	if _, err := os.Stat(filepath.Join(state, checkHistoryFileName)); err == nil {
+		// Report the problem.
+		t.Error("history file stayed behind")
+	} // end of the removal check
+} // end of TestHistoryUsesStateFolder
