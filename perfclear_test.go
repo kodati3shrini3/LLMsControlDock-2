@@ -207,7 +207,7 @@ func TestClearAllKeepsACopy(t *testing.T) {
 		t.Errorf("copy is wrong: %v %+v", err, got)
 	} // end of the content check
 	// Only this user may read it.
-	if st, _ := os.Stat(files[0]); st.Mode().Perm() != 0o600 {
+	if st, _ := os.Stat(files[0]); modesApply() && st.Mode().Perm() != 0o600 {
 		// Report the problem.
 		t.Errorf("copy mode %v, want 0600", st.Mode().Perm())
 	} // end of the mode check

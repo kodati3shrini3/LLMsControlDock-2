@@ -1,0 +1,13 @@
+# Line endings: source, web, script and workflow files always use LF, on every system, so the tests and gofmt give the same result on Windows, macOS and Linux (Go's own tools expect LF).
+*.go text eol=lf
+*.html text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.sh text eol=lf
+go.mod text eol=lf
+go.sum text eol=lf
+# Pictures and the built program are binary: never changed.
+*.png binary

@@ -119,12 +119,12 @@ func TestDeleteSavesSnapshotFirst(t *testing.T) {
 		t.Fatalf("history files: %v", names)
 	} // end of the count check
 	// Its mode.
-	if info, _ := os.Stat(filepath.Join(hd, names[0])); info.Mode().Perm() != 0o600 {
+	if info, _ := os.Stat(filepath.Join(hd, names[0])); modesApply() && info.Mode().Perm() != 0o600 {
 		// Report it.
 		t.Errorf("file mode %o, want 600", info.Mode().Perm())
 	} // end of the file mode check
 	// The folder mode.
-	if info, _ := os.Stat(hd); info.Mode().Perm() != 0o700 {
+	if info, _ := os.Stat(hd); modesApply() && info.Mode().Perm() != 0o700 {
 		// Report it.
 		t.Errorf("folder mode %o, want 700", info.Mode().Perm())
 	} // end of the folder mode check

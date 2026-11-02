@@ -142,8 +142,8 @@ func TestSettingsStoreRoundTrip(t *testing.T) {
 		// Stop.
 		t.Fatal(err)
 	} // end of the stat check
-	// Owner only (not on Windows, where the bits mean little).
-	if info.Mode().Perm()&0o077 != 0 {
+	// Owner only (not checked on Windows: see modesApply).
+	if modesApply() && info.Mode().Perm()&0o077 != 0 {
 		// Report it.
 		t.Errorf("settings file mode %v is readable by others", info.Mode().Perm())
 	} // end of the mode check

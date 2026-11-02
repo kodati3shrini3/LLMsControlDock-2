@@ -454,7 +454,7 @@ func TestDeleteConfirmDeletesAndRemembers(t *testing.T) {
 		t.Fatalf("no deleted-models file: %v", err)
 	} // end of the file check
 	// Owner only.
-	if info.Mode().Perm() != 0o600 {
+	if modesApply() && info.Mode().Perm() != 0o600 {
 		// Report it.
 		t.Errorf("file mode %o, want 600", info.Mode().Perm())
 	} // end of the mode check
@@ -971,7 +971,7 @@ func TestOldDeletedFileMovesToTheNewFolder(t *testing.T) {
 		t.Errorf("the old file is still there")
 	} // end of the old-file check
 	// The new folder is private.
-	if st, err := os.Stat(filepath.Dir(newFile)); err != nil || st.Mode().Perm() != 0o700 {
+	if st, err := os.Stat(filepath.Dir(newFile)); err != nil || (modesApply() && st.Mode().Perm() != 0o700) {
 		// Report it.
 		t.Errorf("folder mode %v, error %v", st, err)
 	} // end of the mode check

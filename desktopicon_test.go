@@ -18,6 +18,8 @@ import ( // import lists the packages this test file uses.
 	"path/filepath"
 	// regexp finds the page token.
 	"regexp"
+	// runtime tells which system the test runs on.
+	"runtime"
 	// strings searches the page text.
 	"strings"
 	// testing is Go's test framework.
@@ -44,8 +46,18 @@ type fakeDesktop struct {
 func newFakeDesktop(t *testing.T) fakeDesktop {
 	// Mark this as a helper.
 	t.Helper()
-	// The pretend home.
-	home := t.TempDir()
+	// The desktop icon is offered on Linux only and its paths are Unix paths, so a Windows test run has nothing to check here.
+	if runtime.GOOS == "windows" {
+		// Skip with the reason.
+		t.Skip("the desktop icon is offered on Linux only; its paths are Unix paths")
+	} // end of the Windows check
+	// The pretend home, with symbolic links resolved (on macOS the temporary folder /var is really /private/var, and the program resolves links too).
+	home, err := filepath.EvalSymlinks(t.TempDir())
+	// A failure means the test itself is wrong.
+	if err != nil {
+		// Stop.
+		t.Fatal(err)
+	} // end of the home check
 	// Its desktop folder.
 	desk := filepath.Join(home, "Desktop")
 	// Make it.
