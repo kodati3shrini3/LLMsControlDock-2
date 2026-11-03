@@ -12,6 +12,8 @@ import ( // import lists the standard-library packages this file uses.
 	"fmt"
 	// log prints timestamped messages to the terminal.
 	"log"
+	// net takes the port before the server starts, so a busy port gets a clear message.
+	"net"
 	// net/http is Go's built-in web server (standard library only, requirement T1).
 	"net/http"
 	// os reads environment variables and ends the program with an exit code.
@@ -218,6 +220,15 @@ func main() {
 	// The server, with the monitor built into the web interface.
 	server := &http.Server{Addr: listenAddr, Handler: hostGuard(newWebHandlerWith(addr, defaultCheckTimeout, mon), listenAddr), ReadHeaderTimeout: 5 * time.Second}
 
+	// Take the port first, so a busy port gets a clear message and not a half-started program.
+	ln, listenErr := net.Listen("tcp", listenAddr)
+	// The port could not be taken.
+	if listenErr != nil {
+		// Say why in plain words, and what to do.
+		log.Print(listenFailureMessage(listenAddr, listenErr))
+		// Leave with the error code.
+		os.Exit(1)
+	} // end of the listen check
 	// Tell the person which address we are about to serve on.
 	log.Printf("OllamaControlCenter listening on http://%s (from %s; press Ctrl+C to stop)", listenAddr, listenSource)
 	// Closed when the shutdown that the Stop button started has finished.
@@ -246,8 +257,8 @@ func main() {
 	}) // end of stopRequest
 	// From here on Ctrl+C and a termination request (SIGTERM) stop the program as cleanly as the Stop button does; the first one asks politely, a second one quits at once.
 	startStopSignals()
-	// Start serving; this call blocks (waits) until the server stops or fails, for example if the port is taken.
-	err = server.ListenAndServe()
+	// Start serving on the port we hold; this call blocks (waits) until the server stops or fails.
+	err = server.Serve(ln)
 	// A shutdown asked for by the Stop button is a normal end, not an error.
 	if errors.Is(err, http.ErrServerClosed) {
 		// Wait until the shutdown has finished.
