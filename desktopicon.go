@@ -63,12 +63,16 @@ type desktopEnv struct {
 	exePath func() (string, error)
 	// trust runs the best-effort "trust this launcher" step on a file (it may do nothing).
 	trust func(path string)
+	// knownDesktop asks Windows for the Desktop folder (nil elsewhere).
+	knownDesktop func() (string, error)
+	// run runs a tool with extra environment variables (used for the Windows shortcut).
+	run func(exe string, env []string, args ...string) error
 } // end of desktopEnv
 
 // realDesktopEnv is the environment of the running program.
 func realDesktopEnv() desktopEnv {
 	// The real functions.
-	return desktopEnv{goos: runtime.GOOS, getenv: os.Getenv, homeDir: os.UserHomeDir, exePath: os.Executable, trust: gioTrust}
+	return desktopEnv{goos: runtime.GOOS, getenv: os.Getenv, homeDir: os.UserHomeDir, exePath: os.Executable, trust: gioTrust, knownDesktop: osKnownDesktop, run: realToolRun}
 } // end of realDesktopEnv
 
 // noDesktopEnv is an environment with no desktop at all; tests use it so a test never touches a real desktop.
@@ -90,13 +94,57 @@ func gioTrust(path string) {
 	_ = exec.Command(gio, "set", path, "metadata::trusted", "true").Run()
 } // end of gioTrust
 
-// desktopDir finds the person's desktop folder: the one named in the user's folder list when there is one, else "Desktop" in the home folder; it must exist.
+// desktopDir finds the person's desktop folder on the three supported systems.
 func (e desktopEnv) desktopDir() (string, bool) {
-	// Only Linux is supported for now.
-	if e.goos != "linux" {
+	// Each system keeps its desktop in its own way.
+	switch e.goos {
+	// Linux: the user's folder list or "Desktop" in the home folder.
+	case "linux":
+		// Look there.
+		return e.linuxDesktopDir()
+	// Windows: the Known Folder, which follows a Desktop that was moved (for example into OneDrive).
+	case "windows":
+		// Not available without the lookup.
+		if e.knownDesktop == nil {
+			// Not supported.
+			return "", false
+		} // end of the lookup check
+		// Ask Windows.
+		dir, err := e.knownDesktop()
+		// Not found.
+		if err != nil || dir == "" {
+			// Not supported.
+			return "", false
+		} // end of the result check
+		// Found.
+		return dir, true
+	// macOS: the Desktop folder in the home folder (macOS always keeps it there).
+	case "darwin":
+		// The home folder.
+		home, err := e.homeDir()
+		// Without it nothing can be found.
+		if err != nil || home == "" {
+			// Not supported.
+			return "", false
+		} // end of the home check
+		// The folder must exist.
+		dir := filepath.Join(home, "Desktop")
+		// Check it.
+		if info, err := os.Stat(dir); err != nil || !info.IsDir() {
+			// Not supported.
+			return "", false
+		} // end of the folder check
+		// Found.
+		return dir, true
+	// Any other system.
+	default:
 		// Not supported.
 		return "", false
-	} // end of the system check
+	} // end of the system switch
+} // end of desktopDir
+
+// linuxDesktopDir finds the Linux desktop folder: the one named in the user's folder list when there is one, else "Desktop" in the home folder; it must exist.
+func (e desktopEnv) linuxDesktopDir() (string, bool) {
 	// A graphical session must exist; a server without a screen has no desktop.
 	if e.getenv("XDG_CURRENT_DESKTOP") == "" && e.getenv("DISPLAY") == "" && e.getenv("WAYLAND_DISPLAY") == "" {
 		// No desktop.
@@ -138,7 +186,7 @@ func (e desktopEnv) desktopDir() (string, bool) {
 	} // end of the folder check
 	// Found.
 	return dir, true
-} // end of desktopDir
+} // end of linuxDesktopDir
 
 // desktopFileText builds the launcher file; exe and icon are plain paths (checked before), and Terminal=false means no window opens.
 func desktopFileText(exe, icon string) string {
@@ -208,7 +256,7 @@ func (d desktopIcon) desktopPath() string {
 		return ""
 	} // end of the desktop check
 	// The launcher's path.
-	return filepath.Join(dir, desktopFileName)
+	return filepath.Join(dir, launcherName(d.env.goos))
 } // end of desktopPath
 
 // exists says whether the launcher is on the desktop now.
@@ -317,6 +365,11 @@ func (d desktopIcon) launcherPaths() (string, string, error) {
 
 // staleness says whether the launcher on the desktop differs from what the program would write now (for example after an upgrade moved the picture, or after the program was moved); it returns the picture path the launcher holds and the one it should hold. A missing or unreadable launcher is not stale, because there is nothing to refresh.
 func (d desktopIcon) staleness() (bool, string, string) {
+	// Only the Linux launcher is a text file that can be compared.
+	if d.env.goos != "linux" {
+		// Not checked.
+		return false, "", ""
+	} // end of the system check
 	// No launcher, nothing to refresh.
 	p := d.desktopPath()
 	// No desktop.
@@ -375,6 +428,17 @@ func (d desktopIcon) create() error {
 		// Not supported.
 		return errDesktopUnsupported
 	} // end of the support check
+	// Windows and macOS have their own kinds of launcher.
+	switch d.env.goos {
+	// A real shortcut.
+	case "windows":
+		// Make it.
+		return d.createWindows(dir)
+	// An application bundle.
+	case "darwin":
+		// Make it.
+		return d.createMac(dir)
+	} // end of the system switch
 	// The paths the launcher should hold.
 	exe, icon, err := d.launcherPaths()
 	// Report a failure.
@@ -409,19 +473,22 @@ func (d desktopIcon) create() error {
 func (d desktopIcon) removeFiles() error {
 	// The launcher.
 	if p := d.desktopPath(); p != "" {
-		// Delete it; a missing file is fine.
-		if err := os.Remove(p); err != nil && !os.IsNotExist(err) {
+		// Delete it; a missing one is fine.
+		if err := removeLauncher(p); err != nil {
 			// Report it.
 			return err
 		} // end of the delete check
 	} // end of the launcher case
-	// The picture.
+	// The pictures: the PNG of the Linux launcher and the ICO of the Windows shortcut.
 	if d.iconDir() != "" {
-		// Delete it; a missing file is fine.
-		if err := os.Remove(filepath.Join(d.iconDir(), iconFileName)); err != nil && !os.IsNotExist(err) {
-			// Report it.
-			return err
-		} // end of the delete check
+		// Both names; a missing file is fine.
+		for _, name := range []string{iconFileName, icoFileName} {
+			// Delete one.
+			if err := os.Remove(filepath.Join(d.iconDir(), name)); err != nil && !os.IsNotExist(err) {
+				// Report it.
+				return err
+			} // end of the delete check
+		} // end of the picture loop
 	} // end of the picture case
 	// Done.
 	return nil

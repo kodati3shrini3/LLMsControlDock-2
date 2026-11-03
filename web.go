@@ -93,6 +93,8 @@ type pageData struct {
 	DesktopBanner bool
 	// DesktopDir and DesktopExe are the folder and the program the question names.
 	DesktopDir, DesktopExe string
+	// DesktopHint is the extra sentence for this system (empty on most).
+	DesktopHint string
 	// DetailsTip is the help bubble of the twistie "Monitoring details".
 	DetailsTip tipView
 	// KeyOpen is true when the person opened the key to the symbols (the address then ends in ?key=open); the page does not update by itself meanwhile.
@@ -352,7 +354,7 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 		// The result of the icon button, shown once: read the short-lived note and delete it, so the automatic reload does not show it again.
 		if c, err := r.Cookie(iconFlashCookie); err == nil {
 			// Only the known words show a sentence.
-			data.IconNote = iconNotes[c.Value]
+			data.IconNote = iconNoteFor(c.Value, desktop.env.goos)
 			// Delete the note.
 			http.SetCookie(w, &http.Cookie{Name: iconFlashCookie, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteStrictMode})
 		} // end of the note check
@@ -364,6 +366,8 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 			data.DesktopDir, _ = desktop.env.desktopDir()
 			// The program.
 			data.DesktopExe, _ = desktop.env.exePath()
+			// The hint that belongs to this system.
+			data.DesktopHint = desktopHint(desktop.env.goos)
 		} // end of the banner check
 		// The lists that the event log compares; they stay empty when Ollama cannot be read.
 		var evInstalled []installedModel

@@ -28,7 +28,7 @@
 {{/* The question. */}}
 <p class="iconquestion"><img class="appicon" src="/icon.png" width="40" height="40" alt=""> <strong>Create a desktop icon for OllamaControlCenter?</strong></p>
 {{/* What it does and where it goes. */}}
-<p class="muted">One click on it starts the monitor (if it is not running) and opens this page in your browser. It is created in <code>{{.DesktopDir}}</code> and points to <code>{{.DesktopExe}}</code>. On Ubuntu you may have to right-click the icon once and choose <strong>Allow Launching</strong>. You can remove it later on the Settings page.</p>
+<p class="muted">One click on it starts the monitor (if it is not running) and opens this page in your browser. It is created in <code>{{.DesktopDir}}</code> and points to <code>{{.DesktopExe}}</code>. {{.DesktopHint}} You can remove it later on the Settings page.</p>
 {{/* The two answers: one small form with the page token. */}}
 <form method="post" action="/desktopicon">
 {{/* The page token proves the form comes from this page. */}}
