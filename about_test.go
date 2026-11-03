@@ -57,7 +57,7 @@ func TestAboutPageShowsTheRequiredFacts(t *testing.T) {
 		// The assistant with its version.
 		"Claude (Sonnet 5.5), Anthropic",
 		// The dedication, exactly as the developer wrote it.
-		"Dedicated to my daughter Meghna, without whom I would never have had the inspiration to develop this.",
+		"Dedicated to my daughter Meghna, without whom I would never have had the inspiration to develop this program.",
 		// The version.
 		appVersion,
 		// The short revision, twelve characters.

@@ -104,6 +104,8 @@ func fetchInstalled(ctx context.Context, base *url.URL, timeout time.Duration) (
 		// Pass the safe error on, with no models.
 		return nil, err
 	} // end of the fetch check
+	// Some Ollama versions do not put the capabilities or the context length into the list; ask /api/show for those models (see capfallback.go).
+	fillFromShow(ctx, base, timeout, reply.Models)
 	// Return the list (it may be empty on a machine with no models).
 	return reply.Models, nil
 } // end of fetchInstalled

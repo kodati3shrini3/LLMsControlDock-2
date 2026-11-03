@@ -63,6 +63,8 @@ type showReply struct {
 	Modelfile string `json:"modelfile"`
 	// ModelInfo holds the model's own facts; each value stays raw text until it is needed, so a long list inside it costs nothing.
 	ModelInfo map[string]json.RawMessage `json:"model_info"`
+	// Capabilities lists what the model can do (for example completion, vision, embedding); the Ollama API documentation lists it for /api/show since version 0.6.4.
+	Capabilities []string `json:"capabilities"`
 } // end of showReply
 
 // paramLine is one saved parameter, such as num_ctx with 8192.
