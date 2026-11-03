@@ -26,7 +26,7 @@ import ( // import lists the packages this file uses.
 var aboutTemplateText string
 
 // appVersion is the version of Ollama Control Center; it is raised by hand when a release is made.
-const appVersion = "0.29.1"
+const appVersion = "0.30.0"
 
 // appDeveloper is the name of the developer, shown on the About page.
 const appDeveloper = "Shrinivas Kodati"
@@ -38,7 +38,7 @@ const appDeveloperProfile = "https://www.linkedin.com/in/shrinikodati/"
 const appAssistant = "Claude (Sonnet 5.5), Anthropic"
 
 // appDedication is the dedication shown on the About page.
-const appDedication = "Dedicated to Ms. Meghna Kodati, without whom I would never have had the inspiration to develop this."
+const appDedication = "Dedicated to my daughter Meghna, without whom I would never have had the inspiration to develop this."
 
 // appCopyright is the copyright line shown on the About page.
 const appCopyright = "© 2026 Shrinivas Kodati. All rights reserved."

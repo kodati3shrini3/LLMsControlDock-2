@@ -2472,3 +2472,51 @@ html[data-size="medium"] svg[width="22"] {
   /* A gap between picture and ring. */
   outline-offset: 2px;
 } /* end of rule */
+
+/* The problem dialog of the System check: a modal window with a solid outline, so it stands out without colour. */
+.attention {
+  /* The page colours. */
+  background: var(--bg);
+  /* Text colour. */
+  color: var(--text);
+  /* A thick solid outline. */
+  border: 3px solid var(--text);
+  /* Rounded like the panels. */
+  border-radius: 0.5rem;
+  /* Room inside. */
+  padding: 1rem 1.25rem;
+  /* Never wider than the screen. */
+  max-width: min(42rem, 92vw);
+  /* Never taller than the screen; long text scrolls inside. */
+  max-height: 88vh;
+  /* Scroll inside when long. */
+  overflow-y: auto;
+} /* end of rule */
+
+/* The dimmed page behind the dialog. */
+.attention::backdrop {
+  /* A dark veil. */
+  background: rgba(0, 0, 0, 0.6);
+} /* end of rule */
+
+/* One problem inside the dialog. */
+.attprob {
+  /* A line above each problem. */
+  border-top: 1px solid var(--border);
+  /* Space above. */
+  margin-top: 0.75rem;
+  /* Space inside. */
+  padding-top: 0.5rem;
+} /* end of rule */
+
+/* Long web addresses may break instead of widening the dialog. */
+.attention a, .attention code {
+  /* Break anywhere when needed. */
+  overflow-wrap: anywhere;
+} /* end of rule */
+
+/* The title is focused when the dialog opens, so the top is read first; it needs no ring because it is not a control. */
+.attention h2:focus {
+  /* No ring on the title. */
+  outline: none;
+} /* end of rule */

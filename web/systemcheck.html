@@ -39,12 +39,27 @@
 <p class="warn" role="alert"><strong>&#9888;</strong> Ollama was not found at <code>{{.Address}}</code>. <strong>This tool works with Ollama only.</strong> It does not work with other model servers such as vLLM. Install and start Ollama (ollama.com), or set its address under Settings.</p>
 {{if .Reason}}<p class="muted">{{.Reason}}</p>{{end}}
 {{end}}
+{{/* What this tool needs: the Ollama and Go versions it was tested with, and the systems it was tested on. Dates inside the text name their time zone. */}}
+<h2>What this tool needs</h2>
+<table class="settingtable"><tbody>
+{{/* The lowest Ollama version on which every feature was tested. */}}
+<tr><th scope="row">Ollama, minimum version</th><td><strong>{{.Env.MinOllama}}</strong><br><span class="muted">The lowest version on which every feature of this tool was tested. This is the developer&rsquo;s own testing, not a minimum published by Ollama. Older versions may work in part.</span></td></tr>
+{{/* Every Ollama version that was tested, with what was seen. */}}
+<tr><th scope="row">Ollama, versions tested</th><td>{{range $i, $l := .Env.Tested}}{{if $i}}<br>{{end}}<strong>{{$l.Label}}</strong>: {{$l.Text}}{{end}}</td></tr>
+{{/* The version found on this computer. */}}
+<tr><th scope="row">Ollama, found here</th><td>{{.Env.Found}}</td></tr>
+{{/* Go: not needed to run. */}}
+<tr><th scope="row">Go</th><td>Not needed to run this tool. This program was built with <strong>{{.Env.GoBuilt}}</strong>. The project is developed and tested with Go <strong>{{.Env.GoTested}}</strong>; to build it from source, use the Go version named in the project&rsquo;s <code>go.mod</code> file.</td></tr>
+{{/* The six builds and how far each was tested. */}}
+<tr><th scope="row">Systems tested</th><td>{{range $i, $l := .Env.Systems}}{{if $i}}<br>{{end}}<strong>{{$l.Label}}</strong>: {{$l.Text}}{{end}}</td></tr>
+</tbody></table>
+{{/* The three verdicts: this Ollama version, this Go version, this system. */}}
+{{template "level" .Env.OllamaVerdict}}
+{{template "level" .Env.GoVerdict}}
+{{template "level" .Env.SystemVerdict}}
 <h2>Against Ollama&rsquo;s published minimums</h2>
 {{range .Findings}}
-{{if eq .Level "ok"}}<p class="okline"><span class="symbol" aria-hidden="true">&#10004;</span> {{.Text}}</p>
-{{else if eq .Level "warn"}}<p class="warn"><strong>&#9888;</strong> {{.Text}}</p>
-{{else}}<p class="okline"><span class="symbol" aria-hidden="true">&#8505;</span> {{.Text}}</p>
-{{end}}
+{{template "level" .}}
 {{end}}
 <p class="muted">Source: {{.Source}}. It states no minimum for processor, memory or graphics memory, so these are shown without a verdict. A model larger than the graphics memory runs partly on the processor and is slower. Anything the system did not report is shown as &ldquo;not reported&rdquo; and is never guessed.</p>
 {{/* The two choices side by side, each with its tooltip. */}}
@@ -57,6 +72,26 @@
 {{/* Uninstall: only goes to the confirmation page; nothing is removed yet. */}}
 <span class="tipbox"><a class="btn-solid btn-danger" href="/uninstall" aria-describedby="tipuninstall">Uninstall this tool</a><span class="tip" role="tooltip" id="tipuninstall">Removes the desktop icon and this program&rsquo;s saved settings, results and history, after you confirm. Your Ollama and its models are not touched. You then delete the program file yourself.</span></span>
 </div>
+{{/* The problem dialog: present only when something needs fixing. The script opens it as a modal window; OK closes it with no script, because the button is a form of method dialog. The report above stays on the page. */}}
+{{if .Problems}}
+<dialog id="attention" class="attention" role="alertdialog" aria-labelledby="attentiontitle" aria-describedby="attentionintro">
+<form method="dialog">
+<h2 id="attentiontitle" tabindex="-1" autofocus><span aria-hidden="true">&#9888;</span> Please fix {{if eq (len .Problems) 1}}this problem{{else}}these problems{{end}}</h2>
+<p id="attentionintro">The System check found something that stops this tool from working fully. The steps below come from the vendors&rsquo; own pages. This report stays on the screen after you press OK.</p>
+{{range .Problems}}
+<section class="attprob">
+<h3>{{.Title}}</h3>
+<p>{{.Why}}</p>
+{{if .Steps}}<ol>{{range .Steps}}<li>{{.Text}}{{if .Cmd}}<br><code>{{.Cmd}}</code>{{end}}</li>{{end}}</ol>{{end}}
+{{if .NoFix}}<p><strong>{{.NoFix}}</strong></p>{{end}}
+{{if .Links}}<p class="muted">Official pages:</p><ul>{{range .Links}}<li>{{.Text}}: <a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.URL}}</a></li>{{end}}</ul>{{end}}
+</section>
+{{end}}
+<div class="choices"><button type="submit" class="btn-solid">OK</button></div>
+</form>
+</dialog>
+<script src="/attention.js" defer></script>
+{{end}}
 {{/* Version 2: the uninstall question. */}}
 {{else if eq .Kind "uninstall"}}
 <h1>Uninstall OllamaControlCenter</h1>
@@ -118,3 +153,8 @@
 </main>
 </body>{{/* end of the visible page. */}}
 </html>{{/* end of the page. */}}
+{{/* The shared block for one verdict line: a level (ok, warn or info) and a sentence. The symbol and the words always appear together, so colour is never the only signal. */}}
+{{define "level"}}{{if eq .Level "ok"}}<p class="okline"><span class="symbol" aria-hidden="true">&#10004;</span> {{.Text}}</p>
+{{else if eq .Level "warn"}}<p class="warn"><strong>&#9888;</strong> {{.Text}}</p>
+{{else}}<p class="okline"><span class="symbol" aria-hidden="true">&#8505;</span> {{.Text}}</p>
+{{end}}{{end}}
