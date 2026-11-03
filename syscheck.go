@@ -136,8 +136,12 @@ type sysPage struct {
 	Reason string
 	// Findings are the verdict lines.
 	Findings []finding
+	// Problems are the things to fix; when there are any, the page opens a dialog with the steps, and otherwise it shows none.
+	Problems []problem
 	// Source names the page the verdicts come from.
 	Source string
+	// Env is the "What this tool needs" section: the Ollama and Go versions it was tested with, and the systems it was tested on.
+	Env envView
 	// Items are the things an uninstall removes.
 	Items []uninstallItem
 	// Program is the full path of the program file the person deletes.
@@ -350,6 +354,11 @@ func systemCheckHandlers(addr ollamaAddress, mon *monitor, token string, desktop
 			// Stop here.
 			return
 		} // end of the template check
+		// A page with a problem dialog may run the monitor's own script, and nothing else.
+		if len(data.Problems) > 0 {
+			// Replace the strict policy by the one that allows the script file.
+			w.Header().Set("Content-Security-Policy", contentSecurityPolicyWithScript)
+		} // end of the script policy
 		// Tell the browser this is an HTML page.
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		// Send the page.
@@ -390,7 +399,10 @@ func systemCheckHandlers(addr ollamaAddress, mon *monitor, token string, desktop
 		// Ask Ollama once.
 		res := checkOllama(r.Context(), addr.URL, mon.timeoutOr(defaultCheckTimeout))
 		// Fill in the page.
-		send(w, r, sysPage{Kind: "report", Rows: reportRows(rep), Online: res.Online, Address: addr.URL.Redacted(), Version: res.Version, Reason: res.Reason, Findings: judgeReport(rep), Source: ollamaGPUSource})
+		// The verdict lines and the requirements.
+		findings, env := judgeReport(rep), buildEnvView(res.Online, res.Version, reportOS, reportArch)
+		// Fill in the page; the problems decide whether the dialog is shown.
+		send(w, r, sysPage{Kind: "report", Rows: reportRows(rep), Online: res.Online, Address: addr.URL.Redacted(), Version: res.Version, Reason: res.Reason, Findings: findings, Source: ollamaGPUSource, Env: env, Problems: collectProblems(res.Online, addr.URL.Redacted(), reportOS, env, findings)})
 	} // end of show
 	// cont: remember the answer and open the monitor.
 	cont = func(w http.ResponseWriter, r *http.Request) {

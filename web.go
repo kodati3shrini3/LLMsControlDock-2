@@ -292,6 +292,8 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	mux.HandleFunc("GET /copy.js", copyHandler)
 	// Route: a GET request for "/loading.js" sends the small script that shows the waiting message while a model loads (only the load warning page uses it).
 	mux.HandleFunc("GET /loading.js", loadingHandler)
+	// Route: a GET request for "/attention.js" sends the small script that opens the problem dialog (only the System check page uses it, and only when it found a problem).
+	mux.HandleFunc("GET /attention.js", attentionHandler)
 	// Route: a GET request for exactly "/" shows the page; other paths get 404 and other methods get 405 from the router.
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
 		// The very first start: show the System check once, before the monitor.
