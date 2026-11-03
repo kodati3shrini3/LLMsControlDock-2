@@ -32,9 +32,9 @@ done # end of the loop
 # Collect the secret-looking files outside git and build folders; they are listed at the end and never copied.
 mapfile -t SECRETS < <(find . \( -path ./.git -o -path ./bin -o -path ./export2chat \) -prune -o -type f \( "${SECRET_ARGS[@]}" \) -print | sort)
 
-# Collect the files to copy, one path per line (the allow-list): Go source and tests, module files, requirements, git ignore list, labels file, and the web folder.
+# Collect the files to copy, one path per line (the allow-list): Go source and tests, module files, git ignore list, labels file, and the web folder.
 mapfile -t WANTED < <( { \
-  find . -maxdepth 1 -type f \( -name '*.go' -o -name 'go.mod' -o -name 'go.sum' -o -name '.gitignore' -o -name 'OllamaControlCenter.txt' -o -name 'README*' -o -name 'project-labels.json' \) -print; \
+  find . -maxdepth 1 -type f \( -name '*.go' -o -name 'go.mod' -o -name 'go.sum' -o -name '.gitignore' -o -name 'README*' -o -name 'project-labels.json' \) -print; \
   find ./web -type f -print 2> /dev/null; \
   for num in $KEEP_SCRIPTS; do find ./scripts -maxdepth 1 -type f -name "${num}-*.sh" -print 2> /dev/null; done; \
 } | sed 's|^\./||' | sort -u)
