@@ -1,0 +1,120 @@
+{{/* System check pages: the report, the uninstall question and the uninstall result. The comments are template comments, so they never reach the browser. */}}
+<!DOCTYPE html>
+{{/* lang tells screen readers which language the page is written in. */}}
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}{{if .Size}} data-size="{{.Size}}"{{end}}>
+<head>{{/* start of the head. */}}
+{{/* Text encoding. */}}
+<meta charset="utf-8">
+{{/* Fit the page to the width of the screen on phones. */}}
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* Both colour schemes are supported. */}}
+<meta name="color-scheme" content="light dark">
+{{/* The title shown on the browser tab. */}}
+<title>{{if eq .Kind "report"}}System check{{else}}Uninstall{{end}} - OllamaControlCenter</title>
+{{/* Our one stylesheet. */}}
+<link rel="stylesheet" href="/app.css">
+</head>{{/* end of the head. */}}
+<body>{{/* start of the visible page. */}}
+<main>
+{{/* A panel that holds the content. */}}
+<section class="panel">
+{{/* After the monitor has stopped there is nothing to go back to, and on the very first start the monitor opens only through Continue, so those pages have no arrow. */}}
+{{if and (ne .Kind "removed") (not .First)}}
+{{/* The back arrow in the top right corner: a round link to the monitor; it only follows a link and changes nothing. */}}
+<span class="tipbox backtop"><a class="backcircle" href="/" aria-label="Back to the monitor" aria-describedby="tipback"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg></a><span class="tip tip-icon" role="tooltip" id="tipback">Back to the monitor</span></span>
+{{end}}
+{{/* Version 1: the report. */}}
+{{if eq .Kind "report"}}
+<h1>System check</h1>
+<p>OllamaControlCenter helps you switch between models while you develop applications, and shows how large language models perform. Here is what this computer offers.</p>
+<h2>This computer</h2>
+{{/* The facts of this computer; a figure the system did not give says "not reported". */}}
+<table class="settingtable"><tbody>
+{{range .Rows}}<tr><th scope="row">{{.Label}}</th><td>{{range $i, $l := .Lines}}{{if $i}}<br>{{end}}{{$l}}{{end}}{{if .Note}}<br><span class="muted">{{.Note}}</span>{{end}}</td></tr>
+{{end}}</tbody></table>
+<h2>Ollama</h2>
+{{if .Online}}
+<p class="okline"><span class="symbol" aria-hidden="true">&#10004;</span> Ollama was found at <code>{{.Address}}</code>{{if .Version}} (version {{.Version}}){{end}}.</p>
+{{else}}
+<p class="warn" role="alert"><strong>&#9888;</strong> Ollama was not found at <code>{{.Address}}</code>. <strong>This tool works with Ollama only.</strong> It does not work with other model servers such as vLLM. Install and start Ollama (ollama.com), or set its address under Settings.</p>
+{{if .Reason}}<p class="muted">{{.Reason}}</p>{{end}}
+{{end}}
+<h2>Against Ollama&rsquo;s published minimums</h2>
+{{range .Findings}}
+{{if eq .Level "ok"}}<p class="okline"><span class="symbol" aria-hidden="true">&#10004;</span> {{.Text}}</p>
+{{else if eq .Level "warn"}}<p class="warn"><strong>&#9888;</strong> {{.Text}}</p>
+{{else}}<p class="okline"><span class="symbol" aria-hidden="true">&#8505;</span> {{.Text}}</p>
+{{end}}
+{{end}}
+<p class="muted">Source: {{.Source}}. It states no minimum for processor, memory or graphics memory, so these are shown without a verdict. A model larger than the graphics memory runs partly on the processor and is slower. Anything the system did not report is shown as &ldquo;not reported&rdquo; and is never guessed.</p>
+{{/* The two choices side by side, each with its tooltip. */}}
+<div class="choices">
+{{/* Continue: records the answer and opens the monitor. */}}
+<form method="post" action="/systemcheck/continue">
+<input type="hidden" name="token" value="{{.Token}}">
+<span class="tipbox"><button type="submit" class="btn-solid btn-go" aria-describedby="tipcontinue">Continue to the monitor</button><span class="tip" role="tooltip" id="tipcontinue">Open the monitor. This report stays available later under System check, and you will not be asked again.</span></span>
+</form>
+{{/* Uninstall: only goes to the confirmation page; nothing is removed yet. */}}
+<span class="tipbox"><a class="btn-solid btn-danger" href="/uninstall" aria-describedby="tipuninstall">Uninstall this tool</a><span class="tip" role="tooltip" id="tipuninstall">Removes the desktop icon and this program&rsquo;s saved settings, results and history, after you confirm. Your Ollama and its models are not touched. You then delete the program file yourself.</span></span>
+</div>
+{{/* Version 2: the uninstall question. */}}
+{{else if eq .Kind "uninstall"}}
+<h1>Uninstall OllamaControlCenter</h1>
+{{/* After the tool has been in use: the impact, in words, before anything else. */}}
+{{if not .First}}
+<p class="warn" role="alert"><strong>&#9888; This cannot be undone.</strong> Uninstalling permanently deletes what this tool has collected on this computer:</p>
+<ul>
+<li>your settings (Ollama address, intervals, theme),</li>
+<li>the performance test results and the comparison copies you saved,</li>
+<li>the list of deleted models, and the check history behind the charts,</li>
+<li>the desktop icon.</li>
+</ul>
+<p>Not touched: Ollama and your models, and the program file itself. The monitor stops when you confirm.</p>
+{{else}}
+<p>Nothing has been collected yet. Nothing is deleted until you press OK.</p>
+<p class="muted">Not touched: Ollama and your models, and the program file itself.</p>
+{{end}}
+{{if .Items}}
+<table class="settingtable"><thead><tr><th scope="col">What</th><th scope="col">Where</th></tr></thead><tbody>
+{{range .Items}}<tr><th scope="row">{{.What}}</th><td>{{.Where}}</td></tr>
+{{end}}</tbody></table>
+{{else}}
+<p>There is nothing to remove: no desktop icon and no saved folders were found. You can still stop the monitor here and see which program file to delete.</p>
+{{end}}
+{{/* The word did not match last time. */}}
+{{if .WordWrong}}<p class="warn" role="alert"><strong>&#9888;</strong> The word was not <code>uninstall</code>, so nothing was removed. Type it exactly, or press Cancel.</p>{{end}}
+<form method="post" action="/uninstall/confirm">
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* After use: the typed word; the browser checks it first, and the program checks it again. */}}
+{{if not .First}}
+<p><label for="confirmword"><strong>Type <code>uninstall</code> to confirm</strong></label><br>
+<input id="confirmword" class="wordbox" name="confirm" type="text" required pattern="[Uu][Nn][Ii][Nn][Ss][Tt][Aa][Ll][Ll]" title="Type the word uninstall" autocomplete="off" autocapitalize="off" spellcheck="false" aria-describedby="tipword"></p>
+<span class="muted" id="tipword">OK works only when this word is typed exactly (capital letters do not matter).</span>
+{{end}}
+<div class="choices">
+{{/* OK: the real removal, then the monitor stops. */}}
+{{if .Items}}<span class="tipbox"><button type="submit" class="btn-solid btn-danger" aria-describedby="tipyes">OK, uninstall</button><span class="tip" role="tooltip" id="tipyes">Deletes the items above and stops the monitor. This cannot be undone.</span></span>{{else}}<span class="tipbox"><button type="submit" class="btn-solid btn-danger" aria-describedby="tipyes">OK, stop the monitor</button><span class="tip" role="tooltip" id="tipyes">Nothing is deleted. The monitor stops and the program file to delete is shown.</span></span>{{end}}
+{{/* The safe choice goes back to the report and changes nothing. */}}
+<span class="tipbox"><a class="btn-plain" href="/systemcheck" aria-describedby="tipno">Cancel</a><span class="tip" role="tooltip" id="tipno">Nothing is removed. You return to the System check.</span></span>
+</div>
+</form>
+{{/* Version 3: the result. */}}
+{{else}}
+<h1>The monitor has stopped</h1>
+{{if .Items}}
+<table class="settingtable"><thead><tr><th scope="col">What</th><th scope="col">Where</th><th scope="col">Result</th></tr></thead><tbody>
+{{range .Items}}<tr><th scope="row">{{.What}}</th><td>{{.Where}}</td><td>{{.Result}}</td></tr>
+{{end}}</tbody></table>
+{{else}}
+<p>There was nothing to remove.</p>
+{{end}}
+<p>To finish, delete the program file yourself (a running program cannot reliably delete itself):</p>
+{{if .Program}}<p><code>{{.Program}}</code></p>{{else}}<p class="muted">The location of the program file could not be found; it is the file you started.</p>{{end}}
+<p class="muted">Ollama and its models were not touched.</p>
+{{end}}
+{{/* End of the panel. */}}
+</section>
+{{/* End of the content. */}}
+</main>
+</body>{{/* end of the visible page. */}}
+</html>{{/* end of the page. */}}
