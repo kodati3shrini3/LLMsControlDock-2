@@ -222,8 +222,8 @@ func main() {
 	log.Printf("OllamaControlCenter listening on http://%s (from %s; press Ctrl+C to stop)", listenAddr, listenSource)
 	// Closed when the shutdown that the Stop button started has finished.
 	stopped := make(chan struct{})
-	// The Stop button's last step: shut the web server down, waiting at most 5 seconds for requests that are still running.
-	stopRequest = func() {
+	// The last step of every stop (the Stop button, Ctrl+C, a termination request): shut the web server down, waiting at most 5 seconds for requests that are still running; onceStop makes it run only the first time it is asked.
+	stopRequest = onceStop(func() {
 		// In the background, so the request that asked for it can finish.
 		go func() {
 			// A time limit for the polite shutdown.
@@ -243,15 +243,17 @@ func main() {
 			// Tell main that it can leave.
 			close(stopped)
 		}() // end of the goroutine
-	} // end of stopRequest
+	}) // end of stopRequest
+	// From here on Ctrl+C and a termination request (SIGTERM) stop the program as cleanly as the Stop button does; the first one asks politely, a second one quits at once.
+	startStopSignals()
 	// Start serving; this call blocks (waits) until the server stops or fails, for example if the port is taken.
 	err = server.ListenAndServe()
 	// A shutdown asked for by the Stop button is a normal end, not an error.
 	if errors.Is(err, http.ErrServerClosed) {
 		// Wait until the shutdown has finished.
 		<-stopped
-		// Say why the program ends.
-		log.Printf("OllamaControlCenter stopped from its page")
+		// Say why the program ends: from its page, or by Ctrl+C or a termination request.
+		log.Printf("OllamaControlCenter stopped %s", currentStopReason())
 		// Leave with the success code.
 		return
 	} // end of the normal stop
