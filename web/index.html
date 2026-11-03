@@ -581,22 +581,22 @@
 </section>
 {{/* End of the main content. */}}
 </main>
-{{/* The footer bar: the company, its tagline, a way to the About page and a way to the company website. */}}
+{{/* The footer bar: the company logo (a link to the company website), its tagline, and the ways to the System check and the About page. */}}
 <footer class="brandbar" aria-label="About this program and its developer">
 {{/* The logo and the words on the left; the logo carries the company name for screen readers. */}}
 <div class="brandwho">
-{{/* The miniature logo, served from this program. */}}
-<img class="brandlogo" src="/termgate-logo.png" width="89" height="48" alt="termGate Consulting logo">
+{{/* The miniature logo, served from this program; it is also the link to the company website, in a new window with no link back and no referrer. */}}
+<span class="tipbox"><a class="brandlogolink" href="{{.FooterURL}}" target="_blank" rel="noopener noreferrer" aria-describedby="tiplogo"><img class="brandlogo" src="/termgate-logo.png" width="89" height="48" alt="termGate Consulting logo"><span class="sr-only"> (opens termgate.com in a new window)</span></a><span class="tip tip-icon" role="tooltip" id="tiplogo">Visit termgate.com (opens in a new window)</span></span>
 {{/* The tagline and the AI line. */}}
 <span>{{.CompanyTagline}} {{.CompanyAILine}}</span>
 {{/* End of the words. */}}
 </div>
-{{/* The two buttons on the right. */}}
+{{/* The buttons on the right. */}}
 <div class="brandbtns">
+{{/* The System check page: what this computer offers for Ollama. */}}
+<a class="brandbtn" href="/systemcheck">System check</a>
 {{/* The About page of this program. */}}
 <a class="brandbtn" href="/about">About this program</a>
-{{/* The company website, in a new window with no link back and no referrer. */}}
-<a class="brandbtn brandbtn-main" href="{{.FooterURL}}" target="_blank" rel="noopener noreferrer">Visit termgate.com &#8599;<span class="sr-only"> (opens in a new window)</span></a>
 {{/* End of the buttons. */}}
 </div>
 {{/* End of the footer bar. */}}

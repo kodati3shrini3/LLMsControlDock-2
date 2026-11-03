@@ -154,6 +154,16 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	desktop := desktopIcon{env: mon.denv, dir: mon.store.dir, dataDir: dataRoot()}
 	// Route: a POST request for "/desktopicon" creates or removes the launcher, or records "no".
 	mux.HandleFunc("POST /desktopicon", desktopHandler(token, desktop))
+	// The System check: the hardware report, Continue, and the uninstall (see syscheck.go).
+	sysShow, sysContinue, uninstallAsk, uninstallDo := systemCheckHandlers(addr, mon, token, desktop)
+	// Route: a GET request for "/systemcheck" shows the report.
+	mux.HandleFunc("GET /systemcheck", sysShow)
+	// Route: a POST request for "/systemcheck/continue" records the answer and opens the monitor.
+	mux.HandleFunc("POST /systemcheck/continue", sysContinue)
+	// Route: a GET request for "/uninstall" shows what would be removed and changes nothing.
+	mux.HandleFunc("GET /uninstall", uninstallAsk)
+	// Route: a POST request for "/uninstall/confirm" removes the files and stops the monitor.
+	mux.HandleFunc("POST /uninstall/confirm", uninstallDo)
 	// Route: a GET request for "/icon.png" sends the program's icon (the page header, the browser tab and the desktop icon use it).
 	mux.HandleFunc("GET /icon.png", func(w http.ResponseWriter, r *http.Request) {
 		// Tell the browser this is a PNG image.
@@ -282,6 +292,16 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	mux.HandleFunc("GET /loading.js", loadingHandler)
 	// Route: a GET request for exactly "/" shows the page; other paths get 404 and other methods get 405 from the router.
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		// The very first start: show the System check once, before the monitor.
+		if mon.firstRunCheck && mon.store.dir != "" && !checkSeen(mon.store.dir) {
+			// A session note means it was answered although the folder could not be written.
+			if _, err := r.Cookie(systemCheckCookie); err != nil {
+				// Go to the report.
+				http.Redirect(w, r, "/systemcheck", http.StatusSeeOther)
+				// Stop here.
+				return
+			} // end of the cookie check
+		} // end of the first-start check
 		// Ask Ollama once; the request's own context cancels the check if the browser goes away.
 		// The check timeout from the Settings page, or the built-in one.
 		timeout := mon.timeoutOr(timeout)

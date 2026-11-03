@@ -405,8 +405,8 @@ func (d desktopIcon) create() error {
 	return d.remember("created")
 } // end of create
 
-// remove deletes the launcher and the picture, and remembers "declined" so the question does not return by itself.
-func (d desktopIcon) remove() error {
+// removeFiles deletes the launcher and the picture and remembers nothing (the uninstall uses this, because remembering would re-create the settings folder).
+func (d desktopIcon) removeFiles() error {
 	// The launcher.
 	if p := d.desktopPath(); p != "" {
 		// Delete it; a missing file is fine.
@@ -423,6 +423,17 @@ func (d desktopIcon) remove() error {
 			return err
 		} // end of the delete check
 	} // end of the picture case
+	// Done.
+	return nil
+} // end of removeFiles
+
+// remove deletes the launcher and the picture, and remembers "declined" so the question does not return by itself.
+func (d desktopIcon) remove() error {
+	// Delete the files.
+	if err := d.removeFiles(); err != nil {
+		// Report it.
+		return err
+	} // end of the delete check
 	// Keep the answer.
 	return d.remember("declined")
 } // end of remove

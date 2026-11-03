@@ -1084,7 +1084,7 @@ button.btn-plain {
 } /* end of rule */
 
 /* Every icon box is its own anchor: the name is private to each box, so a bubble finds only its own icon. */
-.gearform .tipbox, .comparebar .tipbox, .controls .tipbox, .lookstack .tipbox, .detailsbar .tipbox, .backtop {
+.gearform .tipbox, .comparebar .tipbox, .controls .tipbox, .lookstack .tipbox, .detailsbar .tipbox, .backtop, .brandwho .tipbox {
   /* The name the bubble uses to find this box. */
   anchor-name: --tipicon;
   /* Keep the name inside this box, so the boxes of other rows never get mixed up. */
@@ -2354,4 +2354,113 @@ html[data-size="medium"] svg[width="22"] {
   align-items: center;
   /* Space between them. */
   gap: 0.7rem;
+} /* end of rule */
+
+/* A line of the System check that reports good news or a note: a symbol plus words, so colour is never the only signal. */
+.okline {
+  /* A little room above and below. */
+  margin: 0.3rem 0;
+} /* end of rule */
+
+/* System check buttons: a dull green for Continue and a dull red for Uninstall; each has a word on it, so colour is never the only signal (text contrast is at least 4.5:1 on each colour). */
+:root {
+  /* Continue: fill and text. */
+  --go: #2f6b3f;
+  /* Text on the green. */
+  --go-text: #ffffff;
+  /* Uninstall: fill and text. */
+  --danger: #9c3b36;
+  /* Text on the red. */
+  --danger-text: #ffffff;
+} /* end of rule */
+
+/* The same colours for a chosen dark theme: lighter fills with dark text. */
+:root[data-theme="dark"] {
+  /* Continue. */
+  --go: #86c795;
+  /* Text on the green. */
+  --go-text: #121417;
+  /* Uninstall. */
+  --danger: #dc918b;
+  /* Text on the red. */
+  --danger-text: #121417;
+} /* end of rule */
+
+/* And when the system is dark and no theme was chosen. */
+@media (prefers-color-scheme: dark) {
+  /* Only without a chosen theme. */
+  :root:not([data-theme]) {
+    /* Continue. */
+    --go: #86c795;
+    /* Text on the green. */
+    --go-text: #121417;
+    /* Uninstall. */
+    --danger: #dc918b;
+    /* Text on the red. */
+    --danger-text: #121417;
+  } /* end of rule */
+} /* end of media query */
+
+/* The green button. */
+.btn-go {
+  /* Outline and fill. */
+  border-color: var(--go);
+  /* Fill. */
+  background: var(--go);
+  /* Text. */
+  color: var(--go-text);
+} /* end of rule */
+
+/* The red button; it may be a link, so it also drops the underline. */
+.btn-danger {
+  /* Outline. */
+  border-color: var(--danger);
+  /* Fill. */
+  background: var(--danger);
+  /* Text. */
+  color: var(--danger-text);
+  /* No underline when it is a link. */
+  text-decoration: none;
+  /* Sit in the line like a button. */
+  display: inline-block;
+} /* end of rule */
+
+/* The box where the word "uninstall" is typed. */
+.wordbox {
+  /* Use the page font. */
+  font: inherit;
+  /* Room inside. */
+  padding: 0.4rem 0.6rem;
+  /* A visible outline. */
+  border: 2px solid var(--border);
+  /* Rounded corners. */
+  border-radius: 8px;
+  /* Colours follow the theme. */
+  background: var(--bg);
+  /* Text colour. */
+  color: var(--text);
+  /* A comfortable width. */
+  width: 14rem;
+  /* Never wider than the panel. */
+  max-width: 100%;
+  /* Room above. */
+  margin-top: 0.3rem;
+} /* end of rule */
+
+/* The logo in the footer is a link to the company website: it sits like the picture alone, and a keyboard user sees a clear ring when it has focus. */
+.brandlogolink {
+  /* Only as big as the picture. */
+  display: inline-block;
+  /* No extra gap below the picture. */
+  line-height: 0;
+  /* Same rounded shape as the picture, so the ring follows it. */
+  border-radius: 0.4rem;
+} /* end of rule */
+
+/* The focus ring of the logo link. */
+.brandlogolink:focus-visible {
+  /* A clear ring. */
+  outline: 3px solid var(--text);
+  /* A gap between picture and ring. */
+  outline-offset: 2px;
 } /* end of rule */

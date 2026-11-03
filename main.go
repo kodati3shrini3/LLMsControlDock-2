@@ -207,6 +207,8 @@ func main() {
 	mon := newMonitorWith(store)
 	// The real desktop, so the first-run banner and the Settings buttons can place the icon.
 	mon.denv = realDesktopEnv()
+	// The first start shows the System check.
+	mon.firstRunCheck = true
 	// The listen address: the -listen option if it was given, else "other machines allowed" from the settings, else this computer only.
 	listenAddr, listenSource := chooseListen(*listen, listenGiven(), store.get().AllowOthers)
 	// Tell the Settings page how the program was started.
@@ -229,7 +231,7 @@ func main() {
 			// Release the timer at the end.
 			defer cancel()
 			// With the history file switched on, write the checks one last time, so a stop loses nothing.
-			if store.get().SaveHistory {
+			if store.get().SaveHistory && !noSaveOnStop.Load() {
 				// A failed write is not fatal.
 				_ = store.saveSamples(mon.hist.all())
 			} // end of the history write

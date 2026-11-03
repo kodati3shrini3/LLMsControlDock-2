@@ -153,6 +153,8 @@ func (h *sampleHistory) since(from time.Time) []sample {
 
 // monitor holds what the page shows about Ollama's health: the counters and the history of checks.
 type monitor struct {
+	// firstRunCheck is true in the real program: the first start shows the System check before the monitor.
+	firstRunCheck bool
 	// health counts the failed checks (the API health box).
 	health *apiHealth
 	// hist keeps the checks for the charts.

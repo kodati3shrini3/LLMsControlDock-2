@@ -57,8 +57,10 @@ func TestMainPageShowsTheCompany(t *testing.T) {
 		`<footer class="brandbar"`,
 		// The tagline.
 		"Transforming Healthcare through Data &amp; Technology.",
-		// The footer button with its own place tag.
-		`utm_content=footer" target="_blank" rel="noopener noreferrer">Visit termgate.com`,
+		// The footer logo is the link to the company website, with its own place tag.
+		`utm_content=footer" target="_blank" rel="noopener noreferrer" aria-describedby="tiplogo"><img class="brandlogo"`,
+		// Its tooltip.
+		"Visit termgate.com (opens in a new window)",
 		// The text for screen readers.
 		"(opens in a new window)",
 	} { // end of the list
