@@ -69,7 +69,7 @@ func TestAboutPageShowsTheRequiredFacts(t *testing.T) {
 		// The licence line.
 		"2026 Shrinivas Kodati. All rights reserved.",
 		// The repository link, safe to follow.
-		`href="https://github.com/kodatishrini-beep/OllamaControlCenter" target="_blank" rel="noopener noreferrer"`,
+		`href="https://github.com/kodati3shrini3/OllamaControlCenter" target="_blank" rel="noopener noreferrer"`,
 		// The way back.
 		`href="/"`,
 	} { // end of the list

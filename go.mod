@@ -1,3 +1,3 @@
-module github.com/kodatishrini-beep/OllamaControlCenter
+module github.com/kodati3shrini3/OllamaControlCenter
 
 go 1.27.1

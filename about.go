@@ -44,7 +44,7 @@ const appDedication = "Dedicated to Ms. Meghna Kodati, without whom I would neve
 const appCopyright = "© 2026 Shrinivas Kodati. All rights reserved."
 
 // appRepository is the address of the source code; the repository is private, so only its owner can open it.
-const appRepository = "https://github.com/kodatishrini-beep/OllamaControlCenter"
+const appRepository = "https://github.com/kodati3shrini3/OllamaControlCenter"
 
 // companyName is the developer's company, shown in the header, the footer bar and the About page.
 const companyName = "termGate Consulting"
