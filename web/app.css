@@ -387,8 +387,14 @@ h2 {
   justify-content: space-between;
   /* Line the blocks up at the top. */
   align-items: flex-start;
-  /* Space between the blocks when they wrap. */
-  gap: 0.5rem 1rem;
+  /* One rem between the rows when the blocks wrap, and between the blocks side by side. */
+  gap: 1rem;
+} /* end of rule */
+
+/* The last line of the title block leaves no space of its own: the header's gap and the bar below decide the distance, so it is the same 1rem whether the buttons sit beside the title or below it. */
+.headrow #watchline {
+  /* No space below the line. */
+  margin-bottom: 0;
 } /* end of rule */
 
 /* The theme form: the Auto button (when shown) and the switch in one line. */
@@ -1236,6 +1242,8 @@ button.btn-plain {
   justify-content: flex-end;
   /* Space between them. */
   gap: 0.5rem 1rem;
+  /* The two stacked switches are taller than the buttons and overhang them by about 0.66rem above and below; this pulls the block back so the gaps are measured from the buttons, which gives the same 1rem above and below them as between the other lines. */
+  margin-block: -0.66rem;
 } /* end of rule */
 
 /* The monitor controls in one row. */

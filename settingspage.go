@@ -105,6 +105,28 @@ var iconNotes = map[string]string{
 	"failed": "The desktop icon could not be created or removed. Check that the folders are writable.",
 } // end of iconNotes
 
+// iconNoteFor returns the sentence for a result word; the Ubuntu hint about "Allow Launching" belongs to Linux only.
+func iconNoteFor(word, goos string) string {
+	// Only the "created" sentence differs.
+	if word == "created" && goos != "linux" {
+		// Without the Linux hint.
+		return "Desktop icon created."
+	} // end of the created case
+	// The fixed sentence, or nothing for an unknown word.
+	return iconNotes[word]
+} // end of iconNoteFor
+
+// desktopHint is the extra sentence of the first-run question: on Ubuntu the launcher must be allowed once; the other systems need no hint.
+func desktopHint(goos string) string {
+	// Linux only.
+	if goos == "linux" {
+		// The hint.
+		return "On Ubuntu you may have to right-click the icon once and choose Allow Launching."
+	} // end of the Linux case
+	// None.
+	return ""
+} // end of desktopHint
+
 // yesNo writes a flag as the words used in the form.
 func yesNo(on bool) string {
 	// Yes.
@@ -276,7 +298,7 @@ func settingsHandlers(addr ollamaAddress, mon *monitor, token string) (http.Hand
 		// Whether the launcher is out of date, and the two picture paths.
 		iconStale, iconOld, iconNew := desk.staleness()
 		// The note after a button; unknown keys show nothing.
-		iconNote := iconNotes[r.URL.Query().Get("icon")]
+		iconNote := iconNoteFor(r.URL.Query().Get("icon"), mon.denv.goos)
 		// Everything the template needs.
 		data := settingsPage{IconAvailable: iconAvail, IconExists: iconExists, IconPath: iconPath, IconNote: iconNote, IconStale: iconStale && iconAvail, IconOld: iconOld, IconNew: iconNew, Theme: themeFromRequest(r), Size: sizeFromRequest(r), Token: token, Rows: rows, Problems: problems, Saved: saved, RestartNeeded: restart, Note: mon.store.noteText(), Folder: folder, DataFolder: dataFolder, StateFolder: stateFolder}
 		// Build the page in memory first, so a template error gives a clean 500.
