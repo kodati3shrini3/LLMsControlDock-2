@@ -31,7 +31,7 @@ func TestOldResultsFolderIsRenamed(t *testing.T) {
 		t.Fatal(err)
 	} // end of the folder check
 	// Its files.
-	for _, f := range []string{"performance.json", "OllamaControlCenter-comparison-1.pdf"} {
+	for _, f := range []string{"performance.json", "LLMsControlDock-comparison-1.pdf"} {
 		// Write one.
 		if err := os.WriteFile(filepath.Join(old, f), []byte(f), 0o600); err != nil {
 			// Stop the test.
@@ -44,7 +44,7 @@ func TestOldResultsFolderIsRenamed(t *testing.T) {
 		t.Fatalf("message %q", msg)
 	} // end of the rename check
 	// The files are under the new name.
-	for _, f := range []string{"performance.json", "OllamaControlCenter-comparison-1.pdf"} {
+	for _, f := range []string{"performance.json", "LLMsControlDock-comparison-1.pdf"} {
 		// Read one.
 		if b, err := os.ReadFile(filepath.Join(root, historyFolderName, f)); err != nil || string(b) != f {
 			// Report it.
@@ -92,7 +92,7 @@ func TestOldResultsFolderIsRenamed(t *testing.T) {
 		} // end of the two-folders check
 	} // end of the old folder
 	// A fallback folder is never touched.
-	if msg := moveOldHistoryFolder(filepath.Join(root, "OllamaControlCenter", "performance.json")); msg != "" {
+	if msg := moveOldHistoryFolder(filepath.Join(root, "LLMsControlDock", "performance.json")); msg != "" {
 		// Report it.
 		t.Errorf("message %q for a fallback folder", msg)
 	} // end of the fallback check

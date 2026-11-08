@@ -334,7 +334,7 @@ func (d *pdfDoc) bytes() []byte {
 	// Object 4: the bold font.
 	obj("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>")
 	// Object 5: the document information.
-	obj(fmt.Sprintf("<< /Title (%s) /Subject (%s) /Producer (OllamaControlCenter %s) /Creator (OllamaControlCenter) /CreationDate (D:%s) >>", pdfEscape(d.title), pdfEscape(d.subject), appVersion, d.created.Format("20060102150405Z0700")))
+	obj(fmt.Sprintf("<< /Title (%s) /Subject (%s) /Producer (LLMsControlDock %s) /Creator (LLMsControlDock) /CreationDate (D:%s) >>", pdfEscape(d.title), pdfEscape(d.subject), appVersion, d.created.Format("20060102150405Z0700")))
 	// Each page and its content.
 	for i, page := range d.pages {
 		// The footer on this page.

@@ -297,7 +297,7 @@ func delRig(t *testing.T) (themeRig, *delFake, string) {
 	// The token is 32 characters.
 	tok := body[i+len(`name="token" value="`) : i+len(`name="token" value="`)+32]
 	// Hand back everything.
-	return themeRig{h: h, token: tok}, f, filepath.Join(dir, "OllamaControlCenter")
+	return themeRig{h: h, token: tok}, f, filepath.Join(dir, "LLMsControlDock")
 } // end of delRig
 
 // digestOf returns the fingerprint the fake reports for a model.
@@ -672,7 +672,7 @@ func TestDeletedStoreFile(t *testing.T) {
 		t.Errorf("path %q is not in the deletedHistory folder beside performanceCompare", got)
 	} // end of the path check
 	// With another results folder, the new folder sits beside the results file.
-	if got := deletedPathFor(filepath.Join(dir, "OllamaControlCenter", "performance.json")); got != filepath.Join(dir, "OllamaControlCenter", "deletedHistory", deletedFileName) {
+	if got := deletedPathFor(filepath.Join(dir, "LLMsControlDock", "performance.json")); got != filepath.Join(dir, "LLMsControlDock", "deletedHistory", deletedFileName) {
 		// Report it.
 		t.Errorf("path %q for the fallback folder", got)
 	} // end of the fallback check

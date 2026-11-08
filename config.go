@@ -13,14 +13,28 @@ import ( // import lists the standard-library packages this file uses.
 // defaultOllamaURL is used when neither the option nor the environment variable is given: this machine only (requirement S1).
 const defaultOllamaURL = "http://127.0.0.1:11434"
 
-// envOllamaURL is the environment variable that can supply the address (OCC = OllamaControlCenter).
-const envOllamaURL = "OCC_OLLAMA_URL"
+// envOllamaURL is the environment variable that can supply the address.
+const envOllamaURL = "LLMSCONTROLDOCK_OLLAMA_URL"
+
+// envOllamaURLOld is the name the variable had before the program was renamed to LLMsControlDock; it is still read when the new name is not set, so nobody's setup breaks.
+const envOllamaURLOld = "OCC_OLLAMA_URL"
+
+// ollamaFromEnv returns the address from the environment: the new variable first, then the old one; empty text when neither is set.
+func ollamaFromEnv(getenv func(string) string) string {
+	// The new name wins.
+	if v := getenv(envOllamaURL); v != "" {
+		// Use it.
+		return v
+	} // end of the new-name check
+	// Otherwise the old name.
+	return getenv(envOllamaURLOld)
+} // end of ollamaFromEnv
 
 // These three texts name the layer that supplied the address, so the program can print where it came from.
 const (
 	// sourceFlag means the address came from the -ollama-url command-line option.
 	sourceFlag = "command-line option"
-	// sourceEnv means the address came from the OCC_OLLAMA_URL environment variable.
+	// sourceEnv means the address came from the LLMSCONTROLDOCK_OLLAMA_URL environment variable (or the older OCC_OLLAMA_URL).
 	sourceEnv = "environment variable"
 	// sourceDefault means nobody set an address, so the built-in default is used.
 	sourceDefault = "default"

@@ -77,7 +77,7 @@ func TestComparePDFCarriesEverything(t *testing.T) {
 		// The footer text.
 		text := flat([][]pdfTextLine{f})
 		// The checks.
-		if !strings.Contains(text, noticeShort) || !strings.Contains(text, "page "+string(rune('0'+i+1))+" of ") || !strings.Contains(text, "OllamaControlCenter "+appVersion) || !strings.Contains(text, "made 2026-10-27 19:30 UTC") {
+		if !strings.Contains(text, noticeShort) || !strings.Contains(text, "page "+string(rune('0'+i+1))+" of ") || !strings.Contains(text, "LLMsControlDock "+appVersion) || !strings.Contains(text, "made 2026-10-27 19:30 UTC") {
 			// Report it.
 			t.Errorf("footer of page %d: %q", i+1, text)
 		} // end of the check
@@ -268,7 +268,7 @@ func savedFileOf(t *testing.T, res *http.Response, folder, ext string) []byte {
 		t.Fatalf("%s: status %d, type %q, disposition %q", ext, res.StatusCode, res.Header.Get("Content-Type"), res.Header.Get("Content-Disposition"))
 	} // end of the page check
 	// The folder and the name as the page shows them.
-	m := regexp.MustCompile(`<code class="savedpath">([^<]*)</code>.*<code class="savedname">(OllamaControlCenter-comparison-\d{8}-\d{6}Z\.` + ext + `)</code>`).FindStringSubmatch(strings.ReplaceAll(page, "\n", " "))
+	m := regexp.MustCompile(`<code class="savedpath">([^<]*)</code>.*<code class="savedname">(LLMsControlDock-comparison-\d{8}-\d{6}Z\.` + ext + `)</code>`).FindStringSubmatch(strings.ReplaceAll(page, "\n", " "))
 	// Both must be there.
 	if m == nil {
 		// Stop the test.
@@ -391,7 +391,7 @@ func TestCompareDownloadRoutes(t *testing.T) {
 	// Look through the folder of the results.
 	_ = filepath.WalkDir(filepath.Dir(histFile), func(p string, d os.DirEntry, err error) error {
 		// Count by ending.
-		if err == nil && strings.HasPrefix(d.Name(), "OllamaControlCenter-comparison-") {
+		if err == nil && strings.HasPrefix(d.Name(), "LLMsControlDock-comparison-") {
 			// A PDF copy.
 			if strings.HasSuffix(d.Name(), ".pdf") {
 				// Count it.

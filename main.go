@@ -114,7 +114,7 @@ func main() {
 	// Define a -listen option: its name, its default value, and the help text shown by -h.
 	listen := flag.String("listen", defaultListen, "address and port for the monitor page, as host:port")
 	// Define an -ollama-url option; empty means "not given", so the environment variable or the default is used.
-	ollamaFlag := flag.String("ollama-url", "", "address of the Ollama server; overrides the OCC_OLLAMA_URL environment variable (default http://127.0.0.1:11434)")
+	ollamaFlag := flag.String("ollama-url", "", "address of the Ollama server; overrides the LLMSCONTROLDOCK_OLLAMA_URL environment variable, or the older OCC_OLLAMA_URL (default http://127.0.0.1:11434)")
 	// Define a -launch switch: what a double-click on the desktop icon runs; it opens the page and starts the monitor first when it is not running.
 	launchFlag := flag.Bool("launch", false, "open the monitor page in the browser, starting the monitor in the background first when it is not running (this is what the desktop icon runs)")
 	// Define a -check switch: false unless given on the command line.
@@ -149,6 +149,11 @@ func main() {
 	} // end of the links mode
 
 	// Choose the Ollama address by precedence: option, then environment variable, then default.
+	// Before version 0.31.0 the program had another name (see legacyname.go) and its three folders carried it; rename them once, before anything reads or creates a folder, so the saved settings, results and history are found.
+	for _, msg := range migrateLegacyRoots() {
+		// Say so in the log.
+		log.Print(msg)
+	} // end of the rename loop
 	// The saved settings are read first (a damaged file is ignored with a note).
 	dir, dirNote := settingsFolder()
 	// Version 0.25.0 kept the check history and the icon picture in the configuration folder; copy them once to the state and data folders (the old files are left in place).
@@ -166,7 +171,7 @@ func main() {
 		log.Print(n)
 	} // end of the note check
 	// The address: option, then environment variable, then saved setting, then default.
-	addr, err := resolveWithSaved(*ollamaFlag, os.Getenv(envOllamaURL), store.get().OllamaURL)
+	addr, err := resolveWithSaved(*ollamaFlag, ollamaFromEnv(os.Getenv), store.get().OllamaURL)
 	// If the address is unusable, stop with a clear message and a failure exit code.
 	if err != nil {
 		// log.Fatalf prints the message and exits with code 1.
@@ -230,7 +235,7 @@ func main() {
 		os.Exit(1)
 	} // end of the listen check
 	// Tell the person which address we are about to serve on.
-	log.Printf("OllamaControlCenter listening on http://%s (from %s; press Ctrl+C to stop)", listenAddr, listenSource)
+	log.Printf("LLMsControlDock listening on http://%s (from %s; press Ctrl+C to stop)", listenAddr, listenSource)
 	// Closed when the shutdown that the Stop button started has finished.
 	stopped := make(chan struct{})
 	// The last step of every stop (the Stop button, Ctrl+C, a termination request): shut the web server down, waiting at most 5 seconds for requests that are still running; onceStop makes it run only the first time it is asked.
@@ -264,7 +269,7 @@ func main() {
 		// Wait until the shutdown has finished.
 		<-stopped
 		// Say why the program ends: from its page, or by Ctrl+C or a termination request.
-		log.Printf("OllamaControlCenter stopped %s", currentStopReason())
+		log.Printf("LLMsControlDock stopped %s", currentStopReason())
 		// Leave with the success code.
 		return
 	} // end of the normal stop

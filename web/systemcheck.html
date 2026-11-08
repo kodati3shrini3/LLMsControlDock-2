@@ -10,7 +10,7 @@
 {{/* Both colour schemes are supported. */}}
 <meta name="color-scheme" content="light dark">
 {{/* The title shown on the browser tab. */}}
-<title>{{if eq .Kind "report"}}System check{{else}}Uninstall{{end}} - OllamaControlCenter</title>
+<title>{{if eq .Kind "report"}}System check{{else}}Uninstall{{end}} - LLMsControlDock</title>
 {{/* Our one stylesheet. */}}
 <link rel="stylesheet" href="/app.css">
 </head>{{/* end of the head. */}}
@@ -26,7 +26,7 @@
 {{/* Version 1: the report. */}}
 {{if eq .Kind "report"}}
 <h1>System check</h1>
-<p>OllamaControlCenter helps you switch between models while you develop applications, and shows how large language models perform. Here is what this computer offers.</p>
+<p>LLMsControlDock helps you switch between models while you develop applications, and shows how large language models perform. Here is what this computer offers.</p>
 <h2>This computer</h2>
 {{/* The facts of this computer; a figure the system did not give says "not reported". */}}
 <table class="settingtable"><tbody>
@@ -94,7 +94,7 @@
 {{end}}
 {{/* Version 2: the uninstall question. */}}
 {{else if eq .Kind "uninstall"}}
-<h1>Uninstall OllamaControlCenter</h1>
+<h1>Uninstall LLMsControlDock</h1>
 {{/* After the tool has been in use: the impact, in words, before anything else. */}}
 {{if not .First}}
 <p class="warn" role="alert"><strong>&#9888; This cannot be undone.</strong> Uninstalling permanently deletes what this tool has collected on this computer:</p>

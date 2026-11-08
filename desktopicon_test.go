@@ -66,7 +66,7 @@ func newFakeDesktop(t *testing.T) fakeDesktop {
 		t.Fatal(err)
 	} // end of the folder check
 	// The pretend program.
-	exe := filepath.Join(home, "OllamaControlCenter", "bin", "OllamaControlCenter")
+	exe := filepath.Join(home, "LLMsControlDock", "bin", "LLMsControlDock")
 	// Its folder.
 	if err := os.MkdirAll(filepath.Dir(exe), 0o755); err != nil {
 		// Stop.
@@ -157,9 +157,9 @@ func TestDesktopDirDetection(t *testing.T) {
 // TestDesktopFileText checks the launcher text.
 func TestDesktopFileText(t *testing.T) {
 	// Build it.
-	got := desktopFileText("/opt/occ/OllamaControlCenter", "/home/u/.config/OllamaControlCenter/icon.png")
+	got := desktopFileText("/opt/occ/LLMsControlDock", "/home/u/.config/LLMsControlDock/icon.png")
 	// The lines it must hold.
-	for _, w := range []string{"[Desktop Entry]\n", "Type=Application\n", "Name=OllamaControlCenter\n", "Exec=/opt/occ/OllamaControlCenter -launch\n", "Icon=/home/u/.config/OllamaControlCenter/icon.png\n", "Terminal=false\n"} {
+	for _, w := range []string{"[Desktop Entry]\n", "Type=Application\n", "Name=LLMsControlDock\n", "Exec=/opt/occ/LLMsControlDock -launch\n", "Icon=/home/u/.config/LLMsControlDock/icon.png\n", "Terminal=false\n"} {
 		// Look for it.
 		if !strings.Contains(got, w) {
 			// Report it.
@@ -173,7 +173,7 @@ func TestDesktopCreateAndRemove(t *testing.T) {
 	// The pretend desktop and a settings folder.
 	f := newFakeDesktop(t)
 	// The settings folder.
-	set := filepath.Join(f.home, ".config", "OllamaControlCenter")
+	set := filepath.Join(f.home, ".config", "LLMsControlDock")
 	// The manager.
 	d := desktopIcon{env: f.env, dir: set}
 	// It is available and nothing was answered yet.
@@ -247,7 +247,7 @@ func TestDesktopCreateRefusals(t *testing.T) {
 	// A pretend desktop whose program path holds a space.
 	f := newFakeDesktop(t)
 	// The settings folder.
-	set := filepath.Join(f.home, ".config", "OllamaControlCenter")
+	set := filepath.Join(f.home, ".config", "LLMsControlDock")
 	// The spaced path.
 	spaced := filepath.Join(f.home, "my programs")
 	// Make it.
@@ -309,7 +309,7 @@ func newDesktopRig(t *testing.T) *desktopRig {
 	// The pretend desktop.
 	f := newFakeDesktop(t)
 	// The settings folder inside it.
-	set := filepath.Join(f.home, ".config", "OllamaControlCenter")
+	set := filepath.Join(f.home, ".config", "LLMsControlDock")
 	// The monitor with a store there.
 	mon := newMonitorWith(openSettingsStore(set, ""))
 	// The pretend desktop.
@@ -343,7 +343,7 @@ func TestDesktopBannerAndButtons(t *testing.T) {
 	// The main page asks.
 	_, _, page := get(t, r.h, http.MethodGet, "/")
 	// The words of the banner.
-	for _, w := range []string{"Create a desktop icon for OllamaControlCenter?", "Yes, create it", "No, don't ask again", r.f.desk, r.f.exe, "Allow Launching", `action="/desktopicon"`, `<link rel="icon"`, `class="appicon"`} {
+	for _, w := range []string{"Create a desktop icon for LLMsControlDock?", "Yes, create it", "No, don't ask again", r.f.desk, r.f.exe, "Allow Launching", `action="/desktopicon"`, `<link rel="icon"`, `class="appicon"`} {
 		// Look for it.
 		if !strings.Contains(page, w) {
 			// Report it.
@@ -441,7 +441,7 @@ func TestDesktopBannerAndButtons(t *testing.T) {
 		t.Errorf("launcher not created: %v", err)
 	} // end of the launcher check
 	// The banner is gone from the main page.
-	if _, _, p := get(t, r.h, http.MethodGet, "/"); strings.Contains(p, "Create a desktop icon for OllamaControlCenter?") {
+	if _, _, p := get(t, r.h, http.MethodGet, "/"); strings.Contains(p, "Create a desktop icon for LLMsControlDock?") {
 		// Report it.
 		t.Errorf("the banner stayed after the answer")
 	} // end of the banner check
@@ -468,7 +468,7 @@ func TestDesktopBannerAndButtons(t *testing.T) {
 		t.Errorf("launcher stayed: %v", err)
 	} // end of the gone check
 	// The banner stays away.
-	if _, _, p := get(t, r.h, http.MethodGet, "/"); strings.Contains(p, "Create a desktop icon for OllamaControlCenter?") {
+	if _, _, p := get(t, r.h, http.MethodGet, "/"); strings.Contains(p, "Create a desktop icon for LLMsControlDock?") {
 		// Report it.
 		t.Errorf("the banner came back after a removal")
 	} // end of the stay-away check
@@ -496,7 +496,7 @@ func TestDesktopDeclineAndNoDesktop(t *testing.T) {
 		t.Errorf("decline created the launcher: %v", err)
 	} // end of the launcher check
 	// The banner is gone, and a new run (a new store) still remembers.
-	if _, _, p := get(t, r.h, http.MethodGet, "/"); strings.Contains(p, "Create a desktop icon for OllamaControlCenter?") {
+	if _, _, p := get(t, r.h, http.MethodGet, "/"); strings.Contains(p, "Create a desktop icon for LLMsControlDock?") {
 		// Report it.
 		t.Errorf("the banner stayed after No")
 	} // end of the banner check
@@ -531,9 +531,9 @@ func TestDesktopStaleness(t *testing.T) {
 	// The pretend desktop and the two folders.
 	f := newFakeDesktop(t)
 	// The settings folder.
-	set := filepath.Join(f.home, ".config", "OllamaControlCenter")
+	set := filepath.Join(f.home, ".config", "LLMsControlDock")
 	// The data folder, where the picture lives now.
-	data := filepath.Join(f.home, ".local", "share", "OllamaControlCenter")
+	data := filepath.Join(f.home, ".local", "share", "LLMsControlDock")
 	// The manager.
 	d := desktopIcon{env: f.env, dir: set, dataDir: data}
 	// No launcher: nothing to refresh.

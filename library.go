@@ -122,7 +122,7 @@ func checkLibrary(ctx context.Context, name, have string) string {
 	// Ask for the manifest in the format Ollama itself uses.
 	req.Header.Set("Accept", "application/vnd.docker.distribution.manifest.v2+json")
 	// Say who is asking.
-	req.Header.Set("User-Agent", "OllamaControlCenter")
+	req.Header.Set("User-Agent", "LLMsControlDock")
 	// Send it.
 	resp, err := http.DefaultClient.Do(req)
 	// No answer: no internet, or the library is down.

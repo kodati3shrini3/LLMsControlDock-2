@@ -35,7 +35,7 @@ var appIcon []byte
 const desktopChoiceFileName = "desktop-icon.json"
 
 // desktopFileName is the name of the launcher on the desktop.
-const desktopFileName = "OllamaControlCenter.desktop"
+const desktopFileName = "LLMsControlDock.desktop"
 
 // iconFileName is where the icon picture is kept inside the settings folder, so the launcher can point at it.
 const iconFileName = "icon.png"
@@ -197,7 +197,7 @@ func desktopFileText(exe, icon string) string {
 		// The version of the specification the file follows.
 		"Version=1.0\n" +
 		// The name shown under the icon.
-		"Name=OllamaControlCenter\n" +
+		"Name=LLMsControlDock\n" +
 		// The tooltip.
 		"Comment=Monitor and control Ollama\n" +
 		// The command: the program with the -launch option, which starts the monitor if needed and opens the page.
@@ -419,8 +419,21 @@ func (d desktopIcon) staleness() (bool, string, string) {
 	return true, old, icon
 } // end of staleness
 
-// create writes the icon picture next to the data and the launcher on the desktop, then remembers the answer.
+// create writes the icon picture next to the data and the launcher on the desktop, then remembers the answer; a launcher of the same program under its old name (before version 0.31.0) is removed afterwards, so the desktop never shows two icons.
 func (d desktopIcon) create() error {
+	// Make the launcher under the current name.
+	if err := d.createCurrent(); err != nil {
+		// Report the failure; the old launcher, if any, is left alone.
+		return err
+	} // end of the create check
+	// The new launcher is there: remove the old one (best effort; it still starts the program, so a failure is harmless).
+	d.removeLegacyLauncher()
+	// Done.
+	return nil
+} // end of create
+
+// createCurrent writes the icon picture and the launcher under the current name, then remembers the answer.
+func (d desktopIcon) createCurrent() error {
 	// A desktop must exist.
 	dir, ok := d.env.desktopDir()
 	// Refuse without one.
@@ -467,7 +480,7 @@ func (d desktopIcon) create() error {
 	d.env.trust(target)
 	// Remember the answer.
 	return d.remember("created")
-} // end of create
+} // end of createCurrent
 
 // removeFiles deletes the launcher and the picture and remembers nothing (the uninstall uses this, because remembering would re-create the settings folder).
 func (d desktopIcon) removeFiles() error {
@@ -479,6 +492,8 @@ func (d desktopIcon) removeFiles() error {
 			return err
 		} // end of the delete check
 	} // end of the launcher case
+	// A launcher left from before the rename goes too.
+	d.removeLegacyLauncher()
 	// The pictures: the PNG of the Linux launcher and the ICO of the Windows shortcut.
 	if d.iconDir() != "" {
 		// Both names; a missing file is fine.

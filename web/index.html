@@ -10,7 +10,7 @@
 {{/* Tell the browser the page supports both light and dark colours. */}}
 <meta name="color-scheme" content="light dark">
 {{/* The product name is the page title. */}}
-<title>OllamaControlCenter</title>
+<title>LLMsControlDock</title>
 {{/* Load our own stylesheet; the safety policy allows only styles from this same address. */}}
 <link rel="stylesheet" href="/app.css">
 {{/* The program's icon on the browser tab. */}}
@@ -26,7 +26,7 @@
 {{if .DesktopBanner}}
 <section class="panel" role="region" aria-label="Desktop icon">
 {{/* The question. */}}
-<p class="iconquestion"><img class="appicon" src="/icon.png" width="40" height="40" alt=""> <strong>Create a desktop icon for OllamaControlCenter?</strong></p>
+<p class="iconquestion"><img class="appicon" src="/icon.png" width="40" height="40" alt=""> <strong>Create a desktop icon for LLMsControlDock?</strong></p>
 {{/* What it does and where it goes. */}}
 <p class="muted">One click on it starts the monitor (if it is not running) and opens this page in your browser. It is created in <code>{{.DesktopDir}}</code> and points to <code>{{.DesktopExe}}</code>. {{.DesktopHint}} You can remove it later on the Settings page.</p>
 {{/* The two answers: one small form with the page token. */}}
@@ -51,7 +51,7 @@
 {{/* The program's icon; it is decoration, so its text alternative is empty. */}}
 <img class="appicon" src="/icon.png" width="44" height="44" alt="">
 {{/* The main heading. */}}
-<h1>OllamaControlCenter</h1>
+<h1>LLMsControlDock</h1>
 {{/* End of the icon and heading. */}}
 </div>
 {{/* A quiet line under the title: who is behind the program, with a link that opens in a new window. */}}
@@ -101,7 +101,7 @@
 {{/* The area that opens the tip. */}}
 <span class="tipbox">
 <button type="submit" class="unload ctlbtn" aria-describedby="tipstop"><svg class="ico" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false" fill="currentColor"><rect x="3" y="3" width="10" height="10" rx="1.5"/></svg> Stop</button>
-<span class="tip tip-icon" role="tooltip" id="tipstop">Stop this OllamaControlCenter monitor program (it asks first; Ollama and its models are not touched)</span>
+<span class="tip tip-icon" role="tooltip" id="tipstop">Stop this LLMsControlDock monitor program (it asks first; Ollama and its models are not touched)</span>
 </span>
 {{/* End of the stop form. */}}
 </form>

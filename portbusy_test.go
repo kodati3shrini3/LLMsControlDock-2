@@ -106,7 +106,7 @@ func TestFailureMessages(t *testing.T) {
 	// The message.
 	m = listenFailureMessage("127.0.0.1:8765", syscall.EADDRINUSE)
 	// It says another program, with the port, and offers another port.
-	for _, want := range []string{"Port 8765", "another program", "not OllamaControlCenter", "For example: -listen 127.0.0.1:8766"} {
+	for _, want := range []string{"Port 8765", "another program", "not LLMsControlDock", "For example: -listen 127.0.0.1:8766"} {
 		// Check each.
 		if !strings.Contains(m, want) {
 			// Report it.
@@ -127,7 +127,7 @@ func TestFailureMessages(t *testing.T) {
 	} // end of the check
 } // end of TestFailureMessages
 
-// TestProbeIsOurs checks the real probe against fake programs: a page that names OllamaControlCenter, a page that does not, an error page, and nothing at all.
+// TestProbeIsOurs checks the real probe against fake programs: a page that names LLMsControlDock, a page that does not, an error page, and nothing at all.
 func TestProbeIsOurs(t *testing.T) {
 	// A program that looks like ours.
 	ours := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -139,7 +139,7 @@ func TestProbeIsOurs(t *testing.T) {
 			return
 		} // end of the path check
 		// The title names the program.
-		w.Write([]byte("<title>About - OllamaControlCenter</title>"))
+		w.Write([]byte("<title>About - LLMsControlDock</title>"))
 	}))
 	// Stop it at the end.
 	defer ours.Close()
@@ -148,7 +148,7 @@ func TestProbeIsOurs(t *testing.T) {
 	// Stop it at the end.
 	defer other.Close()
 	// A program that always fails.
-	broken := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { http.Error(w, "OllamaControlCenter", 500) }))
+	broken := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { http.Error(w, "LLMsControlDock", 500) }))
 	// Stop it at the end.
 	defer broken.Close()
 	// The cases.
@@ -166,6 +166,17 @@ func TestProbeIsOurs(t *testing.T) {
 		// Report it.
 		t.Error("an error page was taken for ours")
 	} // end of the broken check
+	// A copy that still has the old name (an upgrade in progress) is ours too.
+	older := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("<title>About OllamaControlCenter</title>"))
+	}))
+	// Stop it at the end.
+	defer older.Close()
+	// Recognised.
+	if !probeIsOurs(older.URL + "/") {
+		// Report it.
+		t.Error("a copy with the old name was not recognised")
+	} // end of the older check
 	// Nothing answering.
 	if probeIsOurs("http://127.0.0.1:1/") {
 		// Report it.

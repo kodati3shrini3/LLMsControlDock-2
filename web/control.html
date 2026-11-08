@@ -10,7 +10,7 @@
 {{/* Both colour schemes are supported. */}}
 <meta name="color-scheme" content="light dark">
 {{/* The title shown on the browser tab. */}}
-<title>{{if eq .Kind "stopped"}}Stopped{{else}}Stop the monitor{{end}} - OllamaControlCenter</title>
+<title>{{if eq .Kind "stopped"}}Stopped{{else}}Stop the monitor{{end}} - LLMsControlDock</title>
 {{/* Our one stylesheet. */}}
 <link rel="stylesheet" href="/app.css">
 </head>{{/* end of the head. */}}
@@ -26,7 +26,7 @@
 {{/* Version 1: the question. */}}
 {{if eq .Kind "stopask"}}
 <h1>Stop the monitor?</h1>
-<p>This closes OllamaControlCenter. Ollama and its models are not touched: whatever is loaded stays loaded.</p>
+<p>This closes LLMsControlDock. Ollama and its models are not touched: whatever is loaded stays loaded.</p>
 {{/* What is running right now, with the symbol and words so colour is never the only signal. */}}
 {{if .Work}}
 <p class="warn" role="alert"><strong>⚠ Something is running right now:</strong></p>
@@ -34,7 +34,7 @@
 {{range .Work}}<li>{{.}}</li>{{end}}
 </ul>
 {{end}}
-<p class="muted">You can start it again with <code>./bin/OllamaControlCenter</code>.</p>
+<p class="muted">You can start it again with <code>./bin/LLMsControlDock</code>.</p>
 {{/* The two choices side by side. */}}
 <div class="choices">
 {{/* The confirm form sends the page token to the real stop. */}}
@@ -49,7 +49,7 @@
 {{else}}
 <h1>The monitor has stopped</h1>
 <p>Nothing is running any more. Ollama and its models were not touched.</p>
-<p class="muted">Start it again with <code>./bin/OllamaControlCenter</code> and reload this page.</p>
+<p class="muted">Start it again with <code>./bin/LLMsControlDock</code> and reload this page.</p>
 {{end}}
 {{/* End of the panel. */}}
 </section>

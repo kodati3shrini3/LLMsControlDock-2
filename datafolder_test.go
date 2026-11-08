@@ -45,9 +45,9 @@ func TestLooksOurs(t *testing.T) {
 		// A snapshot with a date.
 		"2026-11-02_17-54-00+0100_llama3-8b.json": true,
 		// A saved copy of a download.
-		"OllamaControlCenter-comparison-20261102-175400+0100.pdf": true,
+		"LLMsControlDock-comparison-20261102-175400+0100.pdf": true,
 		// A saved copy as a table.
-		"OllamaControlCenter-comparison-20261102-175400+0100.csv": true,
+		"LLMsControlDock-comparison-20261102-175400+0100.csv": true,
 		// Somebody else's JSON file.
 		"settings-backup.json": false,
 		// Somebody else's text file.
@@ -78,7 +78,7 @@ func TestDataRootAndOldDataRoot(t *testing.T) {
 	// Data and state follow the same fake folder.
 	userDataDir, userStateDir = userConfigDir, userConfigDir
 	// The new folder.
-	if got := dataRoot(); got != filepath.Join("/cfg", "OllamaControlCenter") {
+	if got := dataRoot(); got != filepath.Join("/cfg", "LLMsControlDock") {
 		// Report the problem.
 		t.Errorf("dataRoot = %q", got)
 	} // end of the new-folder check
@@ -94,9 +94,9 @@ func TestDataRootAndOldDataRoot(t *testing.T) {
 		t.Errorf("dataRoot without a folder = %q", got)
 	} // end of the empty check
 	// A program inside bin: the project folder above it.
-	executablePath = func() (string, error) { return "/p/OllamaControlCenter/bin/occ", nil }
+	executablePath = func() (string, error) { return "/p/LLMsControlDock/bin/occ", nil }
 	// The old folder.
-	if got := oldDataRoot(); got != filepath.FromSlash("/p/OllamaControlCenter") {
+	if got := oldDataRoot(); got != filepath.FromSlash("/p/LLMsControlDock") {
 		// Report the problem.
 		t.Errorf("old root from bin = %q", got)
 	} // end of the bin check
@@ -121,11 +121,11 @@ func TestMigrateOldData(t *testing.T) {
 	// A fresh place for the old and the new folders.
 	base := t.TempDir()
 	// The old project folder and the new data folder.
-	oldRoot, newRoot := filepath.Join(base, "project"), filepath.Join(base, "cfg", "OllamaControlCenter")
+	oldRoot, newRoot := filepath.Join(base, "project"), filepath.Join(base, "cfg", "LLMsControlDock")
 	// Old results, with a saved copy and a stranger's file.
 	writeTestFile(t, filepath.Join(oldRoot, "performanceCompare", "performance.json"), "RESULTS")
 	// A saved copy.
-	writeTestFile(t, filepath.Join(oldRoot, "performanceCompare", "OllamaControlCenter-comparison-1.pdf"), "PDF")
+	writeTestFile(t, filepath.Join(oldRoot, "performanceCompare", "LLMsControlDock-comparison-1.pdf"), "PDF")
 	// A stranger's file in the same folder.
 	writeTestFile(t, filepath.Join(oldRoot, "performanceCompare", "my-notes.txt"), "NOTES")
 	// The deleted-models list.
@@ -149,7 +149,7 @@ func TestMigrateOldData(t *testing.T) {
 		// The results.
 		"performanceCompare/performance.json": "RESULTS",
 		// The saved copy.
-		"performanceCompare/OllamaControlCenter-comparison-1.pdf": "PDF",
+		"performanceCompare/LLMsControlDock-comparison-1.pdf": "PDF",
 		// The deleted models.
 		"deletedHistory/deleted-models.json": "DELETED",
 		// The snapshot.
@@ -240,7 +240,7 @@ func TestMigrateRules(t *testing.T) {
 	// A small result and a large one.
 	writeTestFile(t, filepath.Join(oldRoot, "performanceCompare", "performance.json"), "ok")
 	// A file bigger than the limit set below.
-	writeTestFile(t, filepath.Join(oldRoot, "performanceCompare", "OllamaControlCenter-big.pdf"), "0123456789")
+	writeTestFile(t, filepath.Join(oldRoot, "performanceCompare", "LLMsControlDock-big.pdf"), "0123456789")
 	// A small limit.
 	maxMigrateBytes = 5
 	// A leftover temporary folder from an earlier attempt.
@@ -251,7 +251,7 @@ func TestMigrateRules(t *testing.T) {
 		t.Fatalf("messages: %q", msgs)
 	} // end of the message check
 	// The big file stayed behind.
-	if _, err := os.Stat(filepath.Join(newRoot, "performanceCompare", "OllamaControlCenter-big.pdf")); err == nil {
+	if _, err := os.Stat(filepath.Join(newRoot, "performanceCompare", "LLMsControlDock-big.pdf")); err == nil {
 		// Report the problem.
 		t.Error("a file over the limit was copied")
 	} // end of the size check
@@ -304,7 +304,7 @@ func TestStartupCopiesOldData(t *testing.T) {
 	// Build the web interface the way the program does.
 	handlerFor(t, "http://127.0.0.1:11434")
 	// The old results are now in the data folder.
-	if b, err := os.ReadFile(filepath.Join(cfg, "OllamaControlCenter", "performanceCompare", "performance.json")); err != nil || string(b) != `{"runs":[]}` {
+	if b, err := os.ReadFile(filepath.Join(cfg, "LLMsControlDock", "performanceCompare", "performance.json")); err != nil || string(b) != `{"runs":[]}` {
 		// Report the problem.
 		t.Errorf("not copied at start-up: %q, %v", b, err)
 	} // end of the copy check
@@ -395,7 +395,7 @@ func TestThreeRootsAndMoves(t *testing.T) {
 	// The three roots.
 	cfg, data, state := configRoot(), dataRoot(), stateRoot()
 	// Each has the program's own folder.
-	if cfg != filepath.Join(base, "c", "OllamaControlCenter") || data != filepath.Join(base, "d", "OllamaControlCenter") || state != filepath.Join(base, "s", "OllamaControlCenter") {
+	if cfg != filepath.Join(base, "c", "LLMsControlDock") || data != filepath.Join(base, "d", "LLMsControlDock") || state != filepath.Join(base, "s", "LLMsControlDock") {
 		// Report the problem.
 		t.Fatalf("roots: %q %q %q", cfg, data, state)
 	} // end of the roots check
