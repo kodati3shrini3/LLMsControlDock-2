@@ -180,6 +180,12 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	}) // end of the icon route
 	// Route: a GET request for "/about" shows the read-only About page (see about.go).
 	mux.HandleFunc("GET /about", aboutHandler())
+	// Make the two Find LLM handlers: the page with the choices, and the search that reads the public library (see findllm.go).
+	findShow, findSearch := findLLMHandlers(addr, token)
+	// Route: a GET request for "/findllm" shows the choices and asks nothing from the internet.
+	mux.HandleFunc("GET /findllm", findShow)
+	// Route: a POST request for "/findllm/search" reads the library list and shows the matching models.
+	mux.HandleFunc("POST /findllm/search", findSearch)
 	// Make the two Settings handlers: the first shows the page, the second saves the form (see settingspage.go).
 	settingsShow, settingsSave := settingsHandlers(addr, mon, token)
 	// Route: a GET request for "/settings" shows the Settings page.

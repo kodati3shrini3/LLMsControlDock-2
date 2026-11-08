@@ -1191,6 +1191,18 @@ button.btn-plain {
   margin: 0.2rem 0;
 } /* end of rule */
 
+/* The buttons at the right of the Installed models heading sit side by side and wrap on a narrow window. */
+.panelactions {
+  /* Side by side. */
+  display: flex;
+  /* Wrap when the window is narrow. */
+  flex-wrap: wrap;
+  /* Level with each other. */
+  align-items: center;
+  /* Space between the buttons. */
+  gap: 0.5rem;
+} /* end of rule */
+
 /* The bar with the compare button needs no outer space in the heading row. */
 .comparebar {
   /* No outer space. */
@@ -2519,4 +2531,76 @@ html[data-size="medium"] svg[width="22"] {
 .attention h2:focus {
   /* No ring on the title. */
   outline: none;
+} /* end of rule */
+
+/* Find LLM page: the required facts about this computer stand out in a coloured box with a thick left edge. */
+.mandatorybox {
+  /* The box colours come from the variables, so both themes work. */
+  background: var(--cat-bg);
+  /* Readable text on that background. */
+  color: var(--cat-text);
+  /* A thick edge, so the box stands out without colour too. */
+  border: 1px solid var(--border);
+  /* The thick left edge. */
+  border-left: 0.3rem solid var(--cat-accent);
+  /* Slightly rounded corners. */
+  border-radius: 0.4rem;
+  /* Room inside. */
+  padding: 0.6rem 0.9rem;
+  /* Room around. */
+  margin: 1rem 0;
+} /* end of rule */
+
+/* Find LLM page: a group of choices. */
+.findgroup {
+  /* A plain outline. */
+  border: 1px solid var(--border);
+  /* Slightly rounded corners. */
+  border-radius: 0.4rem;
+  /* Room inside. */
+  padding: 0.6rem 0.9rem;
+  /* Room around. */
+  margin: 1rem 0;
+} /* end of rule */
+
+/* Find LLM page: one tick box with its words, on its own line. */
+.tickrow {
+  /* One per line. */
+  display: block;
+  /* A little space between lines. */
+  margin: 0.3rem 0;
+} /* end of rule */
+
+/* Find LLM page: one model in the result list. */
+.findresult {
+  /* A line above it. */
+  border-top: 1px solid var(--border);
+  /* Room inside. */
+  padding: 0.8rem 0;
+} /* end of rule */
+
+/* Find LLM page: the download commands may be long; let them wrap instead of widening the page. */
+.findresult code {
+  /* Break inside a long name when needed. */
+  overflow-wrap: anywhere;
+} /* end of rule */
+
+/* Find LLM page: a version that does not fit is shown in the secondary colour, not hidden. */
+.nofit {
+  /* The secondary colour. */
+  color: var(--muted);
+} /* end of rule */
+
+/* The folded-away Docker and Kubernetes commands under a version that fits. */
+.othercmds {
+  /* A little room above. */
+  margin-top: 0.3rem;
+} /* end of rule */
+
+/* The words that open and close the fold are small and look clickable. */
+.othercmds summary {
+  /* A hand cursor. */
+  cursor: pointer;
+  /* Smaller than the text beside it. */
+  font-size: 0.9rem;
 } /* end of rule */

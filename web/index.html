@@ -294,6 +294,24 @@
 {{/* The heading row: the heading on the left and, when there is a table, the compare button on the right. */}}
 <div class="panelhead">
 <h2 id="installed-title">Installed models{{if .HasTable}} ({{.Table.Total}}){{end}}</h2>
+{{/* The buttons at the right of the heading: Find LLM always, then Compare tested models when there is a table. */}}
+<div class="panelactions">
+{{/* Find LLM: a small GET form with the same size and look as the compare button; it only opens the Find LLM page, which asks nothing from the internet until its own button is pressed. */}}
+<div class="comparebar">
+{{/* The form changes nothing; it only goes to the page. */}}
+<form method="get" action="/findllm">
+{{/* The area that opens the tip. */}}
+<span class="tipbox">
+{{/* The button: the symbol is hidden from screen readers, which read the words. */}}
+<button type="submit" class="btn-plain comparebtn" aria-describedby="tipfindllm"><svg class="ico ico-big" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg> Find LLM</button>
+{{/* The tip. */}}
+<span class="tip tip-icon" role="tooltip" id="tipfindllm">Find LLM: lists only models that Ollama supports and can install; installs nothing</span>
+{{/* End of the tip area. */}}
+</span>
+{{/* End of the Find LLM form. */}}
+</form>
+{{/* End of the Find LLM button bar. */}}
+</div>
 {{if .HasTable}}{{if .Table.Groups}}
 {{/* The compare button: a labelled button above the table, with the number of models that have been tested. */}}
 <div class="comparebar">
@@ -314,6 +332,8 @@
 {{/* End of the compare button bar. */}}
 </div>
 {{end}}{{end}}
+{{/* End of the buttons at the right of the heading. */}}
+</div>
 </div>
 {{/* Case 1: Ollama answered but the lists could not be read; say why in plain words. */}}
 {{if .TableError}}
