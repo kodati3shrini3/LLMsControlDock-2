@@ -306,6 +306,38 @@ func (s *perfStore) forModel(model, kind string) []perfRun {
 	return out
 } // end of forModel
 
+// lastFacts returns the newest parameter size and context length that any saved test of the model recorded; the second answer is false when no test recorded either. It lets a deleted model, whose own facts were not saved, still show its size and memory tags.
+func (s *perfStore) lastFacts(model string) (string, int64, bool) {
+	// One reader at a time.
+	s.mu.Lock()
+	// Release at the end.
+	defer s.mu.Unlock()
+	// What was found.
+	var params string
+	// The context length found.
+	var ctx int64
+	// Walk from the newest to the oldest.
+	for i := len(s.runs) - 1; i >= 0; i-- {
+		// Only this model.
+		if s.runs[i].Model != model {
+			// Next run.
+			continue
+		} // end of the model check
+		// The newest parameter size.
+		if params == "" {
+			// Keep it.
+			params = s.runs[i].ParameterSize
+		} // end of the size check
+		// The newest context length.
+		if ctx == 0 {
+			// Keep it.
+			ctx = s.runs[i].ContextLength
+		} // end of the context check
+	} // end of the loop
+	// Whether anything was found.
+	return params, ctx, params != "" || ctx > 0
+} // end of lastFacts
+
 // count says how many runs are saved in all.
 func (s *perfStore) count() int {
 	// One reader at a time.

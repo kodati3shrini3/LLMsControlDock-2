@@ -1,0 +1,109 @@
+{{/* Find LLM page template: the person ticks what a model must do, and the page lists models of the public Ollama library that fit. The comments are template comments, so they never reach the browser. */}}
+<!DOCTYPE html>
+{{/* lang tells screen readers which language the page is written in; the theme and the text size come from the saved choices. */}}
+<html lang="en"{{if .Theme}} data-theme="{{.Theme}}"{{end}}{{if .Size}} data-size="{{.Size}}"{{end}}>
+<head>{{/* start of the head. */}}
+{{/* Text encoding. */}}
+<meta charset="utf-8">
+{{/* Fit the page to the width of the screen on phones. */}}
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{/* The title shown on the browser tab. */}}
+<title>Find LLM</title>
+{{/* Our one stylesheet. */}}
+<link rel="stylesheet" href="/app.css">
+</head>{{/* end of the head. */}}
+<body>{{/* start of the visible page. */}}
+<main>
+<section class="panel">
+{{/* The back arrow in the top right corner of this box. */}}
+<span class="tipbox backtop"><a class="backcircle" href="/" aria-label="Back to the monitor" aria-describedby="tipback"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg></a><span class="tip tip-icon" role="tooltip" id="tipback">Back to the monitor</span></span>
+{{/* The heading, with the help bubble that says what this page lists. */}}
+<h1><span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tips.page.ID}}">Find LLM</span><span class="tip" role="tooltip" id="{{.Tips.page.ID}}">{{template "tip" .Tips.page}}</span></span></h1>
+{{/* What the page does, and the one request it makes. */}}
+<p>Tick what the model must do and press <strong>Find LLM</strong>. Only models of the official Ollama library are listed, and each comes with the command that installs it. This page installs nothing.</p>
+<p class="muted">Pressing the button reads the public list at ollama.com/library and, for the first ten models, their version lists. Your choices are not sent: the list is filtered on this computer.</p>
+{{/* Problems with what was typed; nothing was searched. */}}
+{{if .Problems}}<div class="warn" id="found" role="alert"><p><strong>&#9888; Not searched.</strong> Please correct:</p><ul>{{range .Problems}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+{{/* The form: it sends the page token and the choices. */}}
+<form method="post" action="/findllm/search#found">
+{{/* The page token proves the form comes from this monitor. */}}
+<input type="hidden" name="token" value="{{.Token}}">
+{{/* The required facts about this computer, highlighted. */}}
+<fieldset class="mandatorybox">
+<legend><strong>Your computer (required)</strong></legend>
+<p><label for="disk_gb"><span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tips.disk.ID}}">Free disk space (GB, gigabytes)</span><span class="tip" role="tooltip" id="{{.Tips.disk.ID}}">{{template "tip" .Tips.disk}}</span></span></label> <input type="text" inputmode="decimal" id="disk_gb" name="disk_gb" value="{{.Disk}}" size="8"><br><small>{{.DiskNote}}</small></p>
+<p><label for="mem_gb"><span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tips.memory.ID}}">Memory (GB, gigabytes)</span><span class="tip" role="tooltip" id="{{.Tips.memory.ID}}">{{template "tip" .Tips.memory}}</span></span></label> <input type="text" inputmode="decimal" id="mem_gb" name="mem_gb" value="{{.Mem}}" size="8"><br><small>{{.MemNote}}</small></p>
+<p><span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tips.gpu.ID}}">Graphics card</span><span class="tip" role="tooltip" id="{{.Tips.gpu.ID}}">{{template "tip" .Tips.gpu}}</span></span>: {{.GPU}}</p>
+</fieldset>
+{{/* The fixed ticks: shown ticked and greyed, they cannot be changed. */}}
+<fieldset class="findgroup">
+<legend><strong>Always on</strong></legend>
+<label class="tickrow"><input type="checkbox" checked disabled> <span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tips.supported.ID}}">Supported by Ollama</span><span class="tip" role="tooltip" id="{{.Tips.supported.ID}}">{{template "tip" .Tips.supported}}</span></span></label>
+<label class="tickrow"><input type="checkbox" checked disabled> <span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tips.installable.ID}}">Can be installed with Ollama</span><span class="tip" role="tooltip" id="{{.Tips.installable.ID}}">{{template "tip" .Tips.installable}}</span></span></label>
+</fieldset>
+{{/* What the model should be able to do. */}}
+<fieldset class="findgroup">
+<legend><strong>What it should do</strong></legend>
+<label class="tickrow"><input type="checkbox" name="ab_chat"{{if .Chat}} checked{{end}}> <span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tips.chat.ID}}">Chat and writing</span><span class="tip" role="tooltip" id="{{.Tips.chat.ID}}">{{template "tip" .Tips.chat}}</span></span></label>
+{{range .Abilities}}<label class="tickrow"><input type="checkbox" name="{{.Name}}"{{if .On}} checked{{end}}> <span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tip.ID}}">{{.Label}}</span><span class="tip" role="tooltip" id="{{.Tip.ID}}">{{template "tip" .Tip}}</span></span></label>
+{{end}}
+</fieldset>
+{{/* How big the model may be. */}}
+<fieldset class="findgroup">
+<legend><span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tips.size.ID}}"><strong>Model size</strong></span><span class="tip" role="tooltip" id="{{.Tips.size.ID}}">{{template "tip" .Tips.size}}</span></span> <small class="muted">(none ticked: any size)</small></legend>
+{{range .Sizes}}<label class="tickrow"><input type="checkbox" name="{{.Name}}"{{if .On}} checked{{end}}> {{.Label}} <small class="muted">({{.Range}})</small></label>
+{{end}}
+</fieldset>
+{{/* How much the model remembers of a conversation. */}}
+<fieldset class="findgroup">
+<legend><span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tips.context.ID}}"><strong>Memory of a conversation</strong></span><span class="tip" role="tooltip" id="{{.Tips.context.ID}}">{{template "tip" .Tips.context}}</span></span> <small class="muted">(none ticked: any length)</small></legend>
+{{range .Contexts}}<label class="tickrow"><input type="checkbox" name="{{.Name}}"{{if .On}} checked{{end}}> {{.Label}} <small class="muted">({{.Range}})</small></label>
+{{end}}
+</fieldset>
+{{/* The button: the first and only thing that reads the internet. */}}
+<p><button type="submit" class="btn-solid">Find LLM</button></p>
+</form>
+{{/* The results appear only after the button was pressed. */}}
+{{if .Searched}}
+<h2 id="found">Models found</h2>
+{{if .Error}}<p class="warn" role="alert"><strong>&#9888;</strong> {{.Error}}</p>{{else}}
+{{if .CopyNote}}<p class="warn" role="alert"><strong>&#9888;</strong> {{.CopyNote}}</p>{{end}}
+<p class="muted" role="status">{{.Summary}}</p>
+{{/* The numbers $ri and $vi make every command on the page get its own name, so each Copy button finds its own command. */}}
+{{range $ri, $r := .Results}}
+<div class="findresult">
+<h3><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Name}}<span class="sr-only"> (opens in a new window)</span></a></h3>
+<p>{{.Description}}</p>
+<p class="muted"><small>Abilities: {{if .Abilities}}{{.Abilities}}{{else}}none listed{{end}} &middot; Sizes: {{if .Sizes}}{{.Sizes}}{{else}}none listed{{end}} &middot; Downloads: {{.Pulls}}</small></p>
+{{if .Unavailable}}<p class="warn">{{.Unavailable}}. Open the official page above for its versions.</p>{{else}}
+{{if eq .FitCount 0}}<p class="warn">None of its versions fit your choices. The versions are listed below with the reason.</p>{{end}}
+<ul class="findversions">
+{{range $vi, $v := .Versions}}<li{{if not .Fits}} class="nofit"{{end}}>{{if .Fits}}<strong>Fits:</strong> <code id="cmd-{{$ri}}-{{$vi}}-local">{{.Command}}</code> <button type="button" class="copybtn" data-target="cmd-{{$ri}}-{{$vi}}-local" hidden aria-label="Copy command: directly on the computer"><svg class="copyicon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span class="copylabel">Copy</span></button>{{else}}<strong>Does not fit:</strong> <code>{{.Command}}</code>{{end}} &middot; {{if .Size}}{{.Size}}{{else}}size not shown{{end}}{{if .Context}} &middot; {{.Context}} context{{end}}{{if .Input}} &middot; {{.Input}}{{end}}{{if .Reason}}<br><small>{{.Reason}}</small>{{end}}
+{{if .Fits}}
+{{/* The command depends on where Ollama runs; the monitor cannot know that, so Docker and Kubernetes are offered too, folded away until wanted. */}}
+<details class="othercmds"><summary>Docker or Kubernetes</summary>
+<table class="cmds"><tbody>
+<tr><th scope="row">In Docker</th><td><code id="cmd-{{$ri}}-{{$vi}}-docker">docker exec &lt;container-name&gt; {{.Command}}</code> <button type="button" class="copybtn" data-target="cmd-{{$ri}}-{{$vi}}-docker" hidden aria-label="Copy command: in Docker"><svg class="copyicon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span class="copylabel">Copy</span></button><br><span class="muted">find the name with: <code id="cmd-{{$ri}}-{{$vi}}-dockerfind">docker ps</code></span> <button type="button" class="copybtn" data-target="cmd-{{$ri}}-{{$vi}}-dockerfind" hidden aria-label="Copy command: find the Docker container name"><svg class="copyicon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span class="copylabel">Copy</span></button></td></tr>
+<tr><th scope="row">In Kubernetes</th><td><code id="cmd-{{$ri}}-{{$vi}}-k8s">kubectl exec -n &lt;namespace&gt; &lt;pod-name&gt; -- {{.Command}}</code> <button type="button" class="copybtn" data-target="cmd-{{$ri}}-{{$vi}}-k8s" hidden aria-label="Copy command: in Kubernetes"><svg class="copyicon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span class="copylabel">Copy</span></button><br><span class="muted">find the pod with: <code id="cmd-{{$ri}}-{{$vi}}-k8sfind">kubectl get pods -n &lt;namespace&gt;</code></span> <button type="button" class="copybtn" data-target="cmd-{{$ri}}-{{$vi}}-k8sfind" hidden aria-label="Copy command: find the Kubernetes pod name"><svg class="copyicon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span class="copylabel">Copy</span></button></td></tr>
+</tbody></table>
+</details>
+{{end}}
+</li>
+{{end}}
+</ul>
+{{if .More}}<p class="muted"><small>{{.More}} more versions are on the official page.</small></p>{{end}}
+{{end}}
+</div>
+{{end}}
+{{end}}
+{{end}}
+{{if .ShowCopy}}
+{{/* Copy buttons only copy text already on the page; the announcement for screen readers after a copy. */}}
+<p class="muted"><small>The command must run where Ollama runs, because the model is stored there. The Copy button only copies the text; you paste it into the terminal yourself. The Kubernetes line has not been tested on a real cluster.</small></p>
+<p id="copystatus" class="sr-only" role="status" aria-live="polite"></p>
+{{end}}
+</section>
+</main>
+{{if .ShowCopy}}<script src="/copy.js" defer></script>{{end}}
+</body>
+</html>

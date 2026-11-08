@@ -20,6 +20,14 @@
   --cat-bg: #dbe7f5;
   /* Category row text colour: deep navy. */
   --cat-text: #12304f;
+  /* Soft icon colours, each at least 4.5:1 on the page and panel backgrounds: the tag symbol is amber-brown, delete is red, the Modelfile is blue and the inference parameters are violet. */
+  --icon-tag: #96560a;
+  /* The delete symbol. */
+  --icon-delete: #b3261e;
+  /* The Modelfile symbol. */
+  --icon-file: #1f5fa8;
+  /* The inference parameters symbol. */
+  --icon-params: #6d3fb5;
   /* Category row accent bar on the left edge (contrast 6.4:1 on the page). */
   --cat-accent: #1f5fa8;
   /* Tell the browser to draw its own controls in light colours. */
@@ -50,6 +58,11 @@
     --cat-bg: #1f3550;
     /* Category row text colour: pale blue. */
     --cat-text: #dbe9fb;
+    /* Soft icon colours for the dark theme, each at least 4.5:1 on the dark page and panel. */
+    --icon-tag: #f0a64b;
+    --icon-delete: #ff8a80;
+    --icon-file: #7fb2f0;
+    --icon-params: #b79af0;
     /* Category row accent bar on the left edge (contrast 8.4:1 on the page). */
     --cat-accent: #7fb2f0;
     /* Tell the browser to draw its own controls in dark colours. */
@@ -79,6 +92,11 @@
   --cat-bg: #1f3550;
   /* Category row text colour: pale blue. */
   --cat-text: #dbe9fb;
+  /* Soft icon colours for the dark theme, each at least 4.5:1 on the dark page and panel. */
+  --icon-tag: #f0a64b;
+  --icon-delete: #ff8a80;
+  --icon-file: #7fb2f0;
+  --icon-params: #b79af0;
   /* Category row accent bar on the left edge (contrast 8.4:1 on the page). */
   --cat-accent: #7fb2f0;
   /* Tell the browser to draw its own controls in dark colours. */
@@ -1191,6 +1209,18 @@ button.btn-plain {
   margin: 0.2rem 0;
 } /* end of rule */
 
+/* The buttons at the right of the Installed models heading sit side by side and wrap on a narrow window. */
+.panelactions {
+  /* Side by side. */
+  display: flex;
+  /* Wrap when the window is narrow. */
+  flex-wrap: wrap;
+  /* Level with each other. */
+  align-items: center;
+  /* Space between the buttons. */
+  gap: 0.5rem;
+} /* end of rule */
+
 /* The bar with the compare button needs no outer space in the heading row. */
 .comparebar {
   /* No outer space. */
@@ -1413,6 +1443,14 @@ button.btn-plain {
 .ghostrow th, .ghostrow td {
   /* Faded, but still readable. */
   opacity: 0.75;
+} /* end of rule */
+
+/* The restore icon is alone in its column, so it is lifted a little to sit exactly level with the middle of the struck name. */
+.ghostrow .iconstack {
+  /* A box that can be moved without moving the text around it. */
+  position: relative;
+  /* Up by three pixels: the icon box is a little taller than the name's line. */
+  top: -3px;
 } /* end of rule */
 
 /* The deletion note under the struck name. */
@@ -2519,4 +2557,156 @@ html[data-size="medium"] svg[width="22"] {
 .attention h2:focus {
   /* No ring on the title. */
   outline: none;
+} /* end of rule */
+
+/* Find LLM page: the required facts about this computer stand out in a coloured box with a thick left edge. */
+.mandatorybox {
+  /* The box colours come from the variables, so both themes work. */
+  background: var(--cat-bg);
+  /* Readable text on that background. */
+  color: var(--cat-text);
+  /* A thick edge, so the box stands out without colour too. */
+  border: 1px solid var(--border);
+  /* The thick left edge. */
+  border-left: 0.3rem solid var(--cat-accent);
+  /* Slightly rounded corners. */
+  border-radius: 0.4rem;
+  /* Room inside. */
+  padding: 0.6rem 0.9rem;
+  /* Room around. */
+  margin: 1rem 0;
+} /* end of rule */
+
+/* Find LLM page: a group of choices. */
+.findgroup {
+  /* A plain outline. */
+  border: 1px solid var(--border);
+  /* Slightly rounded corners. */
+  border-radius: 0.4rem;
+  /* Room inside. */
+  padding: 0.6rem 0.9rem;
+  /* Room around. */
+  margin: 1rem 0;
+} /* end of rule */
+
+/* Find LLM page: one tick box with its words, on its own line. */
+.tickrow {
+  /* One per line. */
+  display: block;
+  /* A little space between lines. */
+  margin: 0.3rem 0;
+} /* end of rule */
+
+/* Find LLM page: one model in the result list. */
+.findresult {
+  /* A line above it. */
+  border-top: 1px solid var(--border);
+  /* Room inside. */
+  padding: 0.8rem 0;
+} /* end of rule */
+
+/* Find LLM page: the download commands may be long; let them wrap instead of widening the page. */
+.findresult code {
+  /* Break inside a long name when needed. */
+  overflow-wrap: anywhere;
+} /* end of rule */
+
+/* Find LLM page: a version that does not fit is shown in the secondary colour, not hidden. */
+.nofit {
+  /* The secondary colour. */
+  color: var(--muted);
+} /* end of rule */
+
+/* The folded-away Docker and Kubernetes commands under a version that fits. */
+.othercmds {
+  /* A little room above. */
+  margin-top: 0.3rem;
+} /* end of rule */
+
+/* The words that open and close the fold are small and look clickable. */
+.othercmds summary {
+  /* A hand cursor. */
+  cursor: pointer;
+  /* Smaller than the text beside it. */
+  font-size: 0.9rem;
+} /* end of rule */
+
+/* The tags under a model name sit on their own line, as plain small text with a tag symbol in front, so they cannot be taken for buttons; they wrap on a narrow window. */
+.modeltags {
+  /* Symbol and words side by side. */
+  display: flex;
+  /* Wrap when the column is narrow. */
+  flex-wrap: wrap;
+  /* Level with the symbol. */
+  align-items: center;
+  /* Room between the symbol and the first word. */
+  gap: 0.2rem 0.3rem;
+  /* A little room above, and none below. */
+  margin-top: 0.25rem;
+  /* The muted text colour: tags are information, not actions. */
+  color: var(--muted);
+  /* Small text. */
+  font-size: 0.75rem;
+  /* Normal weight, even inside the bold row heading. */
+  font-weight: 400;
+} /* end of rule */
+
+/* The tag symbol is as high as the text, and amber-brown so it reads as a label and not as a button. */
+.tagicon {
+  /* Do not shrink in a narrow column. */
+  flex: none;
+  /* The soft amber-brown. */
+  color: var(--icon-tag);
+} /* end of rule */
+
+/* A tag is plain text: no border, no background, no pointer. */
+.mtag {
+  /* A tag never breaks in the middle. */
+  white-space: nowrap;
+} /* end of rule */
+
+/* A dot between two tags. */
+.mtag + .mtag::before {
+  /* The middle dot. */
+  content: "\00b7";
+  /* Room on both sides of it. */
+  margin-right: 0.3rem;
+} /* end of rule */
+
+/* The line "deleted ... " under the tags of a deleted model: on its own line, a little below the tags. */
+.modeltags + .ghostnote {
+  /* Its own line, because the tags above are a block and no line break follows them. */
+  display: block;
+  /* A little room above, the same as between the name and the tags. */
+  margin-top: 0.25rem;
+} /* end of rule */
+
+/* The Modelfile icon next to a model: blue. */
+.gear-file, .sym-file {
+  /* The soft blue. */
+  color: var(--icon-file);
+} /* end of rule */
+
+/* The inference parameters icon next to a model: violet. */
+.gear-params, .sym-params {
+  /* The soft violet. */
+  color: var(--icon-params);
+} /* end of rule */
+
+/* The delete icon next to a model: soft red; it turns to the strong problem colour when pointed at (see the rule above). */
+.gear-delete, .sym-delete {
+  /* The soft red. */
+  color: var(--icon-delete);
+} /* end of rule */
+
+/* Pointed at or focused, the blue and violet icons move towards the text colour, so the change is seen without losing the hue. */
+.gear-file:hover, .gear-file:focus-visible {
+  /* Mixed with the text colour. */
+  color: color-mix(in srgb, var(--icon-file) 65%, var(--text));
+} /* end of rule */
+
+/* The same for the violet icon. */
+.gear-params:hover, .gear-params:focus-visible {
+  /* Mixed with the text colour. */
+  color: color-mix(in srgb, var(--icon-params) 65%, var(--text));
 } /* end of rule */

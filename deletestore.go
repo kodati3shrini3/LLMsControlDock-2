@@ -42,6 +42,12 @@ type deletedModel struct {
 	Size int64 `json:"size"`
 	// DeletedAt is the moment of deletion.
 	DeletedAt time.Time `json:"deleted_at"`
+	// ParameterSize, ContextLength and Capabilities are what Ollama reported about the model at deletion time, so the greyed row can show its tags; entries saved by earlier versions do not have them.
+	ParameterSize string `json:"parameter_size,omitempty"`
+	// ContextLength is the largest context in tokens.
+	ContextLength int64 `json:"context_length,omitempty"`
+	// Capabilities are Ollama's own words for the abilities.
+	Capabilities []string `json:"capabilities,omitempty"`
 } // end of deletedModel
 
 // deletedFile is the layout of the file on disk.

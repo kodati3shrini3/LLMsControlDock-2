@@ -42,7 +42,7 @@
 {{/* Where the source lives. */}}
 <tr><th scope="row">Source code</th><td><a href="{{.Repository}}" target="_blank" rel="noopener noreferrer">{{.Repository}}<span class="sr-only"> (opens in a new window)</span></a> (private repository; opens only for its owner)</td></tr>
 {{/* Where the data goes. */}}
-<tr><th scope="row">Privacy</th><td>Runs only on this computer. The one request to the outside is the optional check of Ollama's public library when a model is deleted, and it sends only the model's name. Links to the developer's sites open in a new window only when you click them; nothing is sent to them before that.</td></tr>
+<tr><th scope="row">Privacy</th><td>Runs only on this computer. The requests to the outside are read-only and go to the public Ollama website only: the optional check of a model's name before it is deleted, and, when you press Find LLM, a read of the public model list and of the version lists of the first ten models. The model list is also kept in this program's data folder on this computer, so that Find LLM can show it, with its date, when the website cannot be reached. Nothing about you or your choices is sent. Links to the developer's sites open in a new window only when you click them; nothing is sent to them before that.</td></tr>
 {{/* The licence. */}}
 <tr><th scope="row">Licence</th><td><a href="{{.LicenceURL}}" target="_blank" rel="noopener noreferrer">{{.Licence}}<span class="sr-only"> (opens in a new window)</span></a>. {{.Copyright}}</td></tr>
 {{/* End of the table. */}}

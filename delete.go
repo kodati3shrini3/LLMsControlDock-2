@@ -309,7 +309,7 @@ func deleteHandlers(addr ollamaAddress, token string, store *deletedStore, hist 
 		// Remember it, so the table can show it greyed out and Restore can offer it again.
 		note := ""
 		// Save; a failure does not undo the deletion, it only means the ghost row will be missing.
-		if err := store.add(deletedModel{Name: m.Name, Digest: m.Digest, Size: m.Size, DeletedAt: at}); err != nil {
+		if err := store.add(deletedModel{Name: m.Name, Digest: m.Digest, Size: m.Size, DeletedAt: at, ParameterSize: m.Details.ParameterSize, ContextLength: m.Details.ContextLength, Capabilities: m.Capabilities}); err != nil {
 			// Say so in words.
 			note = "The model is deleted, but this monitor could not remember it, so there will be no Restore row. " + err.Error()
 		} // end of the save check

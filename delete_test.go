@@ -461,13 +461,18 @@ func TestDeleteConfirmDeletesAndRemembers(t *testing.T) {
 	// The main page now shows the greyed row with a restore form, and the model is not in the installed rows.
 	_, _, page := get(t, rig.h, http.MethodGet, "/")
 	// The things that must be there.
-	for _, want := range []string{`data-deleted="alpha:1b"`, "<s>alpha:1b</s>", `action="/restore"`, "Restore: how to download this model again, and the parameters it had", "Deleted models", "1.3 GB"} {
+	for _, want := range []string{`data-deleted="alpha:1b"`, "<s>alpha:1b</s>", `action="/restore"`, "Restore: how to download this model again, and the parameters it had", "Deleted models", "1.3 GB", `<span class="mtag">`} {
 		// Look for it.
 		if !strings.Contains(page, want) {
 			// Report the gap.
 			t.Errorf("the main page lacks %q", want)
 		} // end of the check
 	} // end of the loop
+	// The model was deleted by this version, so its tags were saved and the "no tags" note is not shown.
+	if strings.Contains(page, "no tags were saved for it") {
+		// Report it.
+		t.Errorf("the greyed row says no tags were saved although the model had them")
+	} // end of the note check
 	// The ghost row must not carry data-model (the refresh script compares those).
 	if strings.Contains(page, `data-model="alpha:1b"`) {
 		// Report it.
