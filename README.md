@@ -19,7 +19,7 @@ A small program that watches an [Ollama](https://ollama.com) server and lets you
 - The page listens on this computer only (`127.0.0.1:8765`) unless you change that in Settings.
 - Only the program's own page can use the Stop and Unload buttons.
 - No prompt or response text is stored.
-- The only internet requests are read-only: a look-up of a model name in the public Ollama library before a delete; the public model list and version lists, read when you press Find LLM (your choices are not sent); and the optional `-check-links` command.
+- The only internet requests are read-only: a look-up of a model name in the public Ollama library before a delete; the public model list and version lists, read when you press Find LLM (your choices are not sent; the list is also kept in the program's data folder, so Find LLM can show it, dated, when the website cannot be reached); and the optional `-check-links` command.
 
 ## What is tested
 

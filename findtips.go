@@ -33,6 +33,8 @@ var findTipHeadings = map[string]string{
 	"size": "Model size", "context": "Memory of a conversation",
 	// The two fixed ticks.
 	"supported": "Supported by Ollama", "installable": "Can be installed with Ollama",
+	// The help line above the Installed models table.
+	"grouped": "How models are grouped",
 } // end of findTipHeadings
 
 // findTexts are the help texts of the Find LLM page, in the same four-part form as the rest of the program: what it means, a real case, and what it helps you decide. Every example comes from the saved library pages of 2026-11-08 (CET).
@@ -46,6 +48,15 @@ var findTexts = map[string]tooltip{
 		// What it helps with.
 		Decide: "Which model to try next, before you download anything.",
 	}, // end of Find LLM
+	// How models are grouped.
+	"How models are grouped": {
+		// What it means.
+		Plain: "Models sit in groups by what they can do. The tags under a name give its size and how much text it keeps in mind.",
+		// A real case.
+		Example: "gemma4:e4b shows Medium model, Long memory, Pictures, Audio, Tools, Thinking and sits under images or audio.",
+		// What it helps with.
+		Decide: "Which installed model suits a job, without reading the numbers.",
+	}, // end of How models are grouped
 	// Free disk space.
 	"Free disk space": {
 		// What it means.

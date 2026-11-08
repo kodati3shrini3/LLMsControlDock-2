@@ -123,7 +123,7 @@ func TestSnapshotFileNameHasZone(t *testing.T) {
 // TestGreyedRowTimeHasYearAndZone checks the deleted-at text in the table carries the year and the zone.
 func TestGreyedRowTimeHasYearAndZone(t *testing.T) {
 	// A moment in a known zone; Local() would convert it, so the check is on the layout's parts.
-	rows := deletedRows([]deletedModel{{Name: "m:1", Size: 1, DeletedAt: time.Date(2026, 10, 27, 17, 30, 0, 0, time.UTC)}}, nil)
+	rows := deletedRows([]deletedModel{{Name: "m:1", Size: 1, DeletedAt: time.Date(2026, 10, 27, 17, 30, 0, 0, time.UTC)}}, nil, nil)
 	// One row.
 	if len(rows) != 1 {
 		// Stop the test.

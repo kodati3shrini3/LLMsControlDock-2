@@ -357,15 +357,17 @@
 {{else}}
 <p class="keytoggle" id="key"><a href="/?key=open#key"><span aria-hidden="true">&#9656;</span> Key to the symbols <span class="keyhint">(click to show)</span></a></p>
 {{end}}
+{{/* The help line for the tags under the model names. */}}
+<p class="muted groupedhelp">Tags under each name: <span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Table.GroupedTip.ID}}">How models are grouped</span><span class="tip" role="tooltip" id="{{.Table.GroupedTip.ID}}">{{template "tip" .Table.GroupedTip}}</span></span></p>
 {{/* The key itself, drawn only while it is open. */}}
 {{if .KeyOpen}}
 <ul class="legend muted" aria-label="How to read this table">
 <li><span class="sym"><span class="dotsample">Aa</span></span><span><strong>Dotted headings</strong>: point at one, or press Tab, to see what it means</span></li>
 <li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"/><path d="M7 8l-4 4 4 4"/><path d="M17 8l4 4-4 4"/></svg></span><span><strong>Sideways scroll</strong>: the table scrolls sideways</span></li>
-<li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></span><span><strong>Modelfile</strong>: shows a model&#39;s Modelfile, read-only</span></li>
-<li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg></span><span><strong>Inference parameters</strong>: view and modify them; only for models that are not loaded</span></li>
+<li><span class="sym"><svg class="ico sym-file" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></span><span><strong>Modelfile</strong>: shows a model&#39;s Modelfile, read-only</span></li>
+<li><span class="sym"><svg class="ico sym-params" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg></span><span><strong>Inference parameters</strong>: view and modify them; only for models that are not loaded</span></li>
 <li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7"/></svg></span><span><strong>Performance</strong>: before a model name; only for models that are not loaded</span></li>
-<li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></span><span><strong>Delete</strong>: removes a model from this computer; asks first</span></li>
+<li><span class="sym"><svg class="ico sym-delete" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></span><span><strong>Delete</strong>: removes a model from this computer; asks first</span></li>
 <li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/></svg></span><span><strong>Restore</strong>: on a greyed, deleted row; how to download it again, and the parameters it had</span></li>
 <li><span class="sym"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M7 21h10"/><path d="M4 7h16"/><path d="M4 7l-2.5 7a3.5 3.5 0 0 0 5 0z"/><path d="M20 7l-2.5 7a3.5 3.5 0 0 0 5 0z"/></svg></span><span><strong>Compare tested models</strong>: the button at the top right of this panel</span></li>
 </ul>
@@ -465,7 +467,9 @@
 </form>
 {{/* End of the icon column. */}}
 </span>
-{{.Name}}</th>
+{{.Name}}
+{{/* The plain-word tags under the name: size, memory of a conversation and abilities; a figure Ollama did not report gives no tag. */}}
+{{template "tags" .Tags}}</th>
 {{/* The state cell: a dot (solid green when loaded, an empty ring when not) plus the words, so colour is never the only signal. */}}
 <td>
 {{/* Two small icons stacked in a fixed-width column, centred above each other: the Modelfile page icon on top (for every model) and the gear just below it (only for a model that is not loaded; on a loaded row the Modelfile icon is alone, level with the delete icon of the first column). */}}
@@ -479,7 +483,7 @@
 {{/* The area that opens the tip. */}}
 <span class="tipbox">
 {{/* The button: the symbol is hidden from screen readers, which read the label and the tip instead. */}}
-<button type="submit" class="gear" aria-label="Modelfile of {{.Name}}" aria-describedby="tipfile-{{.Name}}"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></button>
+<button type="submit" class="gear gear-file" aria-label="Modelfile of {{.Name}}" aria-describedby="tipfile-{{.Name}}"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></svg></button>
 {{/* The tip. */}}
 <span class="tip tip-icon" role="tooltip" id="tipfile-{{.Name}}">Show the model's Modelfile (read-only)</span>
 {{/* End of the tip area. */}}
@@ -496,7 +500,7 @@
 {{/* The area that opens the tip: pointing at the gear or reaching it with Tab shows what it is for. */}}
 <span class="tipbox">
 {{/* The button: the symbol is hidden from screen readers, which read the label and the tip instead. */}}
-<button type="submit" class="gear" aria-label="Inference parameters of {{.Name}}" aria-describedby="tipgear-{{.Name}}"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg></button>
+<button type="submit" class="gear gear-params" aria-label="Inference parameters of {{.Name}}" aria-describedby="tipgear-{{.Name}}"><svg class="ico" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h9"/><path d="M17 7h3"/><circle cx="15" cy="7" r="2"/><path d="M4 17h3"/><path d="M11 17h9"/><circle cx="9" cy="17" r="2"/></svg></button>
 {{/* The tip. */}}
 <span class="tip tip-icon" role="tooltip" id="tipgear-{{.Name}}">View and modify the model's Inference parameters</span>
 {{/* End of the tip area. */}}
@@ -561,9 +565,8 @@
 {{/* A greyed row; it has no data-model, so the refresh script ignores it. */}}
 <tr class="ghostrow" data-deleted="{{.Name}}">
 <th scope="row" class="stickycol">
-{{/* The same icon column: an empty slot where the performance icon is, the restore icon where the delete icon is. */}}
+{{/* The same icon column width as the other rows; the restore icon is alone in it, so it sits level with the struck name. */}}
 <span class="iconstack">
-<span class="gearslot" aria-hidden="true"></span>
 {{/* A small form that sends the model name and the page token to the restore page, which changes nothing. */}}
 <form class="gearform" method="post" action="/restore">
 {{/* The page token proves the form comes from this monitor. */}}
@@ -583,7 +586,7 @@
 {{/* End of the icon column. */}}
 </span>
 {{/* The name is struck through; the line under it says when and how big. */}}
-<s>{{.Name}}</s><br><span class="muted ghostnote">deleted {{.WhenText}}, {{.SizeText}}</span></th>
+<s>{{.Name}}</s>{{if .Tags}}{{template "tags" .Tags}}{{else}}<br>{{end}}<span class="muted ghostnote">deleted {{.WhenText}}, {{.SizeText}}{{if not .Tags}}; no tags were saved for it{{end}}</span></th>
 {{/* One wide cell for the rest of the row. */}}
 <td colspan="9" class="muted">Deleted. Restore downloads it again.</td>
 </tr>{{/* end of the greyed row. */}}
@@ -625,6 +628,8 @@
 {{if .HasTable}}<script src="/countdown.js" defer></script>{{end}}
 </body>{{/* end of the visible page. */}}
 </html>{{/* end of the page. */}}
+{{/* The tags of a model: a small tag symbol, then the words separated by dots; plain text, not buttons. Nothing is drawn for a model without tags. */}}
+{{define "tags"}}{{if .}}<span class="modeltags"><svg class="tagicon" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L2 12V2h10l8.6 8.6a2 2 0 0 1 0 2.8z"/><circle cx="7" cy="7" r="1"/></svg><span class="sr-only">Tags: </span>{{range .}}<span class="mtag">{{.}}</span>{{end}}</span>{{end}}{{end}}
 {{/* The help bubble content: three labelled parts, and the task names when there are any. */}}
 {{define "tip"}}
 {{/* What the heading means. */}}

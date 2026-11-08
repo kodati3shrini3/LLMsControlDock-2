@@ -407,7 +407,7 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 				// Build the table and switch it on.
 				data.Table = buildTableView(installed, loaded)
 				// Add the greyed rows of deleted models that are still gone.
-				data.Table.Deleted = deletedRows(deletedList.list(), installed)
+				data.Table.Deleted = deletedRows(deletedList.list(), installed, perfHistory.lastFacts)
 				// The table can be drawn now.
 				data.HasTable = true
 				// The event log may compare these lists too.

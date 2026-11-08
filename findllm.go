@@ -606,6 +606,8 @@ type findPage struct {
 	Results []resultView
 	// Summary is the sentence above the results: how many models match, which are shown, when the list was read, and what was left out.
 	Summary string
+	// CopyNote says that the list is a saved copy, with its date and why; empty when the list was read live.
+	CopyNote string
 	// ShowCopy is true when at least one version fits, so the page carries Copy buttons and the monitor's own copy script.
 	ShowCopy bool
 } // end of findPage
@@ -638,9 +640,9 @@ func findLLMHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.H
 		tips[key] = makeFindTip("tip-find-"+key, heading)
 	} // end of the bubble loop
 	// render draws the page for a selection.
-	render := func(w http.ResponseWriter, r *http.Request, sel findSelection, fm findMachine, problems []string, searched bool, results []resultView, total, cloud, noSize int, errText, readAt string, status int) {
+	render := func(w http.ResponseWriter, r *http.Request, sel findSelection, fm findMachine, problems []string, searched bool, results []resultView, total, cloud, noSize int, errText, readAt, copyNote string, status int) {
 		// The tick boxes.
-		data := findPage{Theme: themeFromRequest(r), Size: sizeFromRequest(r), Token: token, Tips: tips, Chat: sel.Chat, Problems: problems, Searched: searched, Error: errText, ReadAt: readAt, Results: results, Summary: findSummary(len(results), total, cloud, noSize, readAt)}
+		data := findPage{Theme: themeFromRequest(r), Size: sizeFromRequest(r), Token: token, Tips: tips, Chat: sel.Chat, Problems: problems, Searched: searched, Error: errText, ReadAt: readAt, CopyNote: copyNote, Results: results, Summary: findSummary(len(results), total, cloud, noSize, readAt)}
 		// The abilities.
 		for _, k := range abilityKeys {
 			// One box.
@@ -744,7 +746,7 @@ func findLLMHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.H
 		// The starting choices: chat and writing, small and medium models, no ability or memory filter.
 		sel := findSelection{Chat: true, Abilities: map[string]bool{}, Sizes: map[string]bool{"small": true, "medium": true}, Contexts: map[string]bool{}, DiskGB: fm.DiskGB, MemGB: fm.MemGB}
 		// Draw.
-		render(w, r, sel, fm, nil, false, nil, 0, 0, 0, "", "", http.StatusOK)
+		render(w, r, sel, fm, nil, false, nil, 0, 0, 0, "", "", "", http.StatusOK)
 	} // end of show
 	// search reads the library and shows the models.
 	search := func(w http.ResponseWriter, r *http.Request) {
@@ -762,18 +764,32 @@ func findLLMHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.H
 		// Typed wrongly: show the form again, read nothing.
 		if len(problems) > 0 {
 			// Draw with the problems.
-			render(w, r, sel, fm, problems, false, nil, 0, 0, 0, "", "", http.StatusBadRequest)
+			render(w, r, sel, fm, problems, false, nil, 0, 0, 0, "", "", "", http.StatusBadRequest)
 			// Stop.
 			return
 		} // end of the problem check
 		// Read the current list from the library.
 		models, at, err := liveSiteList(r.Context(), time.Now)
-		// It could not be read: say why, show no data.
+		// Whether the list is a saved copy, and the note that says so.
+		var copyNote string
+		// It could not be read live: use the saved copy, clearly dated, or say why nothing is shown.
 		if err != nil {
-			// Draw with the reason.
-			render(w, r, sel, fm, nil, true, nil, 0, 0, 0, "The Ollama library could not be read just now: "+err.Error()+". Nothing is shown rather than something that may be out of date.", "", http.StatusOK)
-			// Stop.
-			return
+			// The saved copy of the last successful reading.
+			saved, savedAt, cerr := loadLibraryCopy()
+			// No usable copy: say why, show no data.
+			if cerr != nil {
+				// Draw with the reason.
+				render(w, r, sel, fm, nil, true, nil, 0, 0, 0, "The Ollama library could not be read just now: "+err.Error()+". No saved copy of the list exists yet (one is saved after each successful search), so nothing is shown rather than something that may be out of date.", "", "", http.StatusOK)
+				// Stop.
+				return
+			} // end of the copy check
+			// Work with the copy.
+			models, at = saved, savedAt
+			// The note, with the reason and the date.
+			copyNote = "ollama.com could not be reached just now (" + err.Error() + "). This is a saved copy of the library list from " + at.Format("2006-01-02 15:04:05 MST (UTC-07:00)") + ", so it may be out of date. The versions and sizes of each model cannot be checked now; open the official page of a model to see them."
+		} else {
+			// A live reading is kept for the next time ollama.com cannot be reached.
+			saveLibraryCopy(models, at)
 		} // end of the read check
 		// Apply the choices the list can answer.
 		cands, noSize, cloud := findCandidates(models, sel)
@@ -800,6 +816,13 @@ func findLLMHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.H
 			go func(i int) {
 				// Free the place and report done.
 				defer func() { <-gate; wg.Done() }()
+				// A saved copy means ollama.com is not reachable: do not wait for it again for every model.
+				if copyNote != "" {
+					// Never guess: the model is listed without versions.
+					results[i] = buildResult(shown[i], nil, "ollama.com could not be reached", sel)
+					// Done.
+					return
+				} // end of the copy check
 				// Read the tags page.
 				tags, terr := fetchSiteTags(r.Context(), shown[i].Name)
 				// A failure.
@@ -821,7 +844,7 @@ func findLLMHandlers(addr ollamaAddress, token string) (http.HandlerFunc, http.H
 			return (results[i].FitCount > 0) && (results[j].FitCount == 0)
 		}) // end of the sort
 		// Draw the results, with the time the list was read and its zone.
-		render(w, r, sel, fm, nil, true, results, len(cands), cloud, noSize, "", at.Format("2006-01-02 15:04:05 MST (UTC-07:00)"), http.StatusOK)
+		render(w, r, sel, fm, nil, true, results, len(cands), cloud, noSize, "", at.Format("2006-01-02 15:04:05 MST (UTC-07:00)"), copyNote, http.StatusOK)
 	} // end of search
 	// Hand back both.
 	return show, search

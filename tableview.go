@@ -67,6 +67,8 @@ type rowView struct {
 	TimerSeconds int
 	// TimerExpired is true when the unload time has arrived but Ollama still lists the model; the page asks again soon.
 	TimerExpired bool
+	// Tags are the plain-word tags under the name: size class, memory of a conversation and abilities.
+	Tags []string
 } // end of rowView
 
 // groupView is one category section.
@@ -89,10 +91,12 @@ type deletedRow struct {
 	SizeText string
 	// WhenText is the deletion time in words, with the year and the computer's own time zone.
 	WhenText string
+	// Tags are the plain-word tags of the model, from what was saved at deletion or, failing that, from its saved tests; empty when nothing is known.
+	Tags []string
 } // end of deletedRow
 
 // deletedRows turns the remembered deleted models into rows; a name that is installed again is left out (it was restored, or pulled by hand).
-func deletedRows(items []deletedModel, installed []installedModel) []deletedRow {
+func deletedRows(items []deletedModel, installed []installedModel, facts func(string) (string, int64, bool)) []deletedRow {
 	// The rows to show.
 	var rows []deletedRow
 	// Go through the remembered models, newest first.
@@ -103,7 +107,7 @@ func deletedRows(items []deletedModel, installed []installedModel) []deletedRow 
 			continue
 		} // end of the installed check
 		// Add the row.
-		rows = append(rows, deletedRow{Name: d.Name, SizeText: formatSize(d.Size), WhenText: d.DeletedAt.Local().Format("2 Jan 2006 15:04 MST")})
+		rows = append(rows, deletedRow{Name: d.Name, SizeText: formatSize(d.Size), WhenText: d.DeletedAt.Local().Format("2 Jan 2006 15:04 MST"), Tags: deletedTags(d, facts)})
 	} // end of the loop
 	// Hand back.
 	return rows
@@ -119,6 +123,8 @@ type tableView struct {
 	Groups []groupView
 	// Deleted are the models this monitor deleted and that are not installed now; they are drawn greyed out at the end of the table.
 	Deleted []deletedRow
+	// GroupedTip is the help bubble "How models are grouped", shown above the table.
+	GroupedTip tipView
 } // end of tableView
 
 // makeTip looks up the help text for a heading and attaches the element name.
@@ -199,7 +205,7 @@ func buildTableViewAt(installed []installedModel, loaded []loadedModel, now time
 	// Mark each model as loaded or not, then sort into category sections (both from the terminal version).
 	groups := groupRows(combine(installed, loaded))
 	// Start the view with the total.
-	view := tableView{Total: len(installed)}
+	view := tableView{Total: len(installed), GroupedTip: makeFindTip("tip-grouped", "How models are grouped")}
 	// One heading per column, in the fixed order.
 	for i, title := range installedColumns {
 		// Add the heading with its bubble.
@@ -225,7 +231,7 @@ func buildTableViewAt(installed []installedModel, loaded []loadedModel, now time
 				timer, timerSecs, timerExpired = timerFor(byName[m.Name], now)
 			} // end of the timer
 			// Add the row: the name first, then the nine cells in the same order and formats as the terminal table.
-			gv.Rows = append(gv.Rows, rowView{Name: m.Name, Loaded: r.Loaded, StateWord: stateWord(r.Loaded), Timer: timer, TimerSeconds: timerSecs, TimerExpired: timerExpired, Cells: []string{
+			gv.Rows = append(gv.Rows, rowView{Name: m.Name, Tags: installedTags(m), Loaded: r.Loaded, StateWord: stateWord(r.Loaded), Timer: timer, TimerSeconds: timerSecs, TimerExpired: timerExpired, Cells: []string{
 				// Loaded or not, symbol plus words.
 				stateText(r.Loaded),
 				// Size on disk.

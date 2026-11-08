@@ -1,22 +1,37 @@
 // Package main tells Go that this test file belongs to the same program as findllm.go.
 package main
 
-import (
-	"regexp" // import lists the standard-library packages this test file uses.
+import ( // import lists the standard-library packages this test file uses.
+	// encoding/json checks what is saved for a deleted model.
+	"encoding/json"
+	// html escapes a help text the way the page does.
+	"html"
 	// io reads a reply body.
 	"io"
+	// math raises the colour values to a power for the contrast figure.
+	"math"
 	// net/http gives the status codes.
 	"net/http"
 	// net/url builds the form values.
 	"net/url"
+	// os checks and writes the saved copy.
+	"os"
+	// path/filepath builds the place of the saved copy.
+	"path/filepath"
+	// regexp finds the copy buttons.
+	"regexp"
 	// runtime says which system the test runs on.
 	"runtime"
+	// strconv reads the colour numbers.
+	"strconv"
 	// strings searches the page text.
 	"strings"
 	// sync/atomic reads the request counter safely.
 	"sync/atomic"
 	// testing is Go's built-in test framework.
 	"testing"
+	// time carries the moment of a reading.
+	"time"
 	// unicode/utf8 counts characters of the help texts.
 	"unicode/utf8"
 ) // end of imports
@@ -346,6 +361,8 @@ func postFind(t *testing.T, rig themeRig, v url.Values) (int, string) {
 
 // TestFindPageShowsTheChoicesAndAsksNothing checks the page before any search.
 func TestFindPageShowsTheChoicesAndAsksNothing(t *testing.T) {
+	// The saved library list goes to a throw-away folder, never to the real data folder.
+	isolateFindData(t)
 	// A fake library; it must not be asked.
 	hits := fakeSite(t, findTestPages())
 	// The rig.
@@ -379,7 +396,7 @@ func TestFindPageShowsTheChoicesAndAsksNothing(t *testing.T) {
 		} // end of the look
 	} // end of the loop
 	// No results block, and no request to the library.
-	if strings.Contains(body, "<h2>Models found</h2>") || atomic.LoadInt32(hits) != 0 {
+	if strings.Contains(body, ">Models found</h2>") || atomic.LoadInt32(hits) != 0 {
 		// Report.
 		t.Errorf("results shown or library asked before the button (hits=%d)", atomic.LoadInt32(hits))
 	} // end of the check
@@ -387,6 +404,8 @@ func TestFindPageShowsTheChoicesAndAsksNothing(t *testing.T) {
 
 // TestFindSearchShowsFitAndNoFit checks a whole search against a fake library.
 func TestFindSearchShowsFitAndNoFit(t *testing.T) {
+	// The saved library list goes to a throw-away folder, never to the real data folder.
+	isolateFindData(t)
 	// Start with an empty saved list.
 	theListCache = listCache{}
 	// Clear it again at the end.
@@ -403,7 +422,7 @@ func TestFindSearchShowsFitAndNoFit(t *testing.T) {
 		t.Fatalf("status %d: %s", status, body)
 	} // end of the status check
 	// The model, its official link, the small version that fits with its command, and the large one with the reason.
-	for _, want := range []string{"<h2>Models found</h2>", ollamaSite + "/library/alpha", "ollama pull alpha:0.6b", "<strong>Fits:</strong>", "<strong>Does not fit:</strong>", "needs 5.2 GB of disk space; you have 2.0 GB free", "1 model matches your choices", "1 cloud model (it runs on Ollama"} {
+	for _, want := range []string{`<h2 id="found">Models found</h2>`, ollamaSite + "/library/alpha", "ollama pull alpha:0.6b", "<strong>Fits:</strong>", "<strong>Does not fit:</strong>", "needs 5.2 GB of disk space; you have 2.0 GB free", "1 model matches your choices", "1 cloud model (it runs on Ollama"} {
 		// Look for it.
 		if !strings.Contains(body, want) {
 			// Report.
@@ -429,6 +448,8 @@ func TestFindSearchShowsFitAndNoFit(t *testing.T) {
 
 // TestFindSearchRules checks the refusals: wrong token, bad number, library down.
 func TestFindSearchRules(t *testing.T) {
+	// The saved library list goes to a throw-away folder, never to the real data folder.
+	isolateFindData(t)
 	// Start with an empty saved list.
 	theListCache = listCache{}
 	// Clear it again at the end.
@@ -454,10 +475,10 @@ func TestFindSearchRules(t *testing.T) {
 		// Report.
 		t.Errorf("the library was asked %d times by refused forms", atomic.LoadInt32(hits))
 	} // end of the count check
-	// The library cannot be read: the reason is shown and no model is listed.
+	// The library cannot be read and no copy was saved yet: the reason is shown and no model is listed.
 	status, body = postFind(t, rig, url.Values{"token": {rig.token}, "ab_chat": {"on"}})
 	// A normal page with a warning.
-	if status != http.StatusOK || !strings.Contains(body, "could not be read just now") || strings.Contains(body, "findresult") {
+	if status != http.StatusOK || !strings.Contains(body, "could not be read just now") || !strings.Contains(body, "No saved copy of the list exists yet") || strings.Contains(body, "findresult") {
 		// Report.
 		t.Errorf("library down: status %d", status)
 	} // end of the down check
@@ -515,6 +536,8 @@ func TestFindSummaryWording(t *testing.T) {
 
 // TestFindResultsHaveCopyButtons checks that a version that fits has Copy buttons for its three commands, that a version that does not fit has none, and that the script policy is only on when there is a button.
 func TestFindResultsHaveCopyButtons(t *testing.T) {
+	// The saved library list goes to a throw-away folder, never to the real data folder.
+	isolateFindData(t)
 	// Start with an empty saved list.
 	theListCache = listCache{}
 	// Clear it again at the end.
@@ -581,3 +604,397 @@ func TestFindResultsHaveCopyButtons(t *testing.T) {
 		t.Errorf("a page without a fitting version must carry no copy button, no script and the strict policy")
 	} // end of the check
 } // end of TestFindResultsHaveCopyButtons
+
+// isolateFindData sends the data folder to a throw-away folder for one test, and forgets which reading was saved last.
+func isolateFindData(t *testing.T) {
+	// Mark this as a helper.
+	t.Helper()
+	// Put the real lookups back at the end.
+	saveFolderLookups(t)
+	// A new empty folder for this test.
+	dir := t.TempDir()
+	// The data folder lookup now points there.
+	userDataDir = func() (string, error) { return dir, nil }
+	// No reading was saved yet.
+	copyState.mu.Lock()
+	// Forget it.
+	copyState.savedAt = time.Time{}
+	// Let go.
+	copyState.mu.Unlock()
+} // end of isolateFindData
+
+// TestOfflineCopyIsSavedAndShown checks that a live search saves the list, and that when ollama.com cannot be reached later the saved copy is shown with its date, a warning, and no versions.
+func TestOfflineCopyIsSavedAndShown(t *testing.T) {
+	// A throw-away data folder.
+	isolateFindData(t)
+	// An empty in-memory list.
+	theListCache = listCache{}
+	// Clear it again at the end.
+	t.Cleanup(func() { theListCache = listCache{} })
+	// A working fake library.
+	fakeSite(t, findTestPages())
+	// The rig.
+	rig := newThemeRig(t)
+	// A live search saves the copy.
+	if status, _ := postFind(t, rig, url.Values{"token": {rig.token}, "ab_chat": {"on"}, "disk_gb": {"50"}, "mem_gb": {"16"}}); status != http.StatusOK {
+		// Stop.
+		t.Fatalf("live search: status %d", status)
+	} // end of the live search
+	// The file exists.
+	if _, err := os.Stat(filepath.Join(dataRoot(), libraryCopyFolder, libraryCopyName)); err != nil {
+		// Stop.
+		t.Fatalf("the copy was not saved: %v", err)
+	} // end of the file check
+	// Now the library is down: forget the in-memory list and answer 404 for everything.
+	theListCache = listCache{}
+	// The fake library with no pages.
+	hits := fakeSite(t, map[string]string{})
+	// Search again.
+	status, body := postFind(t, rig, url.Values{"token": {rig.token}, "ab_chat": {"on"}, "disk_gb": {"50"}, "mem_gb": {"16"}})
+	// The page works.
+	if status != http.StatusOK {
+		// Stop.
+		t.Fatalf("offline search: status %d", status)
+	} // end of the status check
+	// The model comes from the copy, the warning says so, and the date is shown.
+	for _, want := range []string{"This is a saved copy of the library list from ", "so it may be out of date", ">alpha<", "details are not available right now"} {
+		// Look for it.
+		if !strings.Contains(body, want) {
+			// Report.
+			t.Errorf("the offline page lacks %q", want)
+		} // end of the look
+	} // end of the loop
+	// No version, no command, no copy button: nothing is guessed.
+	for _, bad := range []string{"<code>ollama pull", "<strong>Fits:</strong>", "copybtn", "<script"} {
+		// It must be absent.
+		if strings.Contains(body, bad) {
+			// Report.
+			t.Errorf("the offline page has %q", bad)
+		} // end of the check
+	} // end of the loop
+	// Only the list page was tried; the tags pages were not asked for while offline.
+	if n := atomic.LoadInt32(hits); n != 1 {
+		// Report.
+		t.Errorf("%d requests while offline, want 1", n)
+	} // end of the count check
+} // end of TestOfflineCopyIsSavedAndShown
+
+// TestDamagedCopyIsNeverShown checks that an unreadable or empty saved copy counts as no copy.
+func TestDamagedCopyIsNeverShown(t *testing.T) {
+	// A throw-away data folder.
+	isolateFindData(t)
+	// An empty in-memory list.
+	theListCache = listCache{}
+	// Clear it again at the end.
+	t.Cleanup(func() { theListCache = listCache{} })
+	// The library is down.
+	fakeSite(t, map[string]string{})
+	// The rig.
+	rig := newThemeRig(t)
+	// The folder and a damaged file.
+	path := libraryCopyPath()
+	// Make the folder.
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		// Stop.
+		t.Fatalf("folder: %v", err)
+	} // end of the folder check
+	// The cases: broken text, an empty list, and a list without a date.
+	for _, bad := range []string{"{not json", `{"read_at":"2026-11-08T20:36:00Z","models":[]}`, `{"models":[{"Name":"x"}]}`} {
+		// Write it.
+		if err := os.WriteFile(path, []byte(bad), 0o600); err != nil {
+			// Stop.
+			t.Fatalf("write: %v", err)
+		} // end of the write check
+		// Search.
+		status, body := postFind(t, rig, url.Values{"token": {rig.token}, "ab_chat": {"on"}})
+		// No model, and the plain reason.
+		if status != http.StatusOK || strings.Contains(body, "findresult") || strings.Contains(body, "saved copy of the library list from") || !strings.Contains(body, "could not be read just now") {
+			// Report.
+			t.Errorf("damaged copy %q was used (status %d)", bad, status)
+		} // end of the check
+	} // end of the loop
+} // end of TestDamagedCopyIsNeverShown
+
+// TestInstalledTags checks the plain-word tags with the user's real models and with missing figures.
+func TestInstalledTags(t *testing.T) {
+	// The cases come from the real models and from a model with nothing reported.
+	for _, c := range []struct {
+		// m is the model.
+		m installedModel
+		// want are the tags in order.
+		want []string
+	}{
+		// 27.4 billion, 128K tokens, pictures.
+		{installedModel{Capabilities: []string{"completion", "vision"}, Details: modelDetails{ParameterSize: "27.4B", ContextLength: 131072}}, []string{"Large model", "Long memory", "Pictures"}},
+		// 27.3 billion, 256K tokens, pictures, tools, thinking.
+		{installedModel{Capabilities: []string{"completion", "vision", "tools", "thinking"}, Details: modelDetails{ParameterSize: "27.3B", ContextLength: 262144}}, []string{"Large model", "Very long memory", "Pictures", "Tools", "Thinking"}},
+		// 8 billion, 128K, every ability in the fixed order.
+		{installedModel{Capabilities: []string{"completion", "vision", "audio", "tools", "thinking"}, Details: modelDetails{ParameterSize: "8.0B", ContextLength: 131072}}, []string{"Medium model", "Long memory", "Pictures", "Audio", "Tools", "Thinking"}},
+		// An embedding model: no ability tag, the group says it.
+		{installedModel{Capabilities: []string{"embedding"}, Details: modelDetails{ParameterSize: "1.14B", ContextLength: 262144}}, []string{"Small model", "Very long memory"}},
+		// A tiny model with a short memory, written in millions.
+		{installedModel{Capabilities: []string{"completion"}, Details: modelDetails{ParameterSize: "350M", ContextLength: 2048}}, []string{"Tiny model", "Short memory"}},
+		// Nothing reported: no tag at all, never a guess.
+		{installedModel{}, nil},
+	} {
+		// Work it out.
+		got := installedTags(c.m)
+		// Compare.
+		if strings.Join(got, "|") != strings.Join(c.want, "|") {
+			// Report.
+			t.Errorf("tags of %+v = %v, want %v", c.m.Details, got, c.want)
+		} // end of the comparison
+	} // end of the case loop
+} // end of TestInstalledTags
+
+// TestHomePageShowsTagsAndTheGroupingHelp checks that the table shows the tags under the names and the help line.
+func TestHomePageShowsTagsAndTheGroupingHelp(t *testing.T) {
+	// The page with the six real models.
+	body := pageFor(t, fullOllama(t, realModels, realPsBody))
+	// The tags of one row, the help line and its text.
+	for _, want := range []string{`<span class="modeltags">`, `<span class="mtag">Large model</span>`, `<span class="mtag">Very long memory</span>`, `<span class="mtag">Thinking</span>`, "How models are grouped", html.EscapeString(findTexts["How models are grouped"].Plain)} {
+		// Look for it.
+		if !strings.Contains(body, want) {
+			// Report.
+			t.Errorf("the home page lacks %q", want)
+		} // end of the look
+	} // end of the loop
+	// An embedding row carries no ability tag.
+	row := body[strings.Index(body, `<tr data-model="rjmalagon/gte-qwen2-instruct:1.5b-f16"`):]
+	// Its heading cell.
+	cell := row[:strings.Index(row, "</th>")]
+	// No pictures, tools, audio or thinking there.
+	for _, no := range []string{">Pictures<", ">Tools<", ">Audio<", ">Thinking<"} {
+		// It must be absent.
+		if strings.Contains(cell, no) {
+			// Report.
+			t.Errorf("the embedding row has the tag %q", no)
+		} // end of the check
+	} // end of the loop
+} // end of TestHomePageShowsTagsAndTheGroupingHelp
+
+// TestDeletedTags checks the tags of a deleted model: from what was saved at deletion, otherwise from the saved tests, never from the name.
+func TestDeletedTags(t *testing.T) {
+	// Saved tests know the size and memory of one model only.
+	facts := func(name string) (string, int64, bool) {
+		// Only this model was tested.
+		if name == "tested:1b" {
+			// Its facts.
+			return "1.1B", 8192, true
+		} // end of the name check
+		// Nothing for the others.
+		return "", 0, false
+	} // end of facts
+	// The cases.
+	for _, c := range []struct {
+		// d is the remembered model.
+		d deletedModel
+		// want are the tags in order.
+		want []string
+	}{
+		// Saved at deletion by this version: all three kinds of tag.
+		{deletedModel{Name: "a:27b", ParameterSize: "27.3B", ContextLength: 262144, Capabilities: []string{"completion", "vision", "tools"}}, []string{"Large model", "Very long memory", "Pictures", "Tools"}},
+		// Saved by an earlier version, but tested: size and memory only, no abilities.
+		{deletedModel{Name: "tested:1b"}, []string{"Small model", "Medium memory"}},
+		// Saved by an earlier version and never tested: nothing, and the name is not used to guess ("135m" is in it).
+		{deletedModel{Name: "smollm2:135m"}, nil},
+		// What was saved wins over the tests.
+		{deletedModel{Name: "tested:1b", ParameterSize: "8.0B", ContextLength: 131072}, []string{"Medium model", "Long memory"}},
+	} {
+		// Work it out.
+		got := deletedTags(c.d, facts)
+		// Compare.
+		if strings.Join(got, "|") != strings.Join(c.want, "|") {
+			// Report.
+			t.Errorf("tags of %s = %v, want %v", c.d.Name, got, c.want)
+		} // end of the comparison
+	} // end of the case loop
+	// No tests at all (nil lookup) is the same as nothing known.
+	if got := deletedTags(deletedModel{Name: "x:1b"}, nil); got != nil {
+		// Report.
+		t.Errorf("tags without any facts = %v", got)
+	} // end of the nil check
+} // end of TestDeletedTags
+
+// TestDeletedModelFileKeepsTheFacts checks that the new facts are saved in the file, and that a file written by an earlier version still loads.
+func TestDeletedModelFileKeepsTheFacts(t *testing.T) {
+	// Write and read back a model with facts.
+	body, err := json.Marshal(deletedModel{Name: "a:27b", ParameterSize: "27.3B", ContextLength: 262144, Capabilities: []string{"completion", "vision"}})
+	// A failure means the test is broken.
+	if err != nil {
+		// Stop.
+		t.Fatalf("marshal: %v", err)
+	} // end of the marshal check
+	// Read it back.
+	var back deletedModel
+	// Decode.
+	if err := json.Unmarshal(body, &back); err != nil || back.ParameterSize != "27.3B" || back.ContextLength != 262144 || len(back.Capabilities) != 2 {
+		// Report.
+		t.Errorf("facts lost: %+v (%v)", back, err)
+	} // end of the read-back check
+	// An entry of an earlier version has none of the new keys.
+	var old deletedModel
+	// Decode it.
+	if err := json.Unmarshal([]byte(`{"name":"smollm2:135m","digest":"d","size":271000000,"deleted_at":"2026-10-27T21:37:00Z"}`), &old); err != nil || old.Name != "smollm2:135m" || old.ParameterSize != "" || old.ContextLength != 0 || old.Capabilities != nil {
+		// Report.
+		t.Errorf("old entry not read cleanly: %+v (%v)", old, err)
+	} // end of the old-entry check
+	// A model without facts writes none of the new keys.
+	plain, _ := json.Marshal(deletedModel{Name: "x:1b"})
+	// They must be absent.
+	if strings.Contains(string(plain), "parameter_size") || strings.Contains(string(plain), "capabilities") || strings.Contains(string(plain), "context_length") {
+		// Report.
+		t.Errorf("empty facts were written: %s", plain)
+	} // end of the absence check
+} // end of TestDeletedModelFileKeepsTheFacts
+
+// TestPerfLastFacts checks that the newest recorded size and memory of a model come from its saved tests.
+func TestPerfLastFacts(t *testing.T) {
+	// A store with three runs of one model and one of another.
+	s := &perfStore{runs: []perfRun{
+		// The oldest run has a size and a memory.
+		{Model: "m:1b", ParameterSize: "1.0B", ContextLength: 4096},
+		// A run of another model.
+		{Model: "other:7b", ParameterSize: "7.0B", ContextLength: 32768},
+		// A newer run that recorded only the size.
+		{Model: "m:1b", ParameterSize: "1.1B"},
+	}}
+	// The newest size, and the memory from the older run that had it.
+	if p, c, ok := s.lastFacts("m:1b"); !ok || p != "1.1B" || c != 4096 {
+		// Report.
+		t.Errorf("lastFacts = %q, %d, %v", p, c, ok)
+	} // end of the check
+	// A model with no run.
+	if _, _, ok := s.lastFacts("never:1b"); ok {
+		// Report.
+		t.Error("lastFacts found facts for an untested model")
+	} // end of the absence check
+} // end of TestPerfLastFacts
+
+// contrastOf gives the WCAG contrast ratio of two colours written as #rrggbb.
+func contrastOf(a, b string) float64 {
+	// The relative luminance of one colour.
+	lum := func(hex string) float64 {
+		// The three channels.
+		var c [3]float64
+		// Read each.
+		for i := 0; i < 3; i++ {
+			// Two hex digits.
+			v, err := strconv.ParseUint(hex[1+2*i:3+2*i], 16, 8)
+			// A bad colour means the test is broken.
+			if err != nil {
+				// Stop with a clear value.
+				return -1
+			} // end of the parse check
+			// Scale to 0..1.
+			s := float64(v) / 255
+			// The sRGB curve.
+			if s <= 0.03928 {
+				// The straight part.
+				c[i] = s / 12.92
+			} else {
+				// The curved part.
+				c[i] = math.Pow((s+0.055)/1.055, 2.4)
+			} // end of the curve
+		} // end of the channel loop
+		// The weights of the three channels.
+		return 0.2126*c[0] + 0.7152*c[1] + 0.0722*c[2]
+	} // end of lum
+	// The two luminances.
+	la, lb := lum(a), lum(b)
+	// The lighter one first.
+	if la < lb {
+		// Swap.
+		la, lb = lb, la
+	} // end of the swap
+	// The ratio.
+	return (la + 0.05) / (lb + 0.05)
+} // end of contrastOf
+
+// TestIconColours checks that the four icons carry their colour classes, in the table and in the key, and that every icon colour reads at least 4.5:1 on the page and panel backgrounds of both themes.
+func TestIconColours(t *testing.T) {
+	// The page with the six real models and the key open.
+	_, _, body := get(t, handlerFor(t, fullOllama(t, realModels, realPsBody).URL), http.MethodGet, "/?key=open")
+	// The classes: Modelfile and parameters buttons, the delete button, and the three key symbols.
+	for _, want := range []string{`class="gear gear-file"`, `class="gear gear-params"`, `class="gear gear-delete"`, `class="ico sym-file"`, `class="ico sym-params"`, `class="ico sym-delete"`, `class="tagicon"`} {
+		// Look for it.
+		if !strings.Contains(body, want) {
+			// Report.
+			t.Errorf("the page lacks %q", want)
+		} // end of the look
+	} // end of the loop
+	// The style sheet.
+	_, _, css := get(t, handlerFor(t, fullOllama(t, realModels, realPsBody).URL), http.MethodGet, "/app.css")
+	// The page and panel backgrounds: light, then dark.
+	bgs := map[string][]string{"light": {"#ffffff", "#f4f6f8"}, "dark": {"#121417", "#1b1f24"}}
+	// Each icon colour appears three times: light, dark by system choice, dark by saved choice.
+	for _, name := range []string{"icon-tag", "icon-delete", "icon-file", "icon-params"} {
+		// Every value written for it.
+		vals := regexp.MustCompile(`--`+name+`: (#[0-9a-f]{6});`).FindAllStringSubmatch(css, -1)
+		// Three values.
+		if len(vals) != 3 {
+			// Stop with this one.
+			t.Errorf("--%s has %d values, want 3", name, len(vals))
+			// Next colour.
+			continue
+		} // end of the count check
+		// The first is light, the other two are dark.
+		for i, v := range vals {
+			// Which backgrounds apply.
+			which := "dark"
+			// The first value.
+			if i == 0 {
+				// Light.
+				which = "light"
+			} // end of the choice
+			// Check against both backgrounds.
+			for _, bg := range bgs[which] {
+				// The ratio.
+				if r := contrastOf(v[1], bg); r < 4.5 {
+					// Report.
+					t.Errorf("--%s %s on %s (%s theme) has contrast %.2f, want at least 4.5", name, v[1], bg, which, r)
+				} // end of the ratio check
+			} // end of the background loop
+		} // end of the value loop
+	} // end of the colour loop
+} // end of TestIconColours
+
+// TestFindSearchJumpsToTheAnswer checks that after the button is pressed the browser scrolls to the answer: the form sends to the address with #found, and the answer page (the models found, or the list of problems) has exactly one element with that id.
+func TestFindSearchJumpsToTheAnswer(t *testing.T) {
+	// The saved library list goes to a throw-away folder, never to the real data folder.
+	isolateFindData(t)
+	// Start with an empty saved list.
+	theListCache = listCache{}
+	// Clear it again at the end.
+	t.Cleanup(func() { theListCache = listCache{} })
+	// A fake library.
+	fakeSite(t, findTestPages())
+	// The rig.
+	rig := newThemeRig(t)
+	// The empty form page.
+	_, _, form := get(t, rig.h, http.MethodGet, "/findllm")
+	// The form must send to the address with the jump mark.
+	if !strings.Contains(form, `action="/findllm/search#found"`) {
+		// Report.
+		t.Error("the form does not send to /findllm/search#found")
+	} // end of the form check
+	// No answer yet, so nothing to jump to.
+	if strings.Count(form, `id="found"`) != 0 {
+		// Report.
+		t.Error("the empty form page already has the jump target")
+	} // end of the empty page check
+	// A search that works: the heading Models found is the target.
+	_, ok := postFind(t, rig, url.Values{"token": {rig.token}, "ab_chat": {"on"}, "disk_gb": {"2"}, "mem_gb": {"8"}})
+	// Exactly one target, and it is the heading.
+	if strings.Count(ok, `id="found"`) != 1 || !strings.Contains(ok, `<h2 id="found">Models found</h2>`) {
+		// Report.
+		t.Error("the answer page has no single jump target on the Models found heading")
+	} // end of the answer check
+	// A search with a bad number: the problem box is the target.
+	_, bad := postFind(t, rig, url.Values{"token": {rig.token}, "disk_gb": {"lots"}})
+	// Exactly one target, and it is the problem box.
+	if strings.Count(bad, `id="found"`) != 1 || !strings.Contains(bad, `<div class="warn" id="found" role="alert">`) {
+		// Report.
+		t.Error("the problem page has no single jump target on the problem box")
+	} // end of the problem check
+} // end of TestFindSearchJumpsToTheAnswer

@@ -23,9 +23,9 @@
 <p>Tick what the model must do and press <strong>Find LLM</strong>. Only models of the official Ollama library are listed, and each comes with the command that installs it. This page installs nothing.</p>
 <p class="muted">Pressing the button reads the public list at ollama.com/library and, for the first ten models, their version lists. Your choices are not sent: the list is filtered on this computer.</p>
 {{/* Problems with what was typed; nothing was searched. */}}
-{{if .Problems}}<div class="warn" role="alert"><p><strong>&#9888; Not searched.</strong> Please correct:</p><ul>{{range .Problems}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
+{{if .Problems}}<div class="warn" id="found" role="alert"><p><strong>&#9888; Not searched.</strong> Please correct:</p><ul>{{range .Problems}}<li>{{.}}</li>{{end}}</ul></div>{{end}}
 {{/* The form: it sends the page token and the choices. */}}
-<form method="post" action="/findllm/search">
+<form method="post" action="/findllm/search#found">
 {{/* The page token proves the form comes from this monitor. */}}
 <input type="hidden" name="token" value="{{.Token}}">
 {{/* The required facts about this computer, highlighted. */}}
@@ -65,8 +65,9 @@
 </form>
 {{/* The results appear only after the button was pressed. */}}
 {{if .Searched}}
-<h2>Models found</h2>
+<h2 id="found">Models found</h2>
 {{if .Error}}<p class="warn" role="alert"><strong>&#9888;</strong> {{.Error}}</p>{{else}}
+{{if .CopyNote}}<p class="warn" role="alert"><strong>&#9888;</strong> {{.CopyNote}}</p>{{end}}
 <p class="muted" role="status">{{.Summary}}</p>
 {{/* The numbers $ri and $vi make every command on the page get its own name, so each Copy button finds its own command. */}}
 {{range $ri, $r := .Results}}

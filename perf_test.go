@@ -1043,6 +1043,11 @@ func TestMainPagePerformanceIcon(t *testing.T) {
 	row := body[strings.Index(body, `<tr data-model="embed:1b"`):]
 	// The cell of the row heading.
 	cell := row[:strings.Index(row, "</th>")]
+	// The plain-word tags (slice 3) come after the name; the order check below is about the icon and the name only.
+	if i := strings.Index(cell, `<span class="modeltags">`); i >= 0 {
+		// Cut the tags off.
+		cell = cell[:i]
+	} // end of the tags cut
 	// Everything must be in the cell, and the name must come last.
 	for _, want := range []string{`action="/performance"`, `aria-label="Performance of embed:1b"`, `id="tipperf-embed:1b"`, "Performance: see how fast this model runs on this machine", `<svg class="ico"`} {
 		// Look for it.
