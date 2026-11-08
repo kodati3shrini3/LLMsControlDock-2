@@ -328,7 +328,7 @@ func perfRig(t *testing.T, f *perfFake) (themeRig, string) {
 	// The token is 32 characters after the marker.
 	tok := body[i+len(`name="token" value="`) : i+len(`name="token" value="`)+32]
 	// Hand back the rig and the file path.
-	return themeRig{h: h, token: tok}, filepath.Join(dir, "OllamaControlCenter", "performanceCompare", "performance.json")
+	return themeRig{h: h, token: tok}, filepath.Join(dir, "LLMsControlDock", "performanceCompare", "performance.json")
 } // end of perfRig
 
 // perfPost sends a form to a performance route as the page's own form would.
@@ -1099,13 +1099,13 @@ func TestDefaultHistoryPath(t *testing.T) {
 	// Data and state follow the same fake folder.
 	userDataDir, userStateDir = userConfigDir, userConfigDir
 	// Wherever the program is, the answer is the same.
-	for _, exe := range []string{"/home/u/OllamaControlCenter/bin/OllamaControlCenter", "/opt/occ/OllamaControlCenter", ""} {
+	for _, exe := range []string{"/home/u/LLMsControlDock/bin/LLMsControlDock", "/opt/occ/LLMsControlDock", ""} {
 		// Use this program place.
 		executablePath = func() (string, error) { return exe, nil }
 		// Ask.
 		got, note := defaultHistoryPath()
 		// Compare.
-		if filepath.ToSlash(got) != "/cfg/OllamaControlCenter/performanceCompare/performance.json" || note != "" {
+		if filepath.ToSlash(got) != "/cfg/LLMsControlDock/performanceCompare/performance.json" || note != "" {
 			// Report it.
 			t.Errorf("exe %q: path %q note %q", exe, got, note)
 		} // end of the check

@@ -16,7 +16,7 @@ func TestResolve(t *testing.T) {
 		name string
 		// flagValue is what the -ollama-url option would hold.
 		flagValue string
-		// envValue is what the OCC_OLLAMA_URL environment variable would hold.
+		// envValue is what the LLMSCONTROLDOCK_OLLAMA_URL environment variable would hold.
 		envValue string
 		// wantSource is the layer we expect to win.
 		wantSource string

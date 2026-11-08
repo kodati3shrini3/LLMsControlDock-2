@@ -154,6 +154,11 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	mux.HandleFunc("POST /textsize", sizeHandler(token))
 	// The desktop icon: the launcher, and the answer to the first-run question.
 	desktop := desktopIcon{env: mon.denv, dir: mon.store.dir, dataDir: dataRoot()}
+	// An icon made before version 0.31.0 carries the old program name: replace it once (only for someone who chose an icon).
+	if msg := migrateLegacyLauncher(desktop); msg != "" {
+		// Say so in the log.
+		log.Print(msg)
+	} // end of the icon check
 	// Route: a POST request for "/desktopicon" creates or removes the launcher, or records "no".
 	mux.HandleFunc("POST /desktopicon", desktopHandler(token, desktop))
 	// The System check: the hardware report, Continue, and the uninstall (see syscheck.go).

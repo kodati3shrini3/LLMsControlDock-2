@@ -28,7 +28,7 @@ func isAddrInUse(err error) bool {
 	return errors.Is(err, syscall.EADDRINUSE) || errors.Is(err, syscall.Errno(10048))
 } // end of isAddrInUse
 
-// probeIsOurs asks whatever answers at the address whether it is an OllamaControlCenter monitor: its read-only About page always answers and names the program. A test replaces it.
+// probeIsOurs asks whatever answers at the address whether it is an LLMsControlDock monitor: its read-only About page always answers and names the program. A test replaces it.
 var probeIsOurs = func(url string) bool {
 	// A short time limit: this runs while the program is leaving anyway.
 	c := &http.Client{Timeout: 2 * time.Second}
@@ -48,8 +48,8 @@ var probeIsOurs = func(url string) bool {
 	} // end of the status check
 	// Read the first 64 KB; the name is in the page title.
 	body, _ := io.ReadAll(io.LimitReader(res.Body, 64*1024))
-	// Ours when the page names the program.
-	return strings.Contains(string(body), "OllamaControlCenter")
+	// Ours when the page names the program, under its present name or the one it had before version 0.31.0 (an older copy may still be running during an upgrade).
+	return strings.Contains(string(body), "LLMsControlDock") || strings.Contains(string(body), legacyAppName)
 } // end of probeIsOurs
 
 // nextPortAddress suggests the same address with the next port number, or the empty text when the address cannot be read.
@@ -77,7 +77,7 @@ func listenFailureMessage(listen string, err error) string {
 	// Another reason than a busy port: say it as it is.
 	if !isAddrInUse(err) {
 		// The real reason follows.
-		return fmt.Sprintf("OllamaControlCenter cannot listen on %s: %v", listen, err)
+		return fmt.Sprintf("LLMsControlDock cannot listen on %s: %v", listen, err)
 	} // end of the other-reason case
 	// The address a browser on this computer opens.
 	url := launchURL(listen)
@@ -93,7 +93,7 @@ func listenFailureMessage(listen string, err error) string {
 	// Is the program on that port one of ours?
 	if probeIsOurs(url) {
 		// Say so, and say what to do.
-		return fmt.Sprintf("OllamaControlCenter is already running and answers at %s. Open that address in your browser. To stop it, use its Stop button, or press Ctrl+C in the window where it runs.%s", url, hint)
+		return fmt.Sprintf("LLMsControlDock is already running and answers at %s. Open that address in your browser. To stop it, use its Stop button, or press Ctrl+C in the window where it runs.%s", url, hint)
 	} // end of the ours case
 	// The option for another port, when one can be named.
 	other := ""
@@ -103,5 +103,5 @@ func listenFailureMessage(listen string, err error) string {
 		other = fmt.Sprintf(" For example: -listen %s", next)
 	} // end of the option
 	// Something else uses the port.
-	return fmt.Sprintf("Port %s is already used by another program, which is not OllamaControlCenter. Stop that program, or start this one on another port.%s", listen[strings.LastIndex(listen, ":")+1:], other)
+	return fmt.Sprintf("Port %s is already used by another program, which is not LLMsControlDock. Stop that program, or start this one on another port.%s", listen[strings.LastIndex(listen, ":")+1:], other)
 } // end of listenFailureMessage

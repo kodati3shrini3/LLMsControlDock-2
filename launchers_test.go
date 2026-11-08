@@ -324,7 +324,7 @@ func TestCreateMacBundle(t *testing.T) {
 		t.Fatal(err)
 	} // end of the read check
 	// The keys.
-	for _, want := range []string{"<key>CFBundleExecutable</key><string>OllamaControlCenter</string>", "<key>CFBundlePackageType</key><string>APPL</string>", "<key>CFBundleIconFile</key><string>icon</string>", "<string>" + appVersion + "</string>", "com.termgate.ollamacontrolcenter"} {
+	for _, want := range []string{"<key>CFBundleExecutable</key><string>LLMsControlDock</string>", "<key>CFBundlePackageType</key><string>APPL</string>", "<key>CFBundleIconFile</key><string>icon</string>", "<string>" + appVersion + "</string>", "com.termgate.llmscontroldock"} {
 		// Each must be there.
 		if !strings.Contains(string(plist), want) {
 			// Report it.
@@ -332,7 +332,7 @@ func TestCreateMacBundle(t *testing.T) {
 		} // end of the check
 	} // end of the loop
 	// The script holds the quoted program path.
-	script, err := os.ReadFile(filepath.Join(app, "Contents", "MacOS", "OllamaControlCenter"))
+	script, err := os.ReadFile(filepath.Join(app, "Contents", "MacOS", "LLMsControlDock"))
 	// It must exist.
 	if err != nil || string(script) != macScript(r.exe) {
 		// Report it.
@@ -344,7 +344,7 @@ func TestCreateMacBundle(t *testing.T) {
 		t.Errorf("icon: %v", err)
 	} // end of the icon check
 	// The script is executable (Windows has no such bit).
-	if st, err := os.Stat(filepath.Join(app, "Contents", "MacOS", "OllamaControlCenter")); err != nil || (modesApply() && st.Mode().Perm() != 0o755) {
+	if st, err := os.Stat(filepath.Join(app, "Contents", "MacOS", "LLMsControlDock")); err != nil || (modesApply() && st.Mode().Perm() != 0o755) {
 		// Report it.
 		t.Errorf("script mode: %v %v", st, err)
 	} // end of the mode check
@@ -392,7 +392,7 @@ func TestMacScriptRuns(t *testing.T) {
 		t.Fatal(err)
 	} // end of the create check
 	// Run its script.
-	if err := exec.Command(filepath.Join(r.desk, macLauncherName, "Contents", "MacOS", "OllamaControlCenter")).Run(); err != nil {
+	if err := exec.Command(filepath.Join(r.desk, macLauncherName, "Contents", "MacOS", "LLMsControlDock")).Run(); err != nil {
 		// Stop.
 		t.Fatal(err)
 	} // end of the run check

@@ -76,7 +76,7 @@ func checkOneLink(ctx context.Context, client *http.Client, ref reference) linkR
 		return res
 	} // end of the request check
 	// Say honestly who is asking; no data of the person is sent.
-	req.Header.Set("User-Agent", "OllamaControlCenter-check-links")
+	req.Header.Set("User-Agent", "LLMsControlDock-check-links")
 	// Send it.
 	resp, err := client.Do(req)
 	// No answer at all.

@@ -384,7 +384,7 @@ func TestPDFStructureAndPaging(t *testing.T) {
 		last = at
 	} // end of the loop
 	// The properties are in the file, with the brackets escaped.
-	if !bytes.Contains(data, []byte(`/Title (Title \(with brackets\))`)) || !bytes.Contains(data, []byte("/CreationDate (D:20261027193005Z)")) || !bytes.Contains(data, []byte("/Producer (OllamaControlCenter "+appVersion+")")) {
+	if !bytes.Contains(data, []byte(`/Title (Title \(with brackets\))`)) || !bytes.Contains(data, []byte("/CreationDate (D:20261027193005Z)")) || !bytes.Contains(data, []byte("/Producer (LLMsControlDock "+appVersion+")")) {
 		// Report it.
 		t.Errorf("document information wrong")
 	} // end of the information check

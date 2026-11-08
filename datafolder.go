@@ -21,7 +21,7 @@ import ( // import lists the standard-library packages this file uses.
 ) // end of imports
 
 // dataFolderName is the program's own folder inside each of the three base folders (config, data, state).
-const dataFolderName = "OllamaControlCenter"
+const dataFolderName = "LLMsControlDock"
 
 // maxMigrateBytes is the largest file that is copied from an old folder; a bigger file is never one of this program's own.
 var maxMigrateBytes int64 = 100 << 20
@@ -194,7 +194,7 @@ func looksOurs(name string) bool {
 		return false
 	} // end of the kind check
 	// The two fixed names, the saved copies and the dated files.
-	return name == "performance.json" || name == deletedFileName || strings.HasPrefix(name, "OllamaControlCenter-") || stampedName.MatchString(name)
+	return name == "performance.json" || name == deletedFileName || strings.HasPrefix(name, "LLMsControlDock-") || strings.HasPrefix(name, legacyAppName+"-") || stampedName.MatchString(name)
 } // end of looksOurs
 
 // copyOne copies one file into a new file that only this user can read; an existing file is never overwritten.

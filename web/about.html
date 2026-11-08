@@ -8,7 +8,7 @@
 {{/* Fit the page to the width of the screen on phones. */}}
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {{/* The title shown on the browser tab. */}}
-<title>About Ollama Control Center</title>
+<title>About LLMsControlDock</title>
 {{/* Our one stylesheet. */}}
 <link rel="stylesheet" href="/app.css">
 </head>{{/* end of the head. */}}
@@ -20,7 +20,7 @@
 {{/* The back arrow in the top right corner of this box: a round link to the monitor; its words are in its tooltip and in its accessible name. It only follows a link and changes nothing. */}}
 <span class="tipbox backtop"><a class="backcircle" href="/" aria-label="Back to the monitor" aria-describedby="tipback"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg></a><span class="tip tip-icon" role="tooltip" id="tipback">Back to the monitor</span></span>
 {{/* The name of the program. */}}
-<h1>About Ollama Control Center</h1>
+<h1>About LLMsControlDock</h1>
 {{/* One line that says what it is. */}}
 <p class="muted aboutlead">A local monitor and control page for Ollama.</p>
 {{/* What it does, in plain words. */}}
@@ -44,7 +44,7 @@
 {{/* Where the data goes. */}}
 <tr><th scope="row">Privacy</th><td>Runs only on this computer. The one request to the outside is the optional check of Ollama's public library when a model is deleted, and it sends only the model's name. Links to the developer's sites open in a new window only when you click them; nothing is sent to them before that.</td></tr>
 {{/* The licence. */}}
-<tr><th scope="row">Licence</th><td>{{.Copyright}}</td></tr>
+<tr><th scope="row">Licence</th><td><a href="{{.LicenceURL}}" target="_blank" rel="noopener noreferrer">{{.Licence}}<span class="sr-only"> (opens in a new window)</span></a>. {{.Copyright}}</td></tr>
 {{/* End of the table. */}}
 </table>
 {{/* The dedication, set apart so it stands out. */}}
@@ -70,7 +70,7 @@
 {{end}}
 </ul>
 {{/* The company website, in a new window with no link back and no referrer. */}}
-<p><a class="brandbtn brandbtn-main" href="{{.CompanyURL}}" target="_blank" rel="noopener noreferrer">Visit termgate.com &#8599;<span class="sr-only"> (opens in a new window)</span></a> <span class="muted brandnote">Opens in a new window. The link carries only a source tag (utm_source=ollama-control-center); nothing about you or your computer.</span></p>
+<p><a class="brandbtn brandbtn-main" href="{{.CompanyURL}}" target="_blank" rel="noopener noreferrer">Visit termgate.com &#8599;<span class="sr-only"> (opens in a new window)</span></a> <span class="muted brandnote">Opens in a new window. The link carries only a source tag (utm_source=llms-control-dock); nothing about you or your computer.</span></p>
 {{/* End of the company card. */}}
 </section>
 {{/* A link back. */}}

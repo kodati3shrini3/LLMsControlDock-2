@@ -94,7 +94,7 @@ func watchStopSignals(sigs <-chan os.Signal, act signalActions) {
 			// Remember why we stop, so the last log line can say it.
 			stopReason.Store(reasonSignal)
 			// Tell the person what is happening and how to hurry it up.
-			act.logf("OllamaControlCenter received %v: stopping cleanly (press Ctrl+C again to quit at once)", sig)
+			act.logf("LLMsControlDock received %v: stopping cleanly (press Ctrl+C again to quit at once)", sig)
 			// Work that is still running is cut short; say which.
 			if work := act.running(); len(work) > 0 {
 				// One line naming the work.
@@ -106,7 +106,7 @@ func watchStopSignals(sigs <-chan os.Signal, act signalActions) {
 			continue
 		} // end of the first-signal case
 		// A second signal: the person does not want to wait.
-		act.logf("OllamaControlCenter received %v again: quitting at once; nothing more is saved", sig)
+		act.logf("LLMsControlDock received %v again: quitting at once; nothing more is saved", sig)
 		// Leave with a failure code, because the clean stop did not finish.
 		act.force(1)
 		// Stop reading signals.

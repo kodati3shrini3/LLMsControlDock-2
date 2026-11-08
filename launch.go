@@ -136,7 +136,7 @@ func startMonitor(logDir string) error {
 			return err
 		} // end of the folder check
 		// The file.
-		sink = filepath.Join(logDir, "OllamaControlCenter.log")
+		sink = filepath.Join(logDir, "LLMsControlDock.log")
 		// A file that grew too big is started again.
 		if info, err := os.Stat(sink); err == nil && info.Size() > maxLogFile {
 			// Remove it.

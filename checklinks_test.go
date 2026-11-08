@@ -97,7 +97,7 @@ func TestCheckLinksReportsEachCase(t *testing.T) {
 	// Every request was a plain GET with our own name, nothing else.
 	for _, a := range agents {
 		// Check it.
-		if a != "GET OllamaControlCenter-check-links" {
+		if a != "GET LLMsControlDock-check-links" {
 			// Report it.
 			t.Errorf("unexpected request %q", a)
 		} // end of the check

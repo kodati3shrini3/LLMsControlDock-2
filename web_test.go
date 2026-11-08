@@ -94,7 +94,7 @@ func TestPageOnline(t *testing.T) {
 		t.Errorf("Content-Type = %q", got)
 	} // end of the type check
 	// Every expected piece of text must appear.
-	for _, want := range []string{"<title>OllamaControlCenter</title>", "✔", "<strong>Online</strong>", "version 0.34.4", srv.URL, "(from command-line option)"} {
+	for _, want := range []string{"<title>LLMsControlDock</title>", "✔", "<strong>Online</strong>", "version 0.34.4", srv.URL, "(from command-line option)"} {
 		// Look for it.
 		if !strings.Contains(body, want) {
 			// Report the difference.

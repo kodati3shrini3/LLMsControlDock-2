@@ -1,4 +1,4 @@
-# Build and test OllamaControlCenter on GitHub, only for the systems you tick. It runs ONLY when a person clicks "Run workflow" in the Actions tab; it never runs by itself and it never publishes a release.
+# Build and test LLMsControlDock on GitHub, only for the systems you tick. It runs ONLY when a person clicks "Run workflow" in the Actions tab; it never runs by itself and it never publishes a release.
 name: Build and test (manual, per system)
 
 # The only trigger is the manual button; each system has its own tick box, so a run costs only what is ticked (macOS minutes cost about ten times Linux minutes on a private repository).
@@ -130,7 +130,7 @@ jobs:
       - name: Build the executable
         shell: bash
         env:
-          FILE: OllamaControlCenter-${{ matrix.system }}${{ matrix.ext }}
+          FILE: LLMsControlDock-${{ matrix.system }}${{ matrix.ext }}
         run: |
           set -eu
           mkdir dist
@@ -142,7 +142,7 @@ jobs:
       - name: Start-up check
         shell: bash
         env:
-          FILE: OllamaControlCenter-${{ matrix.system }}${{ matrix.ext }}
+          FILE: LLMsControlDock-${{ matrix.system }}${{ matrix.ext }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -eu
@@ -161,7 +161,7 @@ jobs:
           done
           if [ "$ok" != "1" ]; then echo "The program did not answer within 30 seconds"; cat run.log; exit 1; fi
           # The main page names the program, the About page carries the version, the Settings page answers.
-          grep -q "<title>OllamaControlCenter</title>" main.html
+          grep -q "<title>LLMsControlDock</title>" main.html
           curl -fsS http://127.0.0.1:8765/about | grep -q "$VERSION"
           curl -fsS -o /dev/null http://127.0.0.1:8765/settings
           echo "PASS: $FILE answered on $RUNNER_OS $RUNNER_ARCH"
@@ -169,14 +169,14 @@ jobs:
       # Keep this system's file for 14 days so it can be downloaded and tested; the name carries the version and the system, so every system has its own download.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: OllamaControlCenter-${{ steps.version.outputs.version }}-${{ matrix.system }}
-          path: dist/OllamaControlCenter-${{ matrix.system }}${{ matrix.ext }}
+          name: LLMsControlDock-${{ steps.version.outputs.version }}-${{ matrix.system }}
+          path: dist/LLMsControlDock-${{ matrix.system }}${{ matrix.ext }}
           if-no-files-found: error
           retention-days: 14
       # The checksum goes next to it in its own small download, so the executable's download is just the one file.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: OllamaControlCenter-${{ steps.version.outputs.version }}-${{ matrix.system }}-SHA256SUMS
+          name: LLMsControlDock-${{ steps.version.outputs.version }}-${{ matrix.system }}-SHA256SUMS
           path: dist/SHA256SUMS
           if-no-files-found: error
           retention-days: 14

@@ -27,7 +27,7 @@ func TestCompanyLinkIsTaggedAndLowercase(t *testing.T) {
 		// Build the address.
 		got := companyLink(place)
 		// The exact text, so nothing can slip in.
-		want := "https://www.termgate.com/?utm_source=ollama-control-center&utm_medium=app&utm_campaign=app-link&utm_content=" + place
+		want := "https://www.termgate.com/?utm_source=llms-control-dock&utm_medium=app&utm_campaign=app-link&utm_content=" + place
 		// Compare.
 		if got != want {
 			// Report the difference.
@@ -50,7 +50,7 @@ func TestMainPageShowsTheCompany(t *testing.T) {
 	// What must be there; the template escapes & as &amp; inside an address.
 	for _, want := range []string{
 		// The header line with the company name as a link.
-		`<p class="brandline">by <a href="https://www.termgate.com/?utm_source=ollama-control-center&amp;utm_medium=app&amp;utm_campaign=app-link&amp;utm_content=header" target="_blank" rel="noopener noreferrer">termGate Consulting`,
+		`<p class="brandline">by <a href="https://www.termgate.com/?utm_source=llms-control-dock&amp;utm_medium=app&amp;utm_campaign=app-link&amp;utm_content=header" target="_blank" rel="noopener noreferrer">termGate Consulting`,
 		// The AI line.
 		"Private AI on your own hardware.",
 		// The footer bar.

@@ -32,9 +32,9 @@ const icoFileName = "icon.ico"
 // The names of the launcher on each system.
 const (
 	// windowsLauncherName is a real Windows Shell Link.
-	windowsLauncherName = "OllamaControlCenter.lnk"
+	windowsLauncherName = "LLMsControlDock.lnk"
 	// macLauncherName is an application bundle.
-	macLauncherName = "OllamaControlCenter.app"
+	macLauncherName = "LLMsControlDock.app"
 ) // end of the launcher names
 
 // launcherName is the name of the launcher on the desktop of the given system.
@@ -146,7 +146,7 @@ func shQuote(s string) string {
 // macScript is the program inside the application bundle: it starts the program with -launch, which starts the monitor if needed and opens the page.
 func macScript(exe string) string {
 	// A shell script; exec replaces the shell by the program.
-	return "#!/bin/sh\n# Starts OllamaControlCenter (the monitor if needed) and opens the page in the browser.\nexec " + shQuote(exe) + " -launch\n"
+	return "#!/bin/sh\n# Starts LLMsControlDock (the monitor if needed) and opens the page in the browser.\nexec " + shQuote(exe) + " -launch\n"
 } // end of macScript
 
 // macInfoPlist is the property list that makes the folder an application bundle (Apple's standard keys).
@@ -156,10 +156,10 @@ func macInfoPlist() string {
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleName</key><string>OllamaControlCenter</string>
-	<key>CFBundleDisplayName</key><string>OllamaControlCenter</string>
-	<key>CFBundleIdentifier</key><string>com.termgate.ollamacontrolcenter</string>
-	<key>CFBundleExecutable</key><string>OllamaControlCenter</string>
+	<key>CFBundleName</key><string>LLMsControlDock</string>
+	<key>CFBundleDisplayName</key><string>LLMsControlDock</string>
+	<key>CFBundleIdentifier</key><string>com.termgate.llmscontroldock</string>
+	<key>CFBundleExecutable</key><string>LLMsControlDock</string>
 	<key>CFBundlePackageType</key><string>APPL</string>
 	<key>CFBundleIconFile</key><string>icon</string>
 	<key>CFBundleShortVersionString</key><string>` + appVersion + `</string>
@@ -308,7 +308,7 @@ func (d desktopIcon) createMac(dir string) error {
 		// The icon.
 		{"Contents/Resources/icon.icns", icns, 0o644},
 		// The script; it is named like CFBundleExecutable.
-		{"Contents/MacOS/OllamaControlCenter", []byte(macScript(exe)), 0o755},
+		{"Contents/MacOS/LLMsControlDock", []byte(macScript(exe)), 0o755},
 	} { // end of the file list
 		// Write it.
 		if err := os.WriteFile(filepath.Join(app, filepath.FromSlash(f.path)), f.data, f.mode); err != nil {
@@ -328,7 +328,7 @@ func (d desktopIcon) createMac(dir string) error {
 // removeLauncher deletes the launcher on the desktop; a missing one is fine, and a bundle is removed only when it carries the program's own name.
 func removeLauncher(path string) error {
 	// A bundle is a folder.
-	if filepath.Base(path) == macLauncherName {
+	if base := filepath.Base(path); base == macLauncherName || base == legacyMacLauncherName {
 		// Delete it with everything in it.
 		return os.RemoveAll(path)
 	} // end of the bundle case

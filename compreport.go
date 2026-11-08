@@ -32,7 +32,7 @@ var pageSymbols = strings.NewReplacer("✓ ", "", "⚠ ", "")
 // footerLine is the line printed under the notice on every page of the PDF.
 func footerLine(when time.Time) string {
 	// Program, version and time.
-	return fmt.Sprintf("OllamaControlCenter %s  -  made %s", appVersion, when.UTC().Format("2006-01-02 15:04 UTC"))
+	return fmt.Sprintf("LLMsControlDock %s  -  made %s", appVersion, when.UTC().Format("2006-01-02 15:04 UTC"))
 } // end of footerLine
 
 // writeNoticeBlock prints the full notice: a line, the heading and every paragraph, kept together at the start.
@@ -55,11 +55,11 @@ func writeNoticeBlock(d *pdfDoc, p comparePage) {
 // writeComparePDF turns the comparison page into a PDF; the full notice is printed once, at the end, and a short notice is at the foot of every page.
 func writeComparePDF(p comparePage, when time.Time) []byte {
 	// The document.
-	d := newPDF("OllamaControlCenter model comparison", p.NoticeShort, p.NoticeShort, footerLine(when), when)
+	d := newPDF("LLMsControlDock model comparison", p.NoticeShort, p.NoticeShort, footerLine(when), when)
 	// The title.
 	d.text("Model comparison", 18, true, 0)
 	// The origin.
-	d.text(fmt.Sprintf("Made by OllamaControlCenter %s on %s, from tests saved on this computer.", appVersion, when.UTC().Format("2006-01-02 15:04 UTC")), 9, false, 0)
+	d.text(fmt.Sprintf("Made by LLMsControlDock %s on %s, from tests saved on this computer.", appVersion, when.UTC().Format("2006-01-02 15:04 UTC")), 9, false, 0)
 	// A little air.
 	d.gap(6)
 	// The full notice is printed once, at the end; the short notice is at the foot of every page, so it is on the first page too.
@@ -212,7 +212,7 @@ func writeCompareCSV(p comparePage, when time.Time) []byte {
 	// A first record that carries the notice, so it travels with the data.
 	w.Write([]string{"NOTICE", csvSafe(p.NoticeShort)})
 	// Where the file comes from.
-	w.Write([]string{"MADE BY", "OllamaControlCenter " + appVersion + " on " + when.UTC().Format("2006-01-02 15:04 UTC")})
+	w.Write([]string{"MADE BY", "LLMsControlDock " + appVersion + " on " + when.UTC().Format("2006-01-02 15:04 UTC")})
 	// The header row.
 	w.Write(csvHeader)
 	// Every group.
@@ -374,7 +374,7 @@ func compareDownloadHandlers(addr ollamaAddress, token string, store *perfStore)
 			// The file.
 			body := render(data, now)
 			// The name carries the time to the second.
-			name := "OllamaControlCenter-comparison-" + now.Format("20060102-150405Z0700") + "." + extension
+			name := "LLMsControlDock-comparison-" + now.Format("20060102-150405Z0700") + "." + extension
 			// The file is written by the program into the results folder, so the person never has to choose a place.
 			if dir := savedCopyFolder(store); dir != "" {
 				// Write it.

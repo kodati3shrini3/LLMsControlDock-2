@@ -25,8 +25,8 @@ import ( // import lists the packages this file uses.
 //go:embed web/about.html
 var aboutTemplateText string
 
-// appVersion is the version of Ollama Control Center; it is raised by hand when a release is made.
-const appVersion = "0.30.2"
+// appVersion is the version of LLMsControlDock; it is raised by hand when a release is made.
+const appVersion = "0.31.0"
 
 // appDeveloper is the name of the developer, shown on the About page.
 const appDeveloper = "Shrinivas Kodati"
@@ -40,11 +40,17 @@ const appAssistant = "Claude (Sonnet 5.5), Anthropic"
 // appDedication is the dedication shown on the About page.
 const appDedication = "Dedicated to my daughter Meghna, without whom I would never have had the inspiration to develop this program."
 
-// appCopyright is the copyright line shown on the About page.
-const appCopyright = "© 2026 Shrinivas Kodati. All rights reserved."
+// appCopyright is the copyright line shown on the About page; it is the same holder as in the NOTICE file.
+const appCopyright = "© 2026 termGate Consulting Limited."
+
+// appLicence is the name of the licence under which the program is shared (the same licence as the LICENSE file).
+const appLicence = "Apache License 2.0"
+
+// appLicenceURL is where the licence text is: the LICENSE file in the repository.
+const appLicenceURL = appRepository + "/blob/main/LICENSE"
 
 // appRepository is the address of the source code; the repository is private, so only its owner can open it.
-const appRepository = "https://github.com/kodati3shrini3/OllamaControlCenter"
+const appRepository = "https://github.com/kodati3shrini3/LLMsControlDock"
 
 // companyName is the developer's company, shown in the header, the footer bar and the About page.
 const companyName = "termGate Consulting"
@@ -61,7 +67,7 @@ const companySite = "https://www.termgate.com/"
 // companyLink builds the address of the company website for one place on the page; the tag is all lowercase, names only this program and the place, and carries nothing about the person or the computer.
 func companyLink(placement string) string {
 	// The site, then the fixed source tags, then the place (header, footer or about-card).
-	return companySite + "?utm_source=ollama-control-center&utm_medium=app&utm_campaign=app-link&utm_content=" + placement
+	return companySite + "?utm_source=llms-control-dock&utm_medium=app&utm_campaign=app-link&utm_content=" + placement
 } // end of companyLink
 
 // companyService is one service of the company, shown on the About page.
@@ -112,6 +118,10 @@ type aboutPage struct {
 	Dedication string
 	// Copyright is appCopyright.
 	Copyright string
+	// Licence is appLicence.
+	Licence string
+	// LicenceURL is appLicenceURL.
+	LicenceURL string
 	// Repository is appRepository.
 	Repository string
 	// Revision is the short source revision, or empty when the build did not record one.
@@ -207,6 +217,10 @@ func aboutHandler() http.HandlerFunc {
 			Dedication: appDedication,
 			// The copyright line.
 			Copyright: appCopyright,
+			// The licence name.
+			Licence: appLicence,
+			// The address of the licence text.
+			LicenceURL: appLicenceURL,
 			// The source address.
 			Repository: appRepository,
 			// The revision.

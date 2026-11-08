@@ -316,11 +316,11 @@ func TestDefaultHistoryDir(t *testing.T) {
 	// Data and state follow the same fake folder.
 	userDataDir, userStateDir = userConfigDir, userConfigDir
 	// A program inside bin, and one elsewhere: the same answer.
-	for _, exe := range []string{"/p/OllamaControlCenter/bin/occ", "/p/occ"} {
+	for _, exe := range []string{"/p/LLMsControlDock/bin/occ", "/p/occ"} {
 		// Use this program place.
 		executablePath = func() (string, error) { return exe, nil }
 		// The folder.
-		if d, _ := defaultHistoryDir(); d != filepath.Join("/cfg", "OllamaControlCenter", "history") {
+		if d, _ := defaultHistoryDir(); d != filepath.Join("/cfg", "LLMsControlDock", "history") {
 			// Report it.
 			t.Errorf("exe %q gave %q", exe, d)
 		} // end of the check

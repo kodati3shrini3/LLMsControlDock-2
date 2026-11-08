@@ -49,7 +49,7 @@ func TestAboutPageShowsTheRequiredFacts(t *testing.T) {
 	// What must be there, word for word.
 	for _, want := range []string{
 		// The heading.
-		"About Ollama Control Center",
+		"About LLMsControlDock",
 		// The developer.
 		"Shrinivas Kodati",
 		// The developer's LinkedIn profile, safe to follow.
@@ -66,10 +66,12 @@ func TestAboutPageShowsTheRequiredFacts(t *testing.T) {
 		"built with uncommitted changes",
 		// The revision date with its time zone written out.
 		"committed 27 Oct 2026 17:50 UTC",
-		// The licence line.
-		"2026 Shrinivas Kodati. All rights reserved.",
+		// The copyright holder, the same as in the NOTICE file.
+		"© 2026 termGate Consulting Limited.",
+		// The licence, as a link to the LICENSE file.
+		`href="https://github.com/kodati3shrini3/LLMsControlDock/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">Apache License 2.0<span class="sr-only"> (opens in a new window)</span></a>`,
 		// The repository link, safe to follow.
-		`href="https://github.com/kodati3shrini3/OllamaControlCenter" target="_blank" rel="noopener noreferrer"`,
+		`href="https://github.com/kodati3shrini3/LLMsControlDock" target="_blank" rel="noopener noreferrer"`,
 		// The way back.
 		`href="/"`,
 	} { // end of the list
@@ -84,6 +86,11 @@ func TestAboutPageShowsTheRequiredFacts(t *testing.T) {
 		// Report the problem.
 		t.Errorf("the About page contains a script")
 	} // end of the script check
+	// The old claim must be gone: the program is shared under Apache-2.0, so "All rights reserved" would contradict it.
+	if strings.Contains(body, "All rights reserved") {
+		// Report the problem.
+		t.Errorf("the About page still says All rights reserved")
+	} // end of the old-claim check
 	// The strict policy applies to it too.
 	if !strings.Contains(header.Get("Content-Security-Policy"), "default-src 'none'") {
 		// Report the problem.
