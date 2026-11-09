@@ -2049,6 +2049,20 @@ html[data-size="medium"] svg[width="22"] {
   overflow-wrap: anywhere;
 } /* end of rule */
 
+/* The row above the key: the twistie at one end and the tags help at the other, wrapping on a narrow window. */
+.keyrow {
+  /* The two parts sit in a row. */
+  display: flex;
+  /* The twistie goes to the left end and the tags help to the right end. */
+  justify-content: space-between;
+  /* Level with each other. */
+  align-items: center;
+  /* On a narrow window the second part drops below the first. */
+  flex-wrap: wrap;
+  /* Space between the parts when they wrap. */
+  gap: 0 1.5rem;
+} /* end of rule */
+
 /* The twistie line above the key: a small arrow, the name and a hint, all one link. */
 .keytoggle {
   /* Space above and below. */
@@ -2951,4 +2965,10 @@ html[data-size="medium"] svg[width="22"] {
   display: inline-block;
   /* Space between the button and the choice. */
   margin-left: 1rem;
+} /* end of rule */
+
+/* The tags help line inside the row has the same space above and below as the twistie, so both sit level. */
+.keyrow .groupedhelp {
+  /* Same space as the twistie line. */
+  margin: 0.4rem 0 0.75rem;
 } /* end of rule */
