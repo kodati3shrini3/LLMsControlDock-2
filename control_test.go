@@ -417,7 +417,7 @@ func TestKeyAndDrawnIcons(t *testing.T) {
 		last = at
 	} // end of the loop
 	// The compare button has the bigger drawn scale.
-	if !strings.Contains(body, `<svg class="ico ico-big"`) {
+	if !strings.Contains(body, `<svg class="ico ico-big ico-compare"`) {
 		// Report it.
 		t.Errorf("the compare button has no big drawn icon")
 	} // end of the compare check

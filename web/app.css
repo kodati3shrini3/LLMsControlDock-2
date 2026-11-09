@@ -28,6 +28,12 @@
   --icon-file: #1f5fa8;
   /* The inference parameters symbol. */
   --icon-params: #6d3fb5;
+  /* The Find LLM button's magnifier: teal. */
+  --icon-find: #0a6b73;
+  /* The Compare tested models button's scales: gold. */
+  --icon-compare: #7a5f00;
+  /* The cloud symbol in the Find LLM results: blue. */
+  --icon-cloud: #1565a8;
   /* Category row accent bar on the left edge (contrast 6.4:1 on the page). */
   --cat-accent: #1f5fa8;
   /* Tell the browser to draw its own controls in light colours. */
@@ -63,6 +69,9 @@
     --icon-delete: #ff8a80;
     --icon-file: #7fb2f0;
     --icon-params: #b79af0;
+    --icon-find: #4fd1c5;
+    --icon-compare: #e3c04d;
+    --icon-cloud: #86c5f2;
     /* Category row accent bar on the left edge (contrast 8.4:1 on the page). */
     --cat-accent: #7fb2f0;
     /* Tell the browser to draw its own controls in dark colours. */
@@ -97,6 +106,9 @@
   --icon-delete: #ff8a80;
   --icon-file: #7fb2f0;
   --icon-params: #b79af0;
+  --icon-find: #4fd1c5;
+  --icon-compare: #e3c04d;
+  --icon-cloud: #86c5f2;
   /* Category row accent bar on the left edge (contrast 8.4:1 on the page). */
   --cat-accent: #7fb2f0;
   /* Tell the browser to draw its own controls in dark colours. */
@@ -1108,7 +1120,7 @@ button.btn-plain {
 } /* end of rule */
 
 /* Every icon box is its own anchor: the name is private to each box, so a bubble finds only its own icon. */
-.gearform .tipbox, .comparebar .tipbox, .controls .tipbox, .lookstack .tipbox, .detailsbar .tipbox, .backtop, .brandwho .tipbox {
+.gearform .tipbox, .findresult .tipbox, .comparebar .tipbox, .controls .tipbox, .lookstack .tipbox, .detailsbar .tipbox, .backtop, .brandwho .tipbox {
   /* The name the bubble uses to find this box. */
   anchor-name: --tipicon;
   /* Keep the name inside this box, so the boxes of other rows never get mixed up. */
@@ -2709,4 +2721,234 @@ html[data-size="medium"] svg[width="22"] {
 .gear-params:hover, .gear-params:focus-visible {
   /* Mixed with the text colour. */
   color: color-mix(in srgb, var(--icon-params) 65%, var(--text));
+} /* end of rule */
+
+/* The mark on an installed version in the Find LLM results: bold, so it stands out from the size and context text without relying on colour. */
+.installedmark {
+  /* Bolder than the text around it. */
+  font-weight: 600;
+} /* end of rule */
+
+/* The state icons in the Find LLM results: a small symbol beside the model name or the version, with a tooltip. */
+.stateicon {
+  /* A box in the line, so it sits level with the words. */
+  display: inline-flex;
+  /* Centre the symbol in the box. */
+  align-items: center;
+  /* Level with the letters. */
+  vertical-align: -3px;
+  /* A hand with a question mark would suggest a button; the symbol is only information. */
+  cursor: help;
+} /* end of rule */
+
+/* Can be installed: the good colour. */
+.state-fits {
+  /* The same green as the other good signs. */
+  color: var(--ok);
+} /* end of rule */
+
+/* Cannot be installed: the problem colour. */
+.state-nofit {
+  /* The same red as the other problem signs. */
+  color: var(--bad);
+} /* end of rule */
+
+/* A cloud model: soft blue. */
+.state-cloud {
+  /* The cloud colour. */
+  color: var(--icon-cloud);
+} /* end of rule */
+
+/* A clear ring for keyboard users. */
+.stateicon:focus-visible {
+  /* A ring around the symbol. */
+  outline: 3px solid var(--text);
+  /* A gap between symbol and ring. */
+  outline-offset: 2px;
+  /* Rounded like the other rings. */
+  border-radius: 0.3rem;
+} /* end of rule */
+
+/* The colour of the magnifier in the Find LLM button: teal, from the theme variables. */
+.ico-find {
+  /* The theme's teal; the symbol is drawn in the current colour. */
+  color: var(--icon-find);
+} /* end of rule */
+
+/* The colour of the scales in the Compare tested models button: gold, from the theme variables. */
+.ico-compare {
+  /* The theme's gold; the symbol is drawn in the current colour. */
+  color: var(--icon-compare);
+} /* end of rule */
+
+/* Button highlight: a button under the pointer or reached with the keyboard gets a faint fill and a stronger outline, so the person sees it can be clicked. Every colour is mixed from the theme variables, so light, dark and automatic themes each get their own shade. Only colours change: nothing here touches the tooltips, which open from the wrapper around the button. */
+
+/* Outlined buttons and links drawn like buttons (Pause, Refresh, Settings, Back to the monitor, Cancel and so on). */
+.btn-plain:hover, .btn-plain:focus-visible {
+  /* A faint wash of the text colour over whatever is behind the button. */
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  /* The outline turns to the full text colour. */
+  border-color: var(--text);
+} /* end of rule */
+
+/* The two feature buttons (Find LLM and Compare tested models) keep their blue family: the wash comes from the rule above, and the outline turns to the deep blue (pale blue in dark themes). */
+.comparebtn:hover, .comparebtn:focus-visible {
+  /* The outline turns to the button's text colour. */
+  border-color: var(--cat-text);
+} /* end of rule */
+
+/* Filled red confirming button: a little towards the text colour (darker in light themes, lighter in dark themes), with the outline following. */
+.btn-solid:hover, .btn-solid:focus-visible {
+  /* The fill moves slightly towards the text colour. */
+  background: color-mix(in srgb, var(--btn) 82%, var(--text));
+  /* The outline moves further, so the edge shows. */
+  border-color: color-mix(in srgb, var(--btn) 55%, var(--text));
+} /* end of rule */
+
+/* Filled blue button of the load pages. */
+.btn-load:hover, .btn-load:focus-visible {
+  /* The fill moves slightly towards the text colour. */
+  background: color-mix(in srgb, var(--load) 82%, var(--text));
+  /* The outline moves further, so the edge shows. */
+  border-color: color-mix(in srgb, var(--load) 55%, var(--text));
+} /* end of rule */
+
+/* Filled green button. */
+.btn-go:hover, .btn-go:focus-visible {
+  /* The fill moves slightly towards the text colour. */
+  background: color-mix(in srgb, var(--go) 82%, var(--text));
+  /* The outline moves further, so the edge shows. */
+  border-color: color-mix(in srgb, var(--go) 55%, var(--text));
+} /* end of rule */
+
+/* Filled danger button (a link or a button). */
+.btn-danger:hover, .btn-danger:focus-visible {
+  /* The fill moves slightly towards the text colour. */
+  background: color-mix(in srgb, var(--danger) 82%, var(--text));
+  /* The outline moves further, so the edge shows. */
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--text));
+} /* end of rule */
+
+/* The small theme and text-size switches: a faint wash on the track (the outline already turns darker). */
+.switch:hover, .switch:focus-visible {
+  /* A faint wash of the text colour over the panel colour. */
+  background: color-mix(in srgb, var(--text) 8%, var(--panel));
+} /* end of rule */
+
+/* The small Auto buttons: a faint fill and a solid underline. */
+.autobtn:hover, .autobtn:focus-visible {
+  /* A faint wash of the text colour. */
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  /* The normal text colour instead of the quiet one. */
+  color: var(--text);
+  /* A solid underline instead of a dotted one. */
+  text-decoration-style: solid;
+  /* Slightly rounded wash. */
+  border-radius: 0.2rem;
+} /* end of rule */
+
+/* The round icon buttons in the table: a faint round wash behind the icon (their colour changes stay as they were). */
+.gear:hover, .gear:focus-visible {
+  /* A faint wash of the text colour. */
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  /* Slightly rounded wash. */
+  border-radius: 0.3rem;
+} /* end of rule */
+
+/* The Copy buttons: a faint wash inside the stronger outline. */
+.copybtn:hover, .copybtn:focus-visible {
+  /* A faint wash of the text colour. */
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+} /* end of rule */
+
+/* The round back arrow: a faint wash of the accent colour. */
+.backcircle:hover, .backcircle:focus-visible {
+  /* A little accent colour mixed into the panel colour. */
+  background: color-mix(in srgb, var(--cat-accent) 12%, var(--panel));
+} /* end of rule */
+
+/* "What it should do": the ticks on the left and the all-or-any choice on the right; on a narrow window they stack. */
+.abilitywrap {
+  /* Side by side. */
+  display: flex;
+  /* Drop below each other when there is no room. */
+  flex-wrap: wrap;
+  /* Space between the two columns. */
+  gap: 1rem 2rem;
+} /* end of rule */
+
+/* The list of ticks takes the room it needs. */
+.abilitylist {
+  /* Grow a little, never shrink below the longest label. */
+  flex: 1 1 18rem;
+} /* end of rule */
+
+/* The all-or-any choice: a quiet box on the right, with a left line so it reads as a separate choice. */
+.abilitymode {
+  /* Needs about this much room for its explanation. */
+  flex: 1 1 20rem;
+  /* A line in the border colour separates it from the ticks. */
+  border-left: 2px solid var(--border);
+  /* Room between the line and the text. */
+  padding-left: 1rem;
+} /* end of rule */
+
+/* The explanation under each choice: the secondary text colour, indented under the radio button. */
+.modeexplain {
+  /* Lines up under the words of the choice. */
+  margin: 0.1rem 0 0.5rem 1.5rem;
+  /* The secondary colour, readable in every theme. */
+  color: var(--muted);
+} /* end of rule */
+
+/* The heading of the Cloud models section: the symbol and the words side by side, level with each other. */
+.cloudhead {
+  /* Symbol and words in one row. */
+  display: flex;
+  /* Centre them on one line. */
+  align-items: center;
+  /* Space between the symbol and the words. */
+  gap: 0.5rem;
+} /* end of rule */
+
+/* The large cloud symbol in that heading. */
+.cloudbig {
+  /* Sized from the heading's own text, so it stays in proportion at any text size. */
+  width: 1.7em;
+  /* Same as the width. */
+  height: 1.7em;
+  /* Never squeezed in the row. */
+  flex: none;
+  /* The cloud colour of the theme. */
+  color: var(--icon-cloud);
+} /* end of rule */
+
+/* The framed note under it: a thick bar and a faint tint in the cloud colour, so it is noticed. */
+.cloudnote {
+  /* A thick bar on the left in the cloud colour. */
+  border-left: 6px solid var(--icon-cloud);
+  /* A faint tint of the cloud colour over the panel colour. */
+  background: color-mix(in srgb, var(--icon-cloud) 12%, var(--panel));
+  /* Room inside the frame. */
+  padding: 0.6rem 0.9rem;
+  /* Slightly rounded on the right. */
+  border-radius: 0 0.4rem 0.4rem 0;
+  /* Space around the frame. */
+  margin: 0.4rem 0 1rem;
+  /* A little larger than the text around it. */
+  font-size: 1.05em;
+} /* end of rule */
+
+/* The button and the order choice on one line; plain inline layout. */
+.findaction {
+  /* Space above and below the line, as in a paragraph. */
+  line-height: 2.6;
+} /* end of rule */
+
+/* The label and the list of the order choice. */
+.sortpick {
+  /* Next to the button, wrapping below it on a narrow window. */
+  display: inline-block;
+  /* Space between the button and the choice. */
+  margin-left: 1rem;
 } /* end of rule */

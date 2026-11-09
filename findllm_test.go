@@ -4,6 +4,8 @@ package main
 import ( // import lists the standard-library packages this test file uses.
 	// encoding/json checks what is saved for a deleted model.
 	"encoding/json"
+	// fmt formats the mixed colour of the highlight test.
+	"fmt"
 	// html escapes a help text the way the page does.
 	"html"
 	// io reads a reply body.
@@ -12,6 +14,8 @@ import ( // import lists the standard-library packages this test file uses.
 	"math"
 	// net/http gives the status codes.
 	"net/http"
+	// net/http/httptest starts the fake Ollama the new tests supply.
+	"net/http/httptest"
 	// net/url builds the form values.
 	"net/url"
 	// os checks and writes the saved copy.
@@ -127,7 +131,7 @@ func sampleModels() []siteModel {
 		// A search-and-similarity model without sizes.
 		{Name: "gamma", Abilities: []string{"embedding"}, Pulls: "5M"},
 		// A cloud model.
-		{Name: "delta", Cloud: true, Abilities: []string{"tools"}, Sizes: []string{"7b"}, Pulls: "9M"},
+		{Name: "delta", Cloud: true, Abilities: []string{"tools"}, Pulls: "9M"},
 		// A chat model whose size cannot be read.
 		{Name: "epsilon", Pulls: "1M"},
 		// A tiny chat model.
@@ -328,7 +332,7 @@ func TestFreeDiskIsReadable(t *testing.T) {
 // findTestPages are the pages of a fake library: a list with a cloud model, and tags pages.
 func findTestPages() map[string]string {
 	// The list page: a normal model, a cloud model, an embedding model.
-	list := listEntry("alpha", "An invented chat model.", "tools", "0.6b", "8b") + listEntry("cloudy", "Runs far away.", "cloud", "tools", "8b") + listEntry("embedder", "Turns text into numbers.", "embedding")
+	list := listEntry("alpha", "An invented chat model.", "tools", "0.6b", "8b") + listEntry("cloudy", "Runs far away.", "cloud", "tools") + listEntry("embedder", "Turns text into numbers.", "embedding")
 	// The pages.
 	return map[string]string{
 		// The list.
@@ -422,18 +426,23 @@ func TestFindSearchShowsFitAndNoFit(t *testing.T) {
 		t.Fatalf("status %d: %s", status, body)
 	} // end of the status check
 	// The model, its official link, the small version that fits with its command, and the large one with the reason.
-	for _, want := range []string{`<h2 id="found">Models found</h2>`, ollamaSite + "/library/alpha", "ollama pull alpha:0.6b", "<strong>Fits:</strong>", "<strong>Does not fit:</strong>", "needs 5.2 GB of disk space; you have 2.0 GB free", "1 model matches your choices", "1 cloud model (it runs on Ollama"} {
-		// Look for it.
-		if !strings.Contains(body, want) {
+	for _, want := range []string{`<h2 id="found">Models found</h2>`, ollamaSite + "/library/alpha", "ollama pull alpha:0.6b", "<strong>Fits:</strong>", "<strong>Does not fit:</strong>", "needs 5.2 GB of disk space; you have 2.0 GB free", "1 model matches your choices", `<h2 id="cloudmodels" class="cloudhead">`, tipCloud, tipVersionFits, tipVersionNoFit, tipModelFits} {
+		// Look for it in the page text with the character codes turned back into characters (the apostrophe is written as a code).
+		if !strings.Contains(html.UnescapeString(body), want) {
 			// Report.
 			t.Errorf("the results lack %q", want)
 		} // end of the look
 	} // end of the loop
-	// The cloud model and the embedding model are not listed.
-	if strings.Contains(body, ">cloudy<") || strings.Contains(body, ">embedder<") {
+	// The embedding model is not listed at all.
+	if strings.Contains(body, ">embedder<") {
 		// Report.
-		t.Error("a cloud or embedding model was listed")
-	} // end of the absence check
+		t.Error("the embedding model was listed")
+	} // end of the embedding check
+	// The cloud-only model is listed, but only in the cloud section (after its heading), and has no download command.
+	if at, cloudAt := strings.Index(body, ">cloudy"), strings.Index(body, `<h2 id="cloudmodels" class="cloudhead">`); at < 0 || cloudAt < 0 || at < cloudAt || strings.Contains(body, "ollama pull cloudy") {
+		// Report.
+		t.Error("the cloud-only model is missing from the cloud section, or has a download command")
+	} // end of the cloud check
 	// One list page and one tags page were read.
 	if n := atomic.LoadInt32(hits); n != 2 {
 		// Report.
@@ -916,7 +925,7 @@ func TestIconColours(t *testing.T) {
 	// The page with the six real models and the key open.
 	_, _, body := get(t, handlerFor(t, fullOllama(t, realModels, realPsBody).URL), http.MethodGet, "/?key=open")
 	// The classes: Modelfile and parameters buttons, the delete button, and the three key symbols.
-	for _, want := range []string{`class="gear gear-file"`, `class="gear gear-params"`, `class="gear gear-delete"`, `class="ico sym-file"`, `class="ico sym-params"`, `class="ico sym-delete"`, `class="tagicon"`} {
+	for _, want := range []string{`class="gear gear-file"`, `class="gear gear-params"`, `class="gear gear-delete"`, `class="ico sym-file"`, `class="ico sym-params"`, `class="ico sym-delete"`, `class="tagicon"`, `class="ico ico-big ico-find"`, `class="ico ico-big ico-compare"`} {
 		// Look for it.
 		if !strings.Contains(body, want) {
 			// Report.
@@ -928,7 +937,7 @@ func TestIconColours(t *testing.T) {
 	// The page and panel backgrounds: light, then dark.
 	bgs := map[string][]string{"light": {"#ffffff", "#f4f6f8"}, "dark": {"#121417", "#1b1f24"}}
 	// Each icon colour appears three times: light, dark by system choice, dark by saved choice.
-	for _, name := range []string{"icon-tag", "icon-delete", "icon-file", "icon-params"} {
+	for _, name := range []string{"icon-tag", "icon-delete", "icon-file", "icon-params", "icon-find", "icon-compare", "icon-cloud"} {
 		// Every value written for it.
 		vals := regexp.MustCompile(`--`+name+`: (#[0-9a-f]{6});`).FindAllStringSubmatch(css, -1)
 		// Three values.
@@ -998,3 +1007,845 @@ func TestFindSearchJumpsToTheAnswer(t *testing.T) {
 		t.Error("the problem page has no single jump target on the problem box")
 	} // end of the problem check
 } // end of TestFindSearchJumpsToTheAnswer
+
+// rigWithOllama builds the handler and finds its page token, like newThemeRig, but for a fake Ollama the test supplies.
+func rigWithOllama(t *testing.T, srv *httptest.Server) themeRig {
+	// Mark this as a helper.
+	t.Helper()
+	// Build the handler once, because the token belongs to one handler.
+	h := handlerFor(t, srv.URL)
+	// Fetch the home page.
+	_, _, body := get(t, h, http.MethodGet, "/")
+	// Find the hidden token field.
+	m := regexp.MustCompile(`name="token" value="([0-9a-f]{32})"`).FindStringSubmatch(body)
+	// The page must carry a token.
+	if m == nil {
+		// Stop the test.
+		t.Fatalf("no token found in the page")
+	} // end of the token check
+	// Hand back the pair.
+	return themeRig{h: h, token: m[1]}
+} // end of rigWithOllama
+
+// seedTest saves one finished performance test for a model in the data folder the test uses, before the handler is built, so the handler loads it.
+func seedTest(t *testing.T, r perfRun) {
+	// Mark this as a helper.
+	t.Helper()
+	// The same file the program uses.
+	path, _ := defaultHistoryPath()
+	// Open it.
+	store := openPerfStore(path, "")
+	// Save the run.
+	if err := store.add(r); err != nil {
+		// A failure means the test is broken.
+		t.Fatalf("could not save the test run: %v", err)
+	} // end of the save check
+} // end of seedTest
+
+// TestSpeedNoteAndMarker checks the line shown for an installed version: the newest answer speed with its date, "not tested yet", the embedding wording, :latest matching, and no mark when Ollama could not be read.
+func TestSpeedNoteAndMarker(t *testing.T) {
+	// A memory-only store.
+	store := openPerfStore("", "memory only")
+	// An old and a newer test of the same version: the newer speed must win.
+	store.add(perfRun{Time: time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC), Model: "alpha:0.6b", Kind: "generate", AnswerSpeed: 10})
+	// The newer one.
+	store.add(perfRun{Time: time.Date(2026, 11, 2, 13, 10, 0, 0, time.UTC), Model: "alpha:0.6b", Kind: "generate", AnswerSpeed: 42.34})
+	// An embedding test.
+	store.add(perfRun{Time: time.Date(2026, 11, 3, 8, 0, 0, 0, time.UTC), Model: "embedder:latest", Kind: "embedding"})
+	// The installed list: a tested one, an untested one, an embedding one and a model without a tag.
+	list := []installedModel{{Name: "alpha:0.6b"}, {Name: "alpha:8b"}, {Name: "embedder:latest"}, {Name: "plain"}}
+	// The marker.
+	mark := installedMarker(list, store, true)
+	// The tested version: speed with one decimal, and a date.
+	if ok, note := mark("alpha:0.6b"); !ok || !strings.HasPrefix(note, "Installed · 42.3 tokens per second · tested 2 Nov 2026") {
+		// Report.
+		t.Errorf("tested version: %v %q", ok, note)
+	} // end of the tested check
+	// The untested version.
+	if ok, note := mark("alpha:8b"); !ok || note != "Installed, not tested yet" {
+		// Report.
+		t.Errorf("untested version: %v %q", ok, note)
+	} // end of the untested check
+	// The embedding model.
+	if ok, note := mark("embedder:latest"); !ok || !strings.Contains(note, "embedding test saved") || !strings.Contains(note, "no answer speed") {
+		// Report.
+		t.Errorf("embedding model: %v %q", ok, note)
+	} // end of the embedding check
+	// A model installed without a tag matches the library's :latest.
+	if ok, _ := mark("plain:latest"); !ok {
+		// Report.
+		t.Error("plain was not matched with plain:latest")
+	} // end of the latest check
+	// A version that is not installed gets no mark.
+	if ok, note := mark("alpha:70b"); ok || note != "" {
+		// Report.
+		t.Errorf("not installed: %v %q", ok, note)
+	} // end of the absent check
+	// Ollama could not be read: no marker at all.
+	if installedMarker(nil, store, false) != nil {
+		// Report.
+		t.Error("a marker was made although the installed list could not be read")
+	} // end of the unread check
+	// Installed versions come first inside a group and the order is kept otherwise.
+	got := installedFirst([]versionView{{Tag: "a"}, {Tag: "b", Installed: true}, {Tag: "c"}, {Tag: "d", Installed: true}})
+	// The tags in order.
+	var order []string
+	// Collect.
+	for _, v := range got {
+		// One tag.
+		order = append(order, v.Tag)
+	} // end of the collection
+	// The expected order.
+	if strings.Join(order, "") != "bdac" {
+		// Report.
+		t.Errorf("order %v, want b d a c", order)
+	} // end of the order check
+} // end of TestSpeedNoteAndMarker
+
+// TestFindPageMarksInstalledVersions checks the page: installed versions are marked with their saved speed or "not tested yet", the explaining line is there, and a failing Ollama gives a clear note instead of silence.
+func TestFindPageMarksInstalledVersions(t *testing.T) {
+	// A throw-away data folder.
+	isolateFindData(t)
+	// An empty in-memory list.
+	theListCache = listCache{}
+	// Clear it again at the end.
+	t.Cleanup(func() { theListCache = listCache{} })
+	// A working fake library.
+	fakeSite(t, findTestPages())
+	// One saved test of the small version, with the current prompt, so the Compare page has a row.
+	seedTest(t, perfRun{Time: time.Date(2026, 11, 2, 13, 10, 0, 0, time.UTC), Model: "alpha:0.6b", Kind: "generate", PromptVersion: perfPromptVersion, Runs: perfTimedRuns, AnswerSpeed: 42.3})
+	// Both versions of alpha are installed.
+	srv := fullOllama(t, []realRow{
+		// The tested one.
+		{"alpha:0.6b", 523000000, "2026-10-24T17:40:34.693006337Z", []string{"completion"}, "alpha", "0.6B", "Q4_K_M", 40960, 1024, ""},
+		// The untested one.
+		{"alpha:8b", 5200000000, "2026-10-24T17:40:34.693006337Z", []string{"completion"}, "alpha", "8B", "Q4_K_M", 131072, 4096, ""},
+	}, `{"models":[]}`)
+	// The rig.
+	rig := rigWithOllama(t, srv)
+	// Search with room for both versions.
+	_, body := postFind(t, rig, url.Values{"token": {rig.token}, "ab_chat": {"on"}, "disk_gb": {"20"}, "mem_gb": {"32"}})
+	// The tested version shows its speed and a date with a zone.
+	if !strings.Contains(body, `<span class="installedmark">Installed &middot; 42.3 tokens per second &middot; tested 2 Nov 2026`) && !strings.Contains(body, "Installed · 42.3 tokens per second · tested 2 Nov 2026") {
+		// Report.
+		t.Error("the tested installed version does not show its speed and date")
+	} // end of the tested check
+	// The untested version says so.
+	if !strings.Contains(body, `<span class="installedmark">Installed, not tested yet</span>`) {
+		// Report.
+		t.Error("the untested installed version is not marked")
+	} // end of the untested check
+	// The explaining line is there, and it points to the home page's Compare button instead of repeating it: no Compare form on this page.
+	if !strings.Contains(body, "use the Compare tested models button on the home page") || strings.Contains(body, `action="/compare"`) {
+		// Report.
+		t.Error("the explaining line is missing, or a Compare form is on the Find LLM page")
+	} // end of the explaining line check
+	// The embedding model is not installed, so its version has no mark: exactly two marks on the page.
+	if n := strings.Count(body, `class="installedmark"`); n != 2 {
+		// Report.
+		t.Errorf("%d marks, want 2", n)
+	} // end of the count check
+	// Nothing was installed or tested by the page: no request other than reads reached the fake Ollama (it only answers /api/tags, /api/version and /api/ps).
+	// A second rig where nothing is installed: no marks and no explaining bar.
+	srv2 := fullOllama(t, nil, `{"models":[]}`)
+	// The rig.
+	rig2 := rigWithOllama(t, srv2)
+	// Search again.
+	_, body2 := postFind(t, rig2, url.Values{"token": {rig2.token}, "ab_chat": {"on"}, "disk_gb": {"20"}, "mem_gb": {"32"}})
+	// No marks and no bar.
+	if strings.Contains(body2, `class="installedmark"`) || strings.Contains(body2, "marked <strong>Installed</strong>") {
+		// Report.
+		t.Error("marks appear although nothing is installed")
+	} // end of the empty check
+	// A third rig where Ollama fails: the page says so.
+	srv3 := fakeOllama(t, replyWith(http.StatusInternalServerError, "boom"))
+	// The rig.
+	rig3 := rigWithOllama(t, srv3)
+	// Search again.
+	_, body3 := postFind(t, rig3, url.Values{"token": {rig3.token}, "ab_chat": {"on"}, "disk_gb": {"20"}, "mem_gb": {"32"}})
+	// The note, and no marks.
+	if !strings.Contains(body3, "The installed models could not be read just now") || strings.Contains(body3, `class="installedmark"`) {
+		// Report.
+		t.Error("a failing Ollama is not reported on the page")
+	} // end of the failure check
+} // end of TestFindPageMarksInstalledVersions
+
+// TestHybridCloudModelStays checks a model that carries the cloud label but also lists sizes (like gemma4 or gpt-oss): it is a candidate, its local versions are offered, and its cloud versions are dropped; a model whose versions are all cloud says so.
+func TestHybridCloudModelStays(t *testing.T) {
+	// The cloud-only model has no sizes; the hybrid has sizes too.
+	models := []siteModel{
+		{Name: "faraway", Cloud: true, Abilities: []string{"tools"}, Pulls: "9M"},
+		{Name: "hybrid", Cloud: true, Abilities: []string{"tools"}, Sizes: []string{"4b", "31b"}, Pulls: "8M"},
+	}
+	// Apply no choices.
+	got, _, cloud := findCandidates(models, findSelection{})
+	// Only the hybrid stays; one cloud-only model is counted as left out.
+	if modelNames(got) != "hybrid" || cloud != 1 {
+		// Report.
+		t.Errorf("got %s with %d cloud-only left out, want hybrid and 1", modelNames(got), cloud)
+	} // end of the candidate check
+	// The cloud version names Ollama uses.
+	for tag, want := range map[string]bool{"hybrid:31b-cloud": true, "gpt-oss:cloud": true, "hybrid:4b": false, "cloudy:latest": false, "hybrid": false} {
+		// Check each.
+		if isCloudTag(tag) != want {
+			// Report.
+			t.Errorf("isCloudTag(%q) = %v, want %v", tag, !want, want)
+		} // end of the name check
+	} // end of the name loop
+	// The versions: one local and one cloud.
+	tags := []siteTag{{Tag: "hybrid:4b", SizeText: "2.0GB", SizeBytes: 2000000000, Context: "128K"}, {Tag: "hybrid:31b-cloud", Context: "256K"}}
+	// Build the view.
+	r := buildResult(models[1], tags, "", findSelection{DiskGB: -1, MemGB: -1}, nil)
+	// Only the local version is listed.
+	if len(r.Versions) != 1 || r.Versions[0].Tag != "hybrid:4b" || r.Unavailable != "" {
+		// Report.
+		t.Errorf("versions %+v, unavailable %q", r.Versions, r.Unavailable)
+	} // end of the version check
+	// All versions cloud: nothing to offer, and the page says why.
+	r2 := buildResult(models[1], tags[1:], "", findSelection{DiskGB: -1, MemGB: -1}, nil)
+	// The reason is given and no version is listed.
+	if len(r2.Versions) != 0 || !strings.Contains(r2.Unavailable, "run on Ollama's servers") {
+		// Report.
+		t.Errorf("all-cloud result: versions %d, unavailable %q", len(r2.Versions), r2.Unavailable)
+	} // end of the all-cloud check
+} // end of TestHybridCloudModelStays
+
+// TestStateIconTexts checks the house rules for the state icons' tooltips: one short line of at most 130 characters, no markup characters, and different texts for the different states.
+func TestStateIconTexts(t *testing.T) {
+	// The five texts.
+	texts := []string{tipCloud, tipModelFits, tipModelNoFit, tipVersionFits, tipVersionNoFit}
+	// The texts seen so far, to catch two equal ones.
+	seen := map[string]bool{}
+	// Check each.
+	for _, tx := range texts {
+		// Not longer than 130 characters.
+		if n := len([]rune(tx)); n > 130 {
+			// Report.
+			t.Errorf("%q has %d characters, want at most 130", tx, n)
+		} // end of the length check
+		// No markup characters.
+		if strings.ContainsAny(tx, "<>&\"*_`#") {
+			// Report.
+			t.Errorf("%q has a markup character", tx)
+		} // end of the markup check
+		// Different from the others.
+		if seen[tx] {
+			// Report.
+			t.Errorf("%q is used twice", tx)
+		} // end of the twice check
+		// Remember it.
+		seen[tx] = true
+	} // end of the loop
+} // end of TestStateIconTexts
+
+// TestStateIconsOnThePage checks the three icons on the results page: the cloud symbol on a cloud-only model, the check mark on a model and a version that can be installed, and the cross on a version and a model that cannot; every icon has its tooltip and a hidden name, and a size class removes the cloud section with an explanation.
+func TestStateIconsOnThePage(t *testing.T) {
+	// A throw-away data folder.
+	isolateFindData(t)
+	// An empty in-memory list.
+	theListCache = listCache{}
+	// Clear it again at the end.
+	t.Cleanup(func() { theListCache = listCache{} })
+	// A working fake library.
+	fakeSite(t, findTestPages())
+	// The rig.
+	rig := newThemeRig(t)
+	// Room for the small version only.
+	_, body := postFind(t, rig, url.Values{"token": {rig.token}, "ab_chat": {"on"}, "disk_gb": {"2"}, "mem_gb": {"8"}})
+	// The page text with the character codes turned back.
+	text := html.UnescapeString(body)
+	// The model has a version that fits: check mark on the heading and on the small version, cross on the big one.
+	for _, want := range []string{`state-fits" tabindex="0" role="img" aria-label="Can be installed" aria-describedby="tipstate-0"`, `aria-describedby="tipver-0-0"`, `state-nofit" tabindex="0" role="img" aria-label="Cannot be installed" aria-describedby="tipver-0-1"`, `state-cloud" tabindex="0" role="img" aria-label="Cloud model" aria-describedby="tipcloud-0"`} {
+		// Look for it.
+		if !strings.Contains(text, want) {
+			// Report.
+			t.Errorf("the page lacks %q", want)
+		} // end of the look
+	} // end of the loop
+	// Every icon points at a tooltip that exists, and no tooltip name is used twice.
+	for _, id := range []string{"tipstate-0", "tipver-0-0", "tipver-0-1", "tipcloud-0"} {
+		// One tooltip with this name.
+		if n := strings.Count(body, `id="`+id+`" role="tooltip"`) + strings.Count(body, `role="tooltip" id="`+id+`"`); n != 1 {
+			// Report.
+			t.Errorf("%d tooltips named %s, want 1", n, id)
+		} // end of the name check
+	} // end of the loop
+	// With almost no room nothing fits: the model gets the cross.
+	_, none := postFind(t, rig, url.Values{"token": {rig.token}, "ab_chat": {"on"}, "disk_gb": {"0.1"}, "mem_gb": {"0.1"}})
+	// The model's own icon is the cross.
+	if !strings.Contains(none, `state-nofit" tabindex="0" role="img" aria-label="Cannot be installed" aria-describedby="tipstate-0"`) {
+		// Report.
+		t.Error("a model with no version that fits has no cross")
+	} // end of the cross check
+	// A size class does not apply to cloud models: the section is gone and the summary says why.
+	_, sized := postFind(t, rig, url.Values{"token": {rig.token}, "ab_chat": {"on"}, "sz_small": {"on"}, "disk_gb": {"2"}, "mem_gb": {"8"}})
+	// No cloud section, and the reason.
+	if strings.Contains(sized, `id="cloudmodels"`) || !strings.Contains(html.UnescapeString(sized), "not shown because you chose a size or a memory class") {
+		// Report.
+		t.Error("a size class should remove the cloud section and say why")
+	} // end of the class check
+} // end of TestStateIconsOnThePage
+
+// mixHex mixes two #rrggbb colours: the share p (0 to 1) of a, the rest of b, as color-mix does in the sRGB space.
+func mixHex(a, b string, p float64) string {
+	// The result starts as the hash sign.
+	out := "#"
+	// Each of the red, green and blue pairs.
+	for i := 1; i < 7; i += 2 {
+		// The two channel values.
+		x, _ := strconv.ParseInt(a[i:i+2], 16, 32)
+		// The second colour's channel.
+		y, _ := strconv.ParseInt(b[i:i+2], 16, 32)
+		// The mixed channel, rounded.
+		out += fmt.Sprintf("%02x", int(math.Round(float64(x)*p+float64(y)*(1-p))))
+	} // end of the channel loop
+	// The mixed colour.
+	return out
+} // end of mixHex
+
+// TestButtonHighlightAndIconRules checks that every icon colour is really applied, that every kind of button has a highlight when pointed at or focused, that the highlight never touches the tooltips, and that the two button icons stay readable on the highlighted button.
+func TestButtonHighlightAndIconRules(t *testing.T) {
+	// The style sheet.
+	_, _, css := get(t, handlerFor(t, fullOllama(t, realModels, realPsBody).URL), http.MethodGet, "/app.css")
+	// Every icon colour that is defined must also be used by a rule: a defined but unused colour is the bug that hid the teal and the gold.
+	for _, name := range regexp.MustCompile(`--(icon-[a-z]+): #`).FindAllStringSubmatch(css, -1) {
+		// The use: the colour is read by a rule somewhere.
+		if !strings.Contains(css, "var(--"+name[1]+")") {
+			// Report.
+			t.Errorf("--%s is defined but no rule uses it", name[1])
+		} // end of the use check
+	} // end of the loop
+	// The two button icons have their own rules.
+	for _, want := range []string{".ico-find {\n  /* The theme's teal; the symbol is drawn in the current colour. */\n  color: var(--icon-find);", ".ico-compare {\n  /* The theme's gold; the symbol is drawn in the current colour. */\n  color: var(--icon-compare);"} {
+		// Look for it.
+		if !strings.Contains(css, want) {
+			// Report.
+			t.Errorf("the style sheet lacks the rule %q", want[:12])
+		} // end of the look
+	} // end of the loop
+	// Every kind of button: pointed at, and reached with the keyboard.
+	for _, sel := range []string{".btn-plain", ".comparebtn", ".btn-solid", ".btn-load", ".btn-go", ".btn-danger", ".unload", ".load", ".switch", ".autobtn", ".gear", ".copybtn", ".backcircle"} {
+		// The rule must name both states.
+		for _, state := range []string{":hover", ":focus-visible"} {
+			// Look for it.
+			if !strings.Contains(css, sel+state) {
+				// Report.
+				t.Errorf("%s has no %s rule", sel, state)
+			} // end of the look
+		} // end of the state loop
+	} // end of the loop
+	// The highlight block starts at its own heading comment.
+	i := strings.Index(css, "/* Button highlight:")
+	// It must exist.
+	if i < 0 {
+		// Stop here.
+		t.Fatal("the highlight block is missing")
+	} // end of the block check
+	// The block itself: it ends where the next, unrelated group of rules starts.
+	block := css[i:]
+	// Cut it there.
+	if j := strings.Index(block, `/* "What it should do"`); j > 0 {
+		// Keep only the highlight rules.
+		block = block[:j]
+	} // end of the cut
+	// The highlight changes colours only: nothing that could hide, move or block a tooltip.
+	for _, bad := range []string{"pointer-events", "overflow", "display:", "visibility", "position", "z-index", "opacity", "content:"} {
+		// Look for it.
+		if strings.Contains(block, bad) {
+			// Report.
+			t.Errorf("the highlight block contains %q, which could disturb the tooltips", bad)
+		} // end of the look
+	} // end of the loop
+	// The tooltip rules are still there: they open on pointing and on focus.
+	for _, want := range []string{".tipbox:hover > .tip", ".tipbox:focus-within > .tip"} {
+		// Look for it.
+		if !strings.Contains(css, want) {
+			// Report.
+			t.Errorf("the tooltip rule %q is gone", want)
+		} // end of the look
+	} // end of the loop
+	// The panel colour, the text colour and the two icon colours, light then dark.
+	for _, th := range []struct{ name, panel, bg, text, find, compare string }{{"light", "#f4f6f8", "#ffffff", "#1a1a1a", "#0a6b73", "#7a5f00"}, {"dark", "#1b1f24", "#121417", "#ececec", "#4fd1c5", "#e3c04d"}} {
+		// The highlighted button: 8 percent of the text colour over the page or the panel.
+		for _, under := range []string{th.panel, th.bg} {
+			// The washed colour.
+			hl := mixHex(th.text, under, 0.08)
+			// Both icons.
+			for _, c := range []string{th.find, th.compare} {
+				// The ratio.
+				if r := contrastOf(c, hl); r < 4.5 {
+					// Report.
+					t.Errorf("%s theme: icon %s on the highlighted button (%s) has contrast %.2f, want at least 4.5", th.name, c, hl, r)
+				} // end of the ratio check
+			} // end of the icon loop
+		} // end of the background loop
+	} // end of the theme loop
+} // end of TestButtonHighlightAndIconRules
+
+// TestAbilitiesMatch checks the all-or-any rule for the ticks of "What it should do", including the empty case and the Chat and writing tick.
+func TestAbilitiesMatch(t *testing.T) {
+	// The cases: what is ticked, the mode, the model's abilities and the expected answer.
+	for _, c := range []struct {
+		name string
+		sel  findSelection
+		has  map[string]bool
+		want bool
+	}{
+		// Nothing ticked: every model passes, in both modes.
+		{"nothing ticked, all", findSelection{}, map[string]bool{"tools": true}, true},
+		{"nothing ticked, any", findSelection{Any: true}, map[string]bool{}, true},
+		// Two abilities, Match ALL: needs both.
+		{"all: has both", findSelection{Abilities: map[string]bool{"tools": true, "vision": true}}, map[string]bool{"tools": true, "vision": true}, true},
+		{"all: has one", findSelection{Abilities: map[string]bool{"tools": true, "vision": true}}, map[string]bool{"tools": true}, false},
+		// Two abilities, Match ANY: one is enough, none is not.
+		{"any: has one", findSelection{Any: true, Abilities: map[string]bool{"tools": true, "vision": true}}, map[string]bool{"tools": true}, true},
+		{"any: has none", findSelection{Any: true, Abilities: map[string]bool{"tools": true, "vision": true}}, map[string]bool{"audio": true}, false},
+		// Chat and writing with an ability, Match ALL: a chat model that also has the ability; an embedding model fails.
+		{"all: chat and tools, chat model with tools", findSelection{Chat: true, Abilities: map[string]bool{"tools": true}}, map[string]bool{"tools": true}, true},
+		{"all: chat and tools, embedding model", findSelection{Chat: true, Abilities: map[string]bool{"tools": true}}, map[string]bool{"embedding": true, "tools": true}, false},
+		// Chat and writing with an ability, Match ANY: a chat model without the ability passes; an embedding model without it fails.
+		{"any: chat or tools, chat model without tools", findSelection{Any: true, Chat: true, Abilities: map[string]bool{"tools": true}}, map[string]bool{}, true},
+		{"any: chat or tools, embedding model without tools", findSelection{Any: true, Chat: true, Abilities: map[string]bool{"tools": true}}, map[string]bool{"embedding": true}, false},
+	} {
+		// The answer.
+		if got := abilitiesMatch(c.sel, c.has); got != c.want {
+			// Report.
+			t.Errorf("%s: got %v, want %v", c.name, got, c.want)
+		} // end of the answer check
+	} // end of the loop
+} // end of TestAbilitiesMatch
+
+// TestFindModeChoice checks the Match ALL or Match ANY choice on the page and in the search: it sits inside "What it should do", defaults to ALL, is explained in visible text under each option and also has a very short tooltip, is kept after a search, and changes the result.
+func TestFindModeChoice(t *testing.T) {
+	// The saved library list goes to a throw-away folder, never to the real data folder.
+	isolateFindData(t)
+	// Start with an empty saved list.
+	theListCache = listCache{}
+	// Clear it again at the end.
+	t.Cleanup(func() { theListCache = listCache{} })
+	// A fake library.
+	fakeSite(t, findTestPages())
+	// The rig.
+	rig := newThemeRig(t)
+	// The empty form page.
+	_, _, form := get(t, rig.h, http.MethodGet, "/findllm")
+	// The fieldset of "What it should do" up to its end.
+	i := strings.Index(form, "<strong>What it should do</strong>")
+	// It must exist.
+	if i < 0 {
+		// Stop here.
+		t.Fatal("the page lacks the What it should do box")
+	} // end of the box check
+	// The box itself.
+	box := form[i : i+strings.Index(form[i:], "</fieldset>")]
+	// Both radio buttons are inside the box, ALL is ticked by default and ANY is not.
+	if !strings.Contains(box, `name="ab_mode" value="all" checked`) || strings.Contains(box, `name="ab_mode" value="any" checked`) || !strings.Contains(box, `name="ab_mode" value="any"`) {
+		// Report.
+		t.Error("the choice is missing from the box or the default is not Match ALL")
+	} // end of the radio check
+	// The explanation of each choice is visible text in the box, outside any tooltip.
+	for _, want := range []string{"Match ALL ticked", "Match ANY ticked", "The model must do everything you ticked.", "The model needs at least one of the things you ticked."} {
+		// Look for it.
+		if !strings.Contains(box, want) {
+			// Report.
+			t.Errorf("the box lacks the text %q", want)
+		} // end of the look
+	} // end of the loop
+	// The visible explanations sit in their own paragraphs, not inside a tooltip bubble.
+	for _, b := range regexp.MustCompile(`(?s)<span class="tip"[^>]*>.*?</span>`).FindAllString(box, -1) {
+		// A bubble that holds a long explanation.
+		if strings.Contains(b, "everything you ticked") || strings.Contains(b, "at least one of the things") {
+			// Report.
+			t.Error("a tooltip repeats the long explanation instead of staying very short")
+		} // end of the bubble check
+	} // end of the loop
+	// The heading words take no room: the group keeps its name only as an aria-label for screen readers.
+	if strings.Contains(strings.ReplaceAll(box, `aria-label="How the ticks combine"`, ""), "How the ticks combine") || !strings.Contains(box, `aria-label="How the ticks combine"`) {
+		// Report.
+		t.Error("the words How the ticks combine are visible, or the group lost its accessible name")
+	} // end of the heading check
+	// Each choice also has a very short tooltip: one line, at most 40 characters, no markup characters.
+	for _, id := range []string{"tip-mode-all", "tip-mode-any"} {
+		// The bubble with this id, and the word that points to it.
+		m := regexp.MustCompile(`id="` + id + `">([^<]*)</span>`).FindStringSubmatch(box)
+		// It must exist, and the label must point to it.
+		if m == nil || !strings.Contains(box, `aria-describedby="`+id+`"`) {
+			// Report and go on.
+			t.Errorf("the choice has no tooltip %s", id)
+			// Next.
+			continue
+		} // end of the bubble check
+		// The text, as a person reads it.
+		tx := html.UnescapeString(m[1])
+		// Very short and clean.
+		if n := utf8.RuneCountInString(tx); n == 0 || n > 40 || strings.ContainsAny(tx, "<>{}\n") {
+			// Report.
+			t.Errorf("%s text %q is empty, longer than 40 characters, or has markup characters", id, tx)
+		} // end of the text check
+	} // end of the bubble loop
+	// The same search in both modes: tools or embedding is ticked (no model has both).
+	base := url.Values{"token": {rig.token}, "ab_tools": {"on"}, "ab_embedding": {"on"}, "disk_gb": {"100"}, "mem_gb": {"64"}}
+	// Match ALL (nothing sent for the mode): no model has both.
+	_, all := postFind(t, rig, base)
+	// None of the three fake models is listed.
+	for _, d := range []string{"An invented chat model.", "Turns text into numbers.", "Runs far away."} {
+		// Look for it.
+		if strings.Contains(all, d) {
+			// Report.
+			t.Errorf("Match ALL lists a model (%q) that lacks one of the ticked abilities", d)
+		} // end of the look
+	} // end of the loop
+	// Match ANY: a model with either ability.
+	any := url.Values{}
+	// Copy the fields.
+	for k, v := range base {
+		// One field.
+		any[k] = v
+	} // end of the copy
+	// The choice.
+	any.Set("ab_mode", "any")
+	// Send it.
+	_, anyBody := postFind(t, rig, any)
+	// The local chat model, the embedding model and the cloud model are all listed.
+	for _, d := range []string{"An invented chat model.", "Turns text into numbers.", "Runs far away."} {
+		// Look for it.
+		if !strings.Contains(anyBody, d) {
+			// Report.
+			t.Errorf("Match ANY does not list the model %q", d)
+		} // end of the look
+	} // end of the loop
+	// The choice is kept after the search.
+	if !strings.Contains(anyBody, `name="ab_mode" value="any" checked`) || strings.Contains(anyBody, `name="ab_mode" value="all" checked`) {
+		// Report.
+		t.Error("Match ANY is not kept after the search")
+	} // end of the kept check
+	// An unknown value falls back to the default.
+	odd := url.Values{}
+	// Copy the fields.
+	for k, v := range base {
+		// One field.
+		odd[k] = v
+	} // end of the copy
+	// A value that is neither choice.
+	odd.Set("ab_mode", "nonsense")
+	// Send it.
+	_, oddBody := postFind(t, rig, odd)
+	// It behaves as Match ALL.
+	if !strings.Contains(oddBody, `name="ab_mode" value="all" checked`) {
+		// Report.
+		t.Error("an unknown mode did not fall back to Match ALL")
+	} // end of the fallback check
+} // end of TestFindModeChoice
+
+// TestDomainDefinitions checks the house rules for the fields of use: unique keys, a label and a tooltip each, tooltips of one short line without markup characters.
+func TestDomainDefinitions(t *testing.T) {
+	// The keys seen so far.
+	seen := map[string]bool{}
+	// Each field of use.
+	for _, d := range findDomains {
+		// A key is used once.
+		if seen[d.Key] {
+			// Report.
+			t.Errorf("the key %q is used twice", d.Key)
+		} // end of the key check
+		// Remember it.
+		seen[d.Key] = true
+		// Label and tooltip are filled.
+		if strings.TrimSpace(d.Label) == "" || strings.TrimSpace(d.Tip) == "" {
+			// Report.
+			t.Errorf("%q has an empty label or tooltip", d.Key)
+		} // end of the filled check
+		// The tooltip follows the house rules.
+		if n := utf8.RuneCountInString(d.Tip); n > 130 || strings.ContainsAny(d.Tip, "<>{}\n") {
+			// Report.
+			t.Errorf("%q: tooltip %q is longer than 130 characters or has markup characters", d.Key, d.Tip)
+		} // end of the tooltip check
+	} // end of the loop
+} // end of TestDomainDefinitions
+
+// TestModelDomains checks the keyword assignment with real descriptions from the official library: each model lands in its fields, and models that only mention a word in passing, or only look like a keyword, do not.
+func TestModelDomains(t *testing.T) {
+	// The cases: real name and description (as read on 2026-11-08) and the expected fields.
+	for _, c := range []struct {
+		name, desc string
+		want       string
+	}{
+		{"medgemma", "MedGemma is a collection of Gemma 3 variants that are trained for performance on medical text and image comprehension.", "health"},
+		{"meditron", "Open-source medical large language model adapted from Llama 2 to the medical domain.", "health"},
+		{"sqlcoder", "SQLCoder is a code completion model fined-tuned on StarCoder for SQL generation tasks", "code,sql"},
+		{"duckdb-nsql", "7B parameter text-to-SQL model made by MotherDuck and Numbers Station.", "sql"},
+		{"mathstral", "MathΣtral: a 7B model designed for math reasoning and scientific discovery by Mistral AI.", "math"},
+		{"qwen2-math", "Qwen2 Math is a series of specialized math language models built upon the Qwen2 LLMs.", "math"},
+		{"glm-ocr", "GLM-OCR is a multimodal OCR model for complex document understanding, built on the GLM-V encoder-decoder architecture.", "docs"},
+		{"translategemma", "A new collection of open translation models built on Gemma 3, helping people communicate across 55 languages.", "lang"},
+		{"llama-guard3", "Llama Guard 3 is a series of models fine-tuned for content safety classification of LLM inputs and responses.", "safety"},
+		// A general model that lists coding among many abilities is not a code model.
+		{"qwen3.6", "Qwen3.6 delivers substantial upgrades in agentic coding and thinking preservation than previous Qwen models.", ""},
+		// A name that merely contains the letters aya is not the Aya family.
+		{"laya", "Laya is a 421M decision model from Convai Innovations, fine-tuned from ModernBERT-large.", ""},
+		// A model with no domain word at all.
+		{"gpt-oss", "OpenAI's open-weight models designed for powerful reasoning, agentic tasks, and versatile developer use cases.", ""},
+	} {
+		// The fields found, in the order of findDomains.
+		var got []string
+		// Each field.
+		for _, d := range findDomains {
+			// Found.
+			if modelDomains(siteModel{Name: c.name, Description: c.desc})[d.Key] {
+				// Remember it.
+				got = append(got, d.Key)
+			} // end of the found check
+		} // end of the loop
+		// Compare as text.
+		if g := strings.Join(got, ","); g != c.want {
+			// Report.
+			t.Errorf("%s: fields %q, want %q", c.name, g, c.want)
+		} // end of the compare
+	} // end of the cases
+} // end of TestModelDomains
+
+// TestDomainMatch checks the all-or-any rule for the fields of use, including nothing ticked.
+func TestDomainMatch(t *testing.T) {
+	// A model in two fields, and one in a single field.
+	sqlcoder := siteModel{Name: "sqlcoder", Description: "SQLCoder is a code completion model fined-tuned on StarCoder for SQL generation tasks"}
+	// The maths model.
+	maths := siteModel{Name: "qwen2-math", Description: "Qwen2 Math is a series of specialized math language models."}
+	// The cases.
+	for _, c := range []struct {
+		name string
+		sel  findSelection
+		m    siteModel
+		want bool
+	}{
+		{"nothing ticked", findSelection{}, maths, true},
+		{"all: both fields, model in both", findSelection{Domains: map[string]bool{"code": true, "sql": true}}, sqlcoder, true},
+		{"all: both fields, model in one", findSelection{Domains: map[string]bool{"code": true, "math": true}}, maths, false},
+		{"any: one of two", findSelection{DomainAny: true, Domains: map[string]bool{"code": true, "math": true}}, maths, true},
+		{"any: none of two", findSelection{DomainAny: true, Domains: map[string]bool{"health": true, "safety": true}}, maths, false},
+	} {
+		// The answer.
+		if got := domainMatch(c.sel, c.m); got != c.want {
+			// Report.
+			t.Errorf("%s: got %v, want %v", c.name, got, c.want)
+		} // end of the answer check
+	} // end of the loop
+} // end of TestDomainMatch
+
+// TestFindDomainChoice checks the Field of use group on the page: the boxes, the default Match ALL, the visible explanation and the very short tooltips, the guess note, and that the ticks and the choice are kept after a search.
+func TestFindDomainChoice(t *testing.T) {
+	// The saved library list goes to a throw-away folder, never to the real data folder.
+	isolateFindData(t)
+	// Start with an empty saved list.
+	theListCache = listCache{}
+	// Clear it again at the end.
+	t.Cleanup(func() { theListCache = listCache{} })
+	// A fake library.
+	fakeSite(t, findTestPages())
+	// The rig.
+	rig := newThemeRig(t)
+	// The empty form page.
+	_, _, form := get(t, rig.h, http.MethodGet, "/findllm")
+	// The group starts at its legend.
+	i := strings.Index(form, "<strong>Field of use</strong>")
+	// It must exist.
+	if i < 0 {
+		// Stop here.
+		t.Fatal("the page lacks the Field of use group")
+	} // end of the group check
+	// The group itself.
+	box := form[i : i+strings.Index(form[i:], "</fieldset>")]
+	// Every field has a box and a tooltip that the box points to.
+	for _, d := range findDomains {
+		// The box and the tooltip.
+		if !strings.Contains(box, `name="dom_`+d.Key+`"`) || !strings.Contains(box, `id="tip-dom-`+d.Key+`">`+d.Tip) || !strings.Contains(box, `aria-describedby="tip-dom-`+d.Key+`"`) {
+			// Report.
+			t.Errorf("the group lacks the box or tooltip of %q", d.Key)
+		} // end of the field check
+	} // end of the loop
+	// Match ALL is the default and both choices exist.
+	if !strings.Contains(box, `name="dom_mode" value="all" checked`) || strings.Contains(box, `name="dom_mode" value="any" checked`) || !strings.Contains(box, `name="dom_mode" value="any"`) {
+		// Report.
+		t.Error("the choice is missing or the default is not Match ALL")
+	} // end of the radio check
+	// Visible explanations, the two very short tooltips and the guess note.
+	for _, want := range []string{"The model must fit every field you ticked.", "The model needs to fit at least one field you ticked.", `id="tip-dom-mode-all">All ticked fields needed.`, `id="tip-dom-mode-any">One ticked field is enough.`, "It is not a certification.", "Healthcare models are not validated for clinical use."} {
+		// Look for it.
+		if !strings.Contains(box, want) {
+			// Report.
+			t.Errorf("the group lacks the text %q", want)
+		} // end of the look
+	} // end of the loop
+	// No heading words are shown for the choice, only an accessible name.
+	if strings.Contains(strings.ReplaceAll(box, `aria-label="How the ticked fields combine"`, ""), "How the ticked fields combine") {
+		// Report.
+		t.Error("the words How the ticked fields combine are visible")
+	} // end of the heading check
+	// A search with a field ticked and Match ANY chosen: nothing in the fake library is a healthcare model, and both choices are kept.
+	_, body := postFind(t, rig, url.Values{"token": {rig.token}, "dom_health": {"on"}, "dom_mode": {"any"}, "disk_gb": {"100"}, "mem_gb": {"64"}})
+	// No fake model is listed.
+	for _, d := range []string{"An invented chat model.", "Turns text into numbers.", "Runs far away."} {
+		// Look for it.
+		if strings.Contains(body, d) {
+			// Report.
+			t.Errorf("the healthcare filter lists %q", d)
+		} // end of the look
+	} // end of the loop
+	// The tick and the choice are kept.
+	if !strings.Contains(body, `name="dom_health" checked`) || !strings.Contains(body, `name="dom_mode" value="any" checked`) {
+		// Report.
+		t.Error("the ticked field or Match ANY is not kept after the search")
+	} // end of the kept check
+} // end of TestFindDomainChoice
+
+// TestCloudHeadingAndNote checks that the Cloud models section catches the eye: a large symbol in the heading, sized from the text, and a framed note with bold key phrases, readable in light and dark themes.
+func TestCloudHeadingAndNote(t *testing.T) {
+	// The saved library list goes to a throw-away folder, never to the real data folder.
+	isolateFindData(t)
+	// Start with an empty saved list.
+	theListCache = listCache{}
+	// Clear it again at the end.
+	t.Cleanup(func() { theListCache = listCache{} })
+	// A fake library.
+	fakeSite(t, findTestPages())
+	// The rig.
+	rig := newThemeRig(t)
+	// A search that brings the cloud model: tools, no size, no memory class.
+	_, body := postFind(t, rig, url.Values{"token": {rig.token}, "ab_tools": {"on"}, "disk_gb": {"100"}, "mem_gb": {"64"}})
+	// The heading holds the symbol, hidden from screen readers, and the words.
+	if !strings.Contains(body, `<h2 id="cloudmodels" class="cloudhead"><svg class="cloudbig"`) || !strings.Contains(body, `aria-hidden="true"`) || !strings.Contains(body, "<span>Cloud models</span></h2>") {
+		// Report.
+		t.Error("the Cloud models heading lacks its large symbol")
+	} // end of the heading check
+	// The note is a framed note with the three key phrases in bold.
+	for _, want := range []string{`<p class="cloudnote" role="note">`, "<strong>These models run on Ollama's servers, not on this computer,</strong>", "<strong>Nothing is downloaded.</strong>", "<strong>They may need an Ollama account.</strong>", "so your free disk space and memory do not apply to them."} {
+		// Look for it, as a person reads it.
+		if !strings.Contains(html.UnescapeString(body), want) {
+			// Report.
+			t.Errorf("the note lacks %q", want)
+		} // end of the look
+	} // end of the loop
+	// The style sheet.
+	_, _, css := get(t, rig.h, http.MethodGet, "/app.css")
+	// The three rules exist, and the symbol is sized from the text.
+	for _, want := range []string{".cloudhead {", ".cloudbig {", "width: 1.7em;", ".cloudnote {", "border-left: 6px solid var(--icon-cloud);"} {
+		// Look for it.
+		if !strings.Contains(css, want) {
+			// Report.
+			t.Errorf("the style sheet lacks %q", want)
+		} // end of the look
+	} // end of the loop
+	// The note's text must stay readable on its tint: the tint is 12 percent of the cloud colour over the panel colour.
+	for _, th := range []struct{ name, panel, text, cloud string }{{"light", "#f4f6f8", "#1a1a1a", "#1565a8"}, {"dark", "#1b1f24", "#ececec", "#86c5f2"}} {
+		// The tinted background.
+		bg := mixHex(th.cloud, th.panel, 0.12)
+		// The ratio of the text on it.
+		if r := contrastOf(th.text, bg); r < 7 {
+			// Report.
+			t.Errorf("%s theme: note text on its tint has contrast %.2f, want at least 7", th.name, r)
+		} // end of the ratio check
+		// The cloud colour on the panel, for the symbol and the bar.
+		if r := contrastOf(th.cloud, th.panel); r < 4.5 {
+			// Report.
+			t.Errorf("%s theme: cloud colour on the panel has contrast %.2f, want at least 4.5", th.name, r)
+		} // end of the cloud ratio check
+	} // end of the theme loop
+} // end of TestCloudHeadingAndNote
+
+// TestSortOrder checks the order of the candidates: most downloaded first by default (equal counts by name), and Name A to Z when chosen, for local models and for cloud models.
+func TestSortOrder(t *testing.T) {
+	// Three local models whose download order differs from their name order, and two cloud models.
+	models := []siteModel{
+		{Name: "bravo", Pulls: "2M", Sizes: []string{"8b"}},
+		{Name: "alpha", Pulls: "900K", Sizes: []string{"8b"}},
+		{Name: "charlie", Pulls: "12M", Sizes: []string{"8b"}},
+		{Name: "zeta", Pulls: "5M", Cloud: true},
+		{Name: "echo", Pulls: "50M", Cloud: true},
+	}
+	// The names of a list, in order.
+	names := func(ms []siteModel) string {
+		// Collect them.
+		var out []string
+		// Each model.
+		for _, m := range ms {
+			// One name.
+			out = append(out, m.Name)
+		} // end of the loop
+		// As text.
+		return strings.Join(out, ",")
+	} // end of names
+	// The default: most downloaded first.
+	local, _, _ := findCandidates(models, findSelection{})
+	// Check it.
+	if got := names(local); got != "charlie,bravo,alpha" {
+		// Report.
+		t.Errorf("default local order %q, want charlie,bravo,alpha", got)
+	} // end of the default check
+	// Name A to Z.
+	local, _, _ = findCandidates(models, findSelection{Sort: "name"})
+	// Check it.
+	if got := names(local); got != "alpha,bravo,charlie" {
+		// Report.
+		t.Errorf("name local order %q, want alpha,bravo,charlie", got)
+	} // end of the name check
+	// The cloud models, default.
+	cloud, _ := findCloudModels(models, findSelection{})
+	// Check it.
+	if got := names(cloud); got != "echo,zeta" {
+		// Report.
+		t.Errorf("default cloud order %q, want echo,zeta", got)
+	} // end of the cloud default check
+	// The cloud models, by name.
+	cloud, _ = findCloudModels(models, findSelection{Sort: "name"})
+	// Check it.
+	if got := names(cloud); got != "echo,zeta" {
+		// Report.
+		t.Errorf("name cloud order %q, want echo,zeta", got)
+	} // end of the cloud name check
+	// Equal download counts keep the name order.
+	tie := []siteModel{{Name: "b", Pulls: "1M", Sizes: []string{"8b"}}, {Name: "a", Pulls: "1M", Sizes: []string{"8b"}}}
+	// The default order of the tie.
+	local, _, _ = findCandidates(tie, findSelection{})
+	// Check it.
+	if got := names(local); got != "a,b" {
+		// Report.
+		t.Errorf("tie order %q, want a,b", got)
+	} // end of the tie check
+} // end of TestSortOrder
+
+// TestFindSortChoice checks the Sort by choice beside the Find LLM button: it is there, Most downloaded is the default, a very short tooltip explains it, an unknown value counts as the default, and Name A to Z is kept after a search.
+func TestFindSortChoice(t *testing.T) {
+	// The saved library list goes to a throw-away folder, never to the real data folder.
+	isolateFindData(t)
+	// Start with an empty saved list.
+	theListCache = listCache{}
+	// Clear it again at the end.
+	t.Cleanup(func() { theListCache = listCache{} })
+	// A fake library.
+	fakeSite(t, findTestPages())
+	// The rig.
+	rig := newThemeRig(t)
+	// The empty form page.
+	_, _, form := get(t, rig.h, http.MethodGet, "/findllm")
+	// The choice sits in the same paragraph as the button, with Most downloaded selected.
+	for _, want := range []string{`<p class="findaction"><button type="submit" class="btn-solid">Find LLM</button>`, `name="sort"`, `<option value="downloads" selected>Most downloaded</option>`, `<option value="name">Name A to Z</option>`, `Sort by <select class="keepselect" id="sortby" name="sort">`} {
+		// Look for it.
+		if !strings.Contains(form, want) {
+			// Report.
+			t.Errorf("the page lacks %q", want)
+		} // end of the look
+	} // end of the loop
+	// A search with Name A to Z: the choice is kept.
+	_, body := postFind(t, rig, url.Values{"token": {rig.token}, "sort": {"name"}, "disk_gb": {"100"}, "mem_gb": {"64"}})
+	// Kept.
+	if !strings.Contains(body, `<option value="name" selected>Name A to Z</option>`) || strings.Contains(body, `<option value="downloads" selected>`) {
+		// Report.
+		t.Error("Name A to Z is not kept after the search")
+	} // end of the kept check
+	// An unknown value falls back to the default.
+	_, odd := postFind(t, rig, url.Values{"token": {rig.token}, "sort": {"nonsense"}, "disk_gb": {"100"}, "mem_gb": {"64"}})
+	// The default is selected.
+	if !strings.Contains(odd, `<option value="downloads" selected>Most downloaded</option>`) {
+		// Report.
+		t.Error("an unknown sort value did not fall back to Most downloaded")
+	} // end of the fallback check
+} // end of TestFindSortChoice
