@@ -1750,3 +1750,102 @@ func TestCloudHeadingAndNote(t *testing.T) {
 		} // end of the cloud ratio check
 	} // end of the theme loop
 } // end of TestCloudHeadingAndNote
+
+// TestSortOrder checks the order of the candidates: most downloaded first by default (equal counts by name), and Name A to Z when chosen, for local models and for cloud models.
+func TestSortOrder(t *testing.T) {
+	// Three local models whose download order differs from their name order, and two cloud models.
+	models := []siteModel{
+		{Name: "bravo", Pulls: "2M", Sizes: []string{"8b"}},
+		{Name: "alpha", Pulls: "900K", Sizes: []string{"8b"}},
+		{Name: "charlie", Pulls: "12M", Sizes: []string{"8b"}},
+		{Name: "zeta", Pulls: "5M", Cloud: true},
+		{Name: "echo", Pulls: "50M", Cloud: true},
+	}
+	// The names of a list, in order.
+	names := func(ms []siteModel) string {
+		// Collect them.
+		var out []string
+		// Each model.
+		for _, m := range ms {
+			// One name.
+			out = append(out, m.Name)
+		} // end of the loop
+		// As text.
+		return strings.Join(out, ",")
+	} // end of names
+	// The default: most downloaded first.
+	local, _, _ := findCandidates(models, findSelection{})
+	// Check it.
+	if got := names(local); got != "charlie,bravo,alpha" {
+		// Report.
+		t.Errorf("default local order %q, want charlie,bravo,alpha", got)
+	} // end of the default check
+	// Name A to Z.
+	local, _, _ = findCandidates(models, findSelection{Sort: "name"})
+	// Check it.
+	if got := names(local); got != "alpha,bravo,charlie" {
+		// Report.
+		t.Errorf("name local order %q, want alpha,bravo,charlie", got)
+	} // end of the name check
+	// The cloud models, default.
+	cloud, _ := findCloudModels(models, findSelection{})
+	// Check it.
+	if got := names(cloud); got != "echo,zeta" {
+		// Report.
+		t.Errorf("default cloud order %q, want echo,zeta", got)
+	} // end of the cloud default check
+	// The cloud models, by name.
+	cloud, _ = findCloudModels(models, findSelection{Sort: "name"})
+	// Check it.
+	if got := names(cloud); got != "echo,zeta" {
+		// Report.
+		t.Errorf("name cloud order %q, want echo,zeta", got)
+	} // end of the cloud name check
+	// Equal download counts keep the name order.
+	tie := []siteModel{{Name: "b", Pulls: "1M", Sizes: []string{"8b"}}, {Name: "a", Pulls: "1M", Sizes: []string{"8b"}}}
+	// The default order of the tie.
+	local, _, _ = findCandidates(tie, findSelection{})
+	// Check it.
+	if got := names(local); got != "a,b" {
+		// Report.
+		t.Errorf("tie order %q, want a,b", got)
+	} // end of the tie check
+} // end of TestSortOrder
+
+// TestFindSortChoice checks the Sort by choice beside the Find LLM button: it is there, Most downloaded is the default, a very short tooltip explains it, an unknown value counts as the default, and Name A to Z is kept after a search.
+func TestFindSortChoice(t *testing.T) {
+	// The saved library list goes to a throw-away folder, never to the real data folder.
+	isolateFindData(t)
+	// Start with an empty saved list.
+	theListCache = listCache{}
+	// Clear it again at the end.
+	t.Cleanup(func() { theListCache = listCache{} })
+	// A fake library.
+	fakeSite(t, findTestPages())
+	// The rig.
+	rig := newThemeRig(t)
+	// The empty form page.
+	_, _, form := get(t, rig.h, http.MethodGet, "/findllm")
+	// The choice sits in the same paragraph as the button, with Most downloaded selected.
+	for _, want := range []string{`<p class="findaction"><button type="submit" class="btn-solid">Find LLM</button>`, `name="sort"`, `<option value="downloads" selected>Most downloaded</option>`, `<option value="name">Name A to Z</option>`, `Sort by <select class="keepselect" id="sortby" name="sort">`} {
+		// Look for it.
+		if !strings.Contains(form, want) {
+			// Report.
+			t.Errorf("the page lacks %q", want)
+		} // end of the look
+	} // end of the loop
+	// A search with Name A to Z: the choice is kept.
+	_, body := postFind(t, rig, url.Values{"token": {rig.token}, "sort": {"name"}, "disk_gb": {"100"}, "mem_gb": {"64"}})
+	// Kept.
+	if !strings.Contains(body, `<option value="name" selected>Name A to Z</option>`) || strings.Contains(body, `<option value="downloads" selected>`) {
+		// Report.
+		t.Error("Name A to Z is not kept after the search")
+	} // end of the kept check
+	// An unknown value falls back to the default.
+	_, odd := postFind(t, rig, url.Values{"token": {rig.token}, "sort": {"nonsense"}, "disk_gb": {"100"}, "mem_gb": {"64"}})
+	// The default is selected.
+	if !strings.Contains(odd, `<option value="downloads" selected>Most downloaded</option>`) {
+		// Report.
+		t.Error("an unknown sort value did not fall back to Most downloaded")
+	} // end of the fallback check
+} // end of TestFindSortChoice

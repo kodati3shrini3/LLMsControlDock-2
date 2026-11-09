@@ -2938,3 +2938,17 @@ html[data-size="medium"] svg[width="22"] {
   /* A little larger than the text around it. */
   font-size: 1.05em;
 } /* end of rule */
+
+/* The button and the order choice on one line; plain inline layout. */
+.findaction {
+  /* Space above and below the line, as in a paragraph. */
+  line-height: 2.6;
+} /* end of rule */
+
+/* The label and the list of the order choice. */
+.sortpick {
+  /* Next to the button, wrapping below it on a narrow window. */
+  display: inline-block;
+  /* Space between the button and the choice. */
+  margin-left: 1rem;
+} /* end of rule */

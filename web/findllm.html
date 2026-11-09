@@ -92,7 +92,8 @@
 {{end}}
 </fieldset>
 {{/* The button: the first and only thing that reads the internet. */}}
-<p><button type="submit" class="btn-solid">Find LLM</button></p>
+{{/* The button, with the order of the results beside it. */}}
+<p class="findaction"><button type="submit" class="btn-solid">Find LLM</button> <label class="sortpick" for="sortby">Sort by <select class="keepselect" id="sortby" name="sort"><option value="downloads"{{if not .SortName}} selected{{end}}>Most downloaded</option><option value="name"{{if .SortName}} selected{{end}}>Name A to Z</option></select></label></p>
 </form>
 {{/* The results appear only after the button was pressed. */}}
 {{if .Searched}}

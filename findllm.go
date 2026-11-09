@@ -284,6 +284,8 @@ type findSelection struct {
 	Chat bool
 	// Abilities are the ticked abilities (tools, vision, audio, thinking, embedding).
 	Abilities map[string]bool
+	// Sort is how the models are ordered: "downloads" (the default, also when empty) or "name".
+	Sort string
 	// Domains are the ticked fields of use (keys of findDomains); empty means no filter.
 	Domains map[string]bool
 	// DomainAny is true when the person chose "Match ANY ticked" for the fields of use; false (the default) is "Match ALL ticked".
@@ -333,6 +335,11 @@ func parseFindForm(get func(string) string) (findSelection, []string) {
 	sel.Chat = get("ab_chat") == "on"
 	// Match ANY only when that exact choice was sent; anything else, or nothing, is the default Match ALL.
 	sel.Any = get("ab_mode") == "any"
+	// The order of the results: Name A to Z only when that exact choice was sent; anything else is the default, most downloaded.
+	if get("sort") == "name" {
+		// Name order.
+		sel.Sort = "name"
+	} // end of the sort check
 	// The same for the fields of use.
 	sel.DomainAny = get("dom_mode") == "any"
 	// Each known field of use that is ticked.
@@ -489,6 +496,24 @@ func domainMatch(sel findSelection, m siteModel) bool {
 	return hits == len(sel.Domains)
 } // end of domainMatch
 
+// modelBefore says whether model a is listed before model b: by name for the choice Name A to Z, otherwise most downloaded first, with equal counts keeping the name order so the list is stable.
+func modelBefore(sel findSelection, a, b siteModel) bool {
+	// Name A to Z.
+	if sel.Sort == "name" {
+		// By name.
+		return a.Name < b.Name
+	} // end of the name order
+	// The download counts.
+	pa, pb := pullsNumber(a.Pulls), pullsNumber(b.Pulls)
+	// The higher count first.
+	if pa != pb {
+		// Decide by count.
+		return pa > pb
+	} // end of the count check
+	// Then by name.
+	return a.Name < b.Name
+} // end of modelBefore
+
 // abilitiesMatch says whether a model with the abilities in has satisfies the ticks of "What it should do": with Match ALL (the default) every ticked item must hold, with Match ANY at least one; with nothing ticked every model passes. "Chat and writing" holds for a model that is not a search-and-similarity model.
 func abilitiesMatch(sel findSelection, has map[string]bool) bool {
 	// How many items are ticked and how many of them the model satisfies.
@@ -588,17 +613,10 @@ func findCandidates(models []siteModel, sel findSelection) (out []siteModel, noS
 		// It passed.
 		out = append(out, m)
 	} // end of the model loop
-	// Most downloaded first; equal counts keep the name order, so the list is stable.
+	// The chosen order: most downloaded first (the default) or Name A to Z.
 	sort.SliceStable(out, func(i, j int) bool {
-		// Compare the download counts.
-		pi, pj := pullsNumber(out[i].Pulls), pullsNumber(out[j].Pulls)
-		// The higher count first.
-		if pi != pj {
-			// Decide by count.
-			return pi > pj
-		} // end of the count check
-		// Then by name.
-		return out[i].Name < out[j].Name
+		// Compare as chosen.
+		return modelBefore(sel, out[i], out[j])
 	}) // end of the sort
 	// The result.
 	return out, noSize, cloud
@@ -631,17 +649,10 @@ func findCloudModels(models []siteModel, sel findSelection) (out []siteModel, sk
 			out = append(out, m)
 		} // end of the match check
 	} // end of the model loop
-	// Most downloaded first; equal counts keep the name order.
+	// The chosen order: most downloaded first (the default) or Name A to Z.
 	sort.SliceStable(out, func(i, j int) bool {
-		// Compare the download counts.
-		pi, pj := pullsNumber(out[i].Pulls), pullsNumber(out[j].Pulls)
-		// The higher count first.
-		if pi != pj {
-			// Decide by count.
-			return pi > pj
-		} // end of the count check
-		// Then by name.
-		return out[i].Name < out[j].Name
+		// Compare as chosen.
+		return modelBefore(sel, out[i], out[j])
 	}) // end of the sort
 	// The result.
 	return out, false
@@ -981,6 +992,8 @@ type findPage struct {
 	AnyMode bool
 	// Domains are the boxes of the fields of use.
 	Domains []domainTick
+	// SortName is whether Name A to Z is chosen; false means most downloaded.
+	SortName bool
 	// DomainAnyMode is whether "Match ANY ticked" is chosen for the fields of use.
 	DomainAnyMode bool
 	// Disk and Mem are the typed numbers, as text.
@@ -1059,7 +1072,7 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 	// render draws the page for a selection.
 	render := func(w http.ResponseWriter, r *http.Request, sel findSelection, fm findMachine, problems []string, searched bool, results []resultView, cloudRes []resultView, cloudMore int, total, cloud, noSize int, errText, readAt, copyNote, instNote string, status int) {
 		// The tick boxes.
-		data := findPage{Theme: themeFromRequest(r), Size: sizeFromRequest(r), Token: token, Tips: tips, Chat: sel.Chat, AnyMode: sel.Any, DomainAnyMode: sel.DomainAny, Problems: problems, Searched: searched, Error: errText, ReadAt: readAt, CopyNote: copyNote, InstalledNote: instNote, CloudResults: cloudRes, CloudMore: cloudMore, Results: results, Summary: findSummary(len(results), total, cloud, noSize, readAt)}
+		data := findPage{Theme: themeFromRequest(r), Size: sizeFromRequest(r), Token: token, Tips: tips, Chat: sel.Chat, AnyMode: sel.Any, DomainAnyMode: sel.DomainAny, SortName: sel.Sort == "name", Problems: problems, Searched: searched, Error: errText, ReadAt: readAt, CopyNote: copyNote, InstalledNote: instNote, CloudResults: cloudRes, CloudMore: cloudMore, Results: results, Summary: findSummary(len(results), total, cloud, noSize, readAt)}
 		// The abilities.
 		for _, k := range abilityKeys {
 			// One box.
