@@ -352,13 +352,16 @@
 {{/* A hint above the table so people know the dotted headings have help. */}}
 {{/* A key above the table: what each symbol and the dotted headings do. */}}
 {{/* The twistie: a plain link that opens or closes the key; the program draws the page again, so no script is needed. */}}
+{{/* One row: the twistie at the left end, the tags help at the right end; both are drawn whether the key is open or closed. */}}
+<div class="keyrow">
 {{if .KeyOpen}}
 <p class="keytoggle" id="key"><a href="/#key"><span aria-hidden="true">&#9662;</span> Key to the symbols <span class="keyhint">(click to hide)</span></a></p>
 {{else}}
 <p class="keytoggle" id="key"><a href="/?key=open#key"><span aria-hidden="true">&#9656;</span> Key to the symbols <span class="keyhint">(click to show)</span></a></p>
 {{end}}
-{{/* The help line for the tags under the model names. */}}
+{{/* The help line for the tags under the model names (always shown, at the right end of the row). */}}
 <p class="muted groupedhelp">Tags under each name: <span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Table.GroupedTip.ID}}">How models are grouped</span><span class="tip" role="tooltip" id="{{.Table.GroupedTip.ID}}">{{template "tip" .Table.GroupedTip}}</span></span></p>
+</div>
 {{/* The key itself, drawn only while it is open. */}}
 {{if .KeyOpen}}
 <ul class="legend muted" aria-label="How to read this table">

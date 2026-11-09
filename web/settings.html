@@ -81,7 +81,7 @@
 {{/* The page token proves the form comes from this monitor. */}}
 <input type="hidden" name="token" value="{{.Token}}">
 {{/* The buttons. */}}
-<p><button type="submit" name="action" value="create" class="btn-plain">{{if .IconStale}}Update the icon{{else if .IconExists}}Create the icon again{{else}}Create desktop icon{{end}}</button>{{if .IconExists}} <button type="submit" name="action" value="remove" class="btn-plain">Remove desktop icon</button>{{end}}</p>
+<p><button type="submit" name="action" value="create" class="btn-plain">{{if .IconStale}}Update the icon{{else}}Create desktop icon{{end}}</button>{{if .IconExists}} <button type="submit" name="action" value="remove" class="btn-plain">Remove desktop icon</button>{{end}}</p>
 {{/* End of the form. */}}
 </form>
 {{end}}

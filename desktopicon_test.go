@@ -448,7 +448,7 @@ func TestDesktopBannerAndButtons(t *testing.T) {
 	// The Settings page shows the state, the note and the Remove button.
 	_, _, set := get(t, r.h, http.MethodGet, "/settings?icon=created")
 	// The words.
-	for _, w := range []string{"Desktop icon created. On Ubuntu", "The icon is on your desktop", "Remove desktop icon", "Create the icon again"} {
+	for _, w := range []string{"Desktop icon created. On Ubuntu", "The icon is on your desktop", "Remove desktop icon", "Create desktop icon"} {
 		// Look for it.
 		if !strings.Contains(set, w) {
 			// Report it.
@@ -605,7 +605,7 @@ func TestDesktopStaleWarningOnPage(t *testing.T) {
 	// The page: no warning.
 	_, _, body := get(t, r.h, http.MethodGet, "/settings")
 	// No warning, the usual button.
-	if strings.Contains(body, "out of date") || strings.Contains(body, "Update the icon") || !strings.Contains(body, "Create the icon again") {
+	if strings.Contains(body, "out of date") || strings.Contains(body, "Update the icon") || !strings.Contains(body, "Create desktop icon") {
 		// Report it.
 		t.Error("a current launcher shows a warning")
 	} // end of the current check
