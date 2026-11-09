@@ -4,6 +4,8 @@ package main
 import ( // import lists the standard-library packages this test file uses.
 	// encoding/json checks what is saved for a deleted model.
 	"encoding/json"
+	// fmt formats the mixed colour of the highlight test.
+	"fmt"
 	// html escapes a help text the way the page does.
 	"html"
 	// io reads a reply body.
@@ -12,6 +14,8 @@ import ( // import lists the standard-library packages this test file uses.
 	"math"
 	// net/http gives the status codes.
 	"net/http"
+	// net/http/httptest starts the fake Ollama the new tests supply.
+	"net/http/httptest"
 	// net/url builds the form values.
 	"net/url"
 	// os checks and writes the saved copy.
@@ -127,7 +131,7 @@ func sampleModels() []siteModel {
 		// A search-and-similarity model without sizes.
 		{Name: "gamma", Abilities: []string{"embedding"}, Pulls: "5M"},
 		// A cloud model.
-		{Name: "delta", Cloud: true, Abilities: []string{"tools"}, Sizes: []string{"7b"}, Pulls: "9M"},
+		{Name: "delta", Cloud: true, Abilities: []string{"tools"}, Pulls: "9M"},
 		// A chat model whose size cannot be read.
 		{Name: "epsilon", Pulls: "1M"},
 		// A tiny chat model.
@@ -328,7 +332,7 @@ func TestFreeDiskIsReadable(t *testing.T) {
 // findTestPages are the pages of a fake library: a list with a cloud model, and tags pages.
 func findTestPages() map[string]string {
 	// The list page: a normal model, a cloud model, an embedding model.
-	list := listEntry("alpha", "An invented chat model.", "tools", "0.6b", "8b") + listEntry("cloudy", "Runs far away.", "cloud", "tools", "8b") + listEntry("embedder", "Turns text into numbers.", "embedding")
+	list := listEntry("alpha", "An invented chat model.", "tools", "0.6b", "8b") + listEntry("cloudy", "Runs far away.", "cloud", "tools") + listEntry("embedder", "Turns text into numbers.", "embedding")
 	// The pages.
 	return map[string]string{
 		// The list.
@@ -422,18 +426,23 @@ func TestFindSearchShowsFitAndNoFit(t *testing.T) {
 		t.Fatalf("status %d: %s", status, body)
 	} // end of the status check
 	// The model, its official link, the small version that fits with its command, and the large one with the reason.
-	for _, want := range []string{`<h2 id="found">Models found</h2>`, ollamaSite + "/library/alpha", "ollama pull alpha:0.6b", "<strong>Fits:</strong>", "<strong>Does not fit:</strong>", "needs 5.2 GB of disk space; you have 2.0 GB free", "1 model matches your choices", "1 cloud model (it runs on Ollama"} {
-		// Look for it.
-		if !strings.Contains(body, want) {
+	for _, want := range []string{`<h2 id="found">Models found</h2>`, ollamaSite + "/library/alpha", "ollama pull alpha:0.6b", "<strong>Fits:</strong>", "<strong>Does not fit:</strong>", "needs 5.2 GB of disk space; you have 2.0 GB free", "1 model matches your choices", `<h2 id="cloudmodels">Cloud models</h2>`, tipCloud, tipVersionFits, tipVersionNoFit, tipModelFits} {
+		// Look for it in the page text with the character codes turned back into characters (the apostrophe is written as a code).
+		if !strings.Contains(html.UnescapeString(body), want) {
 			// Report.
 			t.Errorf("the results lack %q", want)
 		} // end of the look
 	} // end of the loop
-	// The cloud model and the embedding model are not listed.
-	if strings.Contains(body, ">cloudy<") || strings.Contains(body, ">embedder<") {
+	// The embedding model is not listed at all.
+	if strings.Contains(body, ">embedder<") {
 		// Report.
-		t.Error("a cloud or embedding model was listed")
-	} // end of the absence check
+		t.Error("the embedding model was listed")
+	} // end of the embedding check
+	// The cloud-only model is listed, but only in the cloud section (after its heading), and has no download command.
+	if at, cloudAt := strings.Index(body, ">cloudy"), strings.Index(body, `<h2 id="cloudmodels">`); at < 0 || cloudAt < 0 || at < cloudAt || strings.Contains(body, "ollama pull cloudy") {
+		// Report.
+		t.Error("the cloud-only model is missing from the cloud section, or has a download command")
+	} // end of the cloud check
 	// One list page and one tags page were read.
 	if n := atomic.LoadInt32(hits); n != 2 {
 		// Report.
@@ -916,7 +925,7 @@ func TestIconColours(t *testing.T) {
 	// The page with the six real models and the key open.
 	_, _, body := get(t, handlerFor(t, fullOllama(t, realModels, realPsBody).URL), http.MethodGet, "/?key=open")
 	// The classes: Modelfile and parameters buttons, the delete button, and the three key symbols.
-	for _, want := range []string{`class="gear gear-file"`, `class="gear gear-params"`, `class="gear gear-delete"`, `class="ico sym-file"`, `class="ico sym-params"`, `class="ico sym-delete"`, `class="tagicon"`} {
+	for _, want := range []string{`class="gear gear-file"`, `class="gear gear-params"`, `class="gear gear-delete"`, `class="ico sym-file"`, `class="ico sym-params"`, `class="ico sym-delete"`, `class="tagicon"`, `class="ico ico-big ico-find"`, `class="ico ico-big ico-compare"`} {
 		// Look for it.
 		if !strings.Contains(body, want) {
 			// Report.
@@ -928,7 +937,7 @@ func TestIconColours(t *testing.T) {
 	// The page and panel backgrounds: light, then dark.
 	bgs := map[string][]string{"light": {"#ffffff", "#f4f6f8"}, "dark": {"#121417", "#1b1f24"}}
 	// Each icon colour appears three times: light, dark by system choice, dark by saved choice.
-	for _, name := range []string{"icon-tag", "icon-delete", "icon-file", "icon-params"} {
+	for _, name := range []string{"icon-tag", "icon-delete", "icon-file", "icon-params", "icon-find", "icon-compare", "icon-cloud"} {
 		// Every value written for it.
 		vals := regexp.MustCompile(`--`+name+`: (#[0-9a-f]{6});`).FindAllStringSubmatch(css, -1)
 		// Three values.
@@ -998,3 +1007,372 @@ func TestFindSearchJumpsToTheAnswer(t *testing.T) {
 		t.Error("the problem page has no single jump target on the problem box")
 	} // end of the problem check
 } // end of TestFindSearchJumpsToTheAnswer
+
+// rigWithOllama builds the handler and finds its page token, like newThemeRig, but for a fake Ollama the test supplies.
+func rigWithOllama(t *testing.T, srv *httptest.Server) themeRig {
+	// Mark this as a helper.
+	t.Helper()
+	// Build the handler once, because the token belongs to one handler.
+	h := handlerFor(t, srv.URL)
+	// Fetch the home page.
+	_, _, body := get(t, h, http.MethodGet, "/")
+	// Find the hidden token field.
+	m := regexp.MustCompile(`name="token" value="([0-9a-f]{32})"`).FindStringSubmatch(body)
+	// The page must carry a token.
+	if m == nil {
+		// Stop the test.
+		t.Fatalf("no token found in the page")
+	} // end of the token check
+	// Hand back the pair.
+	return themeRig{h: h, token: m[1]}
+} // end of rigWithOllama
+
+// seedTest saves one finished performance test for a model in the data folder the test uses, before the handler is built, so the handler loads it.
+func seedTest(t *testing.T, r perfRun) {
+	// Mark this as a helper.
+	t.Helper()
+	// The same file the program uses.
+	path, _ := defaultHistoryPath()
+	// Open it.
+	store := openPerfStore(path, "")
+	// Save the run.
+	if err := store.add(r); err != nil {
+		// A failure means the test is broken.
+		t.Fatalf("could not save the test run: %v", err)
+	} // end of the save check
+} // end of seedTest
+
+// TestSpeedNoteAndMarker checks the line shown for an installed version: the newest answer speed with its date, "not tested yet", the embedding wording, :latest matching, and no mark when Ollama could not be read.
+func TestSpeedNoteAndMarker(t *testing.T) {
+	// A memory-only store.
+	store := openPerfStore("", "memory only")
+	// An old and a newer test of the same version: the newer speed must win.
+	store.add(perfRun{Time: time.Date(2026, 10, 1, 9, 0, 0, 0, time.UTC), Model: "alpha:0.6b", Kind: "generate", AnswerSpeed: 10})
+	// The newer one.
+	store.add(perfRun{Time: time.Date(2026, 11, 2, 13, 10, 0, 0, time.UTC), Model: "alpha:0.6b", Kind: "generate", AnswerSpeed: 42.34})
+	// An embedding test.
+	store.add(perfRun{Time: time.Date(2026, 11, 3, 8, 0, 0, 0, time.UTC), Model: "embedder:latest", Kind: "embedding"})
+	// The installed list: a tested one, an untested one, an embedding one and a model without a tag.
+	list := []installedModel{{Name: "alpha:0.6b"}, {Name: "alpha:8b"}, {Name: "embedder:latest"}, {Name: "plain"}}
+	// The marker.
+	mark := installedMarker(list, store, true)
+	// The tested version: speed with one decimal, and a date.
+	if ok, note := mark("alpha:0.6b"); !ok || !strings.HasPrefix(note, "Installed · 42.3 tokens per second · tested 2 Nov 2026") {
+		// Report.
+		t.Errorf("tested version: %v %q", ok, note)
+	} // end of the tested check
+	// The untested version.
+	if ok, note := mark("alpha:8b"); !ok || note != "Installed, not tested yet" {
+		// Report.
+		t.Errorf("untested version: %v %q", ok, note)
+	} // end of the untested check
+	// The embedding model.
+	if ok, note := mark("embedder:latest"); !ok || !strings.Contains(note, "embedding test saved") || !strings.Contains(note, "no answer speed") {
+		// Report.
+		t.Errorf("embedding model: %v %q", ok, note)
+	} // end of the embedding check
+	// A model installed without a tag matches the library's :latest.
+	if ok, _ := mark("plain:latest"); !ok {
+		// Report.
+		t.Error("plain was not matched with plain:latest")
+	} // end of the latest check
+	// A version that is not installed gets no mark.
+	if ok, note := mark("alpha:70b"); ok || note != "" {
+		// Report.
+		t.Errorf("not installed: %v %q", ok, note)
+	} // end of the absent check
+	// Ollama could not be read: no marker at all.
+	if installedMarker(nil, store, false) != nil {
+		// Report.
+		t.Error("a marker was made although the installed list could not be read")
+	} // end of the unread check
+	// Installed versions come first inside a group and the order is kept otherwise.
+	got := installedFirst([]versionView{{Tag: "a"}, {Tag: "b", Installed: true}, {Tag: "c"}, {Tag: "d", Installed: true}})
+	// The tags in order.
+	var order []string
+	// Collect.
+	for _, v := range got {
+		// One tag.
+		order = append(order, v.Tag)
+	} // end of the collection
+	// The expected order.
+	if strings.Join(order, "") != "bdac" {
+		// Report.
+		t.Errorf("order %v, want b d a c", order)
+	} // end of the order check
+} // end of TestSpeedNoteAndMarker
+
+// TestFindPageMarksInstalledVersions checks the page: installed versions are marked with their saved speed or "not tested yet", the explaining line is there, and a failing Ollama gives a clear note instead of silence.
+func TestFindPageMarksInstalledVersions(t *testing.T) {
+	// A throw-away data folder.
+	isolateFindData(t)
+	// An empty in-memory list.
+	theListCache = listCache{}
+	// Clear it again at the end.
+	t.Cleanup(func() { theListCache = listCache{} })
+	// A working fake library.
+	fakeSite(t, findTestPages())
+	// One saved test of the small version, with the current prompt, so the Compare page has a row.
+	seedTest(t, perfRun{Time: time.Date(2026, 11, 2, 13, 10, 0, 0, time.UTC), Model: "alpha:0.6b", Kind: "generate", PromptVersion: perfPromptVersion, Runs: perfTimedRuns, AnswerSpeed: 42.3})
+	// Both versions of alpha are installed.
+	srv := fullOllama(t, []realRow{
+		// The tested one.
+		{"alpha:0.6b", 523000000, "2026-10-24T17:40:34.693006337Z", []string{"completion"}, "alpha", "0.6B", "Q4_K_M", 40960, 1024, ""},
+		// The untested one.
+		{"alpha:8b", 5200000000, "2026-10-24T17:40:34.693006337Z", []string{"completion"}, "alpha", "8B", "Q4_K_M", 131072, 4096, ""},
+	}, `{"models":[]}`)
+	// The rig.
+	rig := rigWithOllama(t, srv)
+	// Search with room for both versions.
+	_, body := postFind(t, rig, url.Values{"token": {rig.token}, "ab_chat": {"on"}, "disk_gb": {"20"}, "mem_gb": {"32"}})
+	// The tested version shows its speed and a date with a zone.
+	if !strings.Contains(body, `<span class="installedmark">Installed &middot; 42.3 tokens per second &middot; tested 2 Nov 2026`) && !strings.Contains(body, "Installed · 42.3 tokens per second · tested 2 Nov 2026") {
+		// Report.
+		t.Error("the tested installed version does not show its speed and date")
+	} // end of the tested check
+	// The untested version says so.
+	if !strings.Contains(body, `<span class="installedmark">Installed, not tested yet</span>`) {
+		// Report.
+		t.Error("the untested installed version is not marked")
+	} // end of the untested check
+	// The explaining line is there, and it points to the home page's Compare button instead of repeating it: no Compare form on this page.
+	if !strings.Contains(body, "use the Compare tested models button on the home page") || strings.Contains(body, `action="/compare"`) {
+		// Report.
+		t.Error("the explaining line is missing, or a Compare form is on the Find LLM page")
+	} // end of the explaining line check
+	// The embedding model is not installed, so its version has no mark: exactly two marks on the page.
+	if n := strings.Count(body, `class="installedmark"`); n != 2 {
+		// Report.
+		t.Errorf("%d marks, want 2", n)
+	} // end of the count check
+	// Nothing was installed or tested by the page: no request other than reads reached the fake Ollama (it only answers /api/tags, /api/version and /api/ps).
+	// A second rig where nothing is installed: no marks and no explaining bar.
+	srv2 := fullOllama(t, nil, `{"models":[]}`)
+	// The rig.
+	rig2 := rigWithOllama(t, srv2)
+	// Search again.
+	_, body2 := postFind(t, rig2, url.Values{"token": {rig2.token}, "ab_chat": {"on"}, "disk_gb": {"20"}, "mem_gb": {"32"}})
+	// No marks and no bar.
+	if strings.Contains(body2, `class="installedmark"`) || strings.Contains(body2, "marked <strong>Installed</strong>") {
+		// Report.
+		t.Error("marks appear although nothing is installed")
+	} // end of the empty check
+	// A third rig where Ollama fails: the page says so.
+	srv3 := fakeOllama(t, replyWith(http.StatusInternalServerError, "boom"))
+	// The rig.
+	rig3 := rigWithOllama(t, srv3)
+	// Search again.
+	_, body3 := postFind(t, rig3, url.Values{"token": {rig3.token}, "ab_chat": {"on"}, "disk_gb": {"20"}, "mem_gb": {"32"}})
+	// The note, and no marks.
+	if !strings.Contains(body3, "The installed models could not be read just now") || strings.Contains(body3, `class="installedmark"`) {
+		// Report.
+		t.Error("a failing Ollama is not reported on the page")
+	} // end of the failure check
+} // end of TestFindPageMarksInstalledVersions
+
+// TestHybridCloudModelStays checks a model that carries the cloud label but also lists sizes (like gemma4 or gpt-oss): it is a candidate, its local versions are offered, and its cloud versions are dropped; a model whose versions are all cloud says so.
+func TestHybridCloudModelStays(t *testing.T) {
+	// The cloud-only model has no sizes; the hybrid has sizes too.
+	models := []siteModel{
+		{Name: "faraway", Cloud: true, Abilities: []string{"tools"}, Pulls: "9M"},
+		{Name: "hybrid", Cloud: true, Abilities: []string{"tools"}, Sizes: []string{"4b", "31b"}, Pulls: "8M"},
+	}
+	// Apply no choices.
+	got, _, cloud := findCandidates(models, findSelection{})
+	// Only the hybrid stays; one cloud-only model is counted as left out.
+	if modelNames(got) != "hybrid" || cloud != 1 {
+		// Report.
+		t.Errorf("got %s with %d cloud-only left out, want hybrid and 1", modelNames(got), cloud)
+	} // end of the candidate check
+	// The cloud version names Ollama uses.
+	for tag, want := range map[string]bool{"hybrid:31b-cloud": true, "gpt-oss:cloud": true, "hybrid:4b": false, "cloudy:latest": false, "hybrid": false} {
+		// Check each.
+		if isCloudTag(tag) != want {
+			// Report.
+			t.Errorf("isCloudTag(%q) = %v, want %v", tag, !want, want)
+		} // end of the name check
+	} // end of the name loop
+	// The versions: one local and one cloud.
+	tags := []siteTag{{Tag: "hybrid:4b", SizeText: "2.0GB", SizeBytes: 2000000000, Context: "128K"}, {Tag: "hybrid:31b-cloud", Context: "256K"}}
+	// Build the view.
+	r := buildResult(models[1], tags, "", findSelection{DiskGB: -1, MemGB: -1}, nil)
+	// Only the local version is listed.
+	if len(r.Versions) != 1 || r.Versions[0].Tag != "hybrid:4b" || r.Unavailable != "" {
+		// Report.
+		t.Errorf("versions %+v, unavailable %q", r.Versions, r.Unavailable)
+	} // end of the version check
+	// All versions cloud: nothing to offer, and the page says why.
+	r2 := buildResult(models[1], tags[1:], "", findSelection{DiskGB: -1, MemGB: -1}, nil)
+	// The reason is given and no version is listed.
+	if len(r2.Versions) != 0 || !strings.Contains(r2.Unavailable, "run on Ollama's servers") {
+		// Report.
+		t.Errorf("all-cloud result: versions %d, unavailable %q", len(r2.Versions), r2.Unavailable)
+	} // end of the all-cloud check
+} // end of TestHybridCloudModelStays
+
+// TestStateIconTexts checks the house rules for the state icons' tooltips: one short line of at most 130 characters, no markup characters, and different texts for the different states.
+func TestStateIconTexts(t *testing.T) {
+	// The five texts.
+	texts := []string{tipCloud, tipModelFits, tipModelNoFit, tipVersionFits, tipVersionNoFit}
+	// The texts seen so far, to catch two equal ones.
+	seen := map[string]bool{}
+	// Check each.
+	for _, tx := range texts {
+		// Not longer than 130 characters.
+		if n := len([]rune(tx)); n > 130 {
+			// Report.
+			t.Errorf("%q has %d characters, want at most 130", tx, n)
+		} // end of the length check
+		// No markup characters.
+		if strings.ContainsAny(tx, "<>&\"*_`#") {
+			// Report.
+			t.Errorf("%q has a markup character", tx)
+		} // end of the markup check
+		// Different from the others.
+		if seen[tx] {
+			// Report.
+			t.Errorf("%q is used twice", tx)
+		} // end of the twice check
+		// Remember it.
+		seen[tx] = true
+	} // end of the loop
+} // end of TestStateIconTexts
+
+// TestStateIconsOnThePage checks the three icons on the results page: the cloud symbol on a cloud-only model, the check mark on a model and a version that can be installed, and the cross on a version and a model that cannot; every icon has its tooltip and a hidden name, and a size class removes the cloud section with an explanation.
+func TestStateIconsOnThePage(t *testing.T) {
+	// A throw-away data folder.
+	isolateFindData(t)
+	// An empty in-memory list.
+	theListCache = listCache{}
+	// Clear it again at the end.
+	t.Cleanup(func() { theListCache = listCache{} })
+	// A working fake library.
+	fakeSite(t, findTestPages())
+	// The rig.
+	rig := newThemeRig(t)
+	// Room for the small version only.
+	_, body := postFind(t, rig, url.Values{"token": {rig.token}, "ab_chat": {"on"}, "disk_gb": {"2"}, "mem_gb": {"8"}})
+	// The page text with the character codes turned back.
+	text := html.UnescapeString(body)
+	// The model has a version that fits: check mark on the heading and on the small version, cross on the big one.
+	for _, want := range []string{`state-fits" tabindex="0" role="img" aria-label="Can be installed" aria-describedby="tipstate-0"`, `aria-describedby="tipver-0-0"`, `state-nofit" tabindex="0" role="img" aria-label="Cannot be installed" aria-describedby="tipver-0-1"`, `state-cloud" tabindex="0" role="img" aria-label="Cloud model" aria-describedby="tipcloud-0"`} {
+		// Look for it.
+		if !strings.Contains(text, want) {
+			// Report.
+			t.Errorf("the page lacks %q", want)
+		} // end of the look
+	} // end of the loop
+	// Every icon points at a tooltip that exists, and no tooltip name is used twice.
+	for _, id := range []string{"tipstate-0", "tipver-0-0", "tipver-0-1", "tipcloud-0"} {
+		// One tooltip with this name.
+		if n := strings.Count(body, `id="`+id+`" role="tooltip"`) + strings.Count(body, `role="tooltip" id="`+id+`"`); n != 1 {
+			// Report.
+			t.Errorf("%d tooltips named %s, want 1", n, id)
+		} // end of the name check
+	} // end of the loop
+	// With almost no room nothing fits: the model gets the cross.
+	_, none := postFind(t, rig, url.Values{"token": {rig.token}, "ab_chat": {"on"}, "disk_gb": {"0.1"}, "mem_gb": {"0.1"}})
+	// The model's own icon is the cross.
+	if !strings.Contains(none, `state-nofit" tabindex="0" role="img" aria-label="Cannot be installed" aria-describedby="tipstate-0"`) {
+		// Report.
+		t.Error("a model with no version that fits has no cross")
+	} // end of the cross check
+	// A size class does not apply to cloud models: the section is gone and the summary says why.
+	_, sized := postFind(t, rig, url.Values{"token": {rig.token}, "ab_chat": {"on"}, "sz_small": {"on"}, "disk_gb": {"2"}, "mem_gb": {"8"}})
+	// No cloud section, and the reason.
+	if strings.Contains(sized, `id="cloudmodels"`) || !strings.Contains(html.UnescapeString(sized), "not shown because you chose a size or a memory class") {
+		// Report.
+		t.Error("a size class should remove the cloud section and say why")
+	} // end of the class check
+} // end of TestStateIconsOnThePage
+
+// mixHex mixes two #rrggbb colours: the share p (0 to 1) of a, the rest of b, as color-mix does in the sRGB space.
+func mixHex(a, b string, p float64) string {
+	// The result starts as the hash sign.
+	out := "#"
+	// Each of the red, green and blue pairs.
+	for i := 1; i < 7; i += 2 {
+		// The two channel values.
+		x, _ := strconv.ParseInt(a[i:i+2], 16, 32)
+		// The second colour's channel.
+		y, _ := strconv.ParseInt(b[i:i+2], 16, 32)
+		// The mixed channel, rounded.
+		out += fmt.Sprintf("%02x", int(math.Round(float64(x)*p+float64(y)*(1-p))))
+	} // end of the channel loop
+	// The mixed colour.
+	return out
+} // end of mixHex
+
+// TestButtonHighlightAndIconRules checks that every icon colour is really applied, that every kind of button has a highlight when pointed at or focused, that the highlight never touches the tooltips, and that the two button icons stay readable on the highlighted button.
+func TestButtonHighlightAndIconRules(t *testing.T) {
+	// The style sheet.
+	_, _, css := get(t, handlerFor(t, fullOllama(t, realModels, realPsBody).URL), http.MethodGet, "/app.css")
+	// Every icon colour that is defined must also be used by a rule: a defined but unused colour is the bug that hid the teal and the gold.
+	for _, name := range regexp.MustCompile(`--(icon-[a-z]+): #`).FindAllStringSubmatch(css, -1) {
+		// The use: the colour is read by a rule somewhere.
+		if !strings.Contains(css, "var(--"+name[1]+")") {
+			// Report.
+			t.Errorf("--%s is defined but no rule uses it", name[1])
+		} // end of the use check
+	} // end of the loop
+	// The two button icons have their own rules.
+	for _, want := range []string{".ico-find {\n  /* The theme's teal; the symbol is drawn in the current colour. */\n  color: var(--icon-find);", ".ico-compare {\n  /* The theme's gold; the symbol is drawn in the current colour. */\n  color: var(--icon-compare);"} {
+		// Look for it.
+		if !strings.Contains(css, want) {
+			// Report.
+			t.Errorf("the style sheet lacks the rule %q", want[:12])
+		} // end of the look
+	} // end of the loop
+	// Every kind of button: pointed at, and reached with the keyboard.
+	for _, sel := range []string{".btn-plain", ".comparebtn", ".btn-solid", ".btn-load", ".btn-go", ".btn-danger", ".unload", ".load", ".switch", ".autobtn", ".gear", ".copybtn", ".backcircle"} {
+		// The rule must name both states.
+		for _, state := range []string{":hover", ":focus-visible"} {
+			// Look for it.
+			if !strings.Contains(css, sel+state) {
+				// Report.
+				t.Errorf("%s has no %s rule", sel, state)
+			} // end of the look
+		} // end of the state loop
+	} // end of the loop
+	// The highlight block starts at its own heading comment.
+	i := strings.Index(css, "/* Button highlight:")
+	// It must exist.
+	if i < 0 {
+		// Stop here.
+		t.Fatal("the highlight block is missing")
+	} // end of the block check
+	// The block itself.
+	block := css[i:]
+	// The highlight changes colours only: nothing that could hide, move or block a tooltip.
+	for _, bad := range []string{"pointer-events", "overflow", "display:", "visibility", "position", "z-index", "opacity", "content:"} {
+		// Look for it.
+		if strings.Contains(block, bad) {
+			// Report.
+			t.Errorf("the highlight block contains %q, which could disturb the tooltips", bad)
+		} // end of the look
+	} // end of the loop
+	// The tooltip rules are still there: they open on pointing and on focus.
+	for _, want := range []string{".tipbox:hover > .tip", ".tipbox:focus-within > .tip"} {
+		// Look for it.
+		if !strings.Contains(css, want) {
+			// Report.
+			t.Errorf("the tooltip rule %q is gone", want)
+		} // end of the look
+	} // end of the loop
+	// The panel colour, the text colour and the two icon colours, light then dark.
+	for _, th := range []struct{ name, panel, bg, text, find, compare string }{{"light", "#f4f6f8", "#ffffff", "#1a1a1a", "#0a6b73", "#7a5f00"}, {"dark", "#1b1f24", "#121417", "#ececec", "#4fd1c5", "#e3c04d"}} {
+		// The highlighted button: 8 percent of the text colour over the page or the panel.
+		for _, under := range []string{th.panel, th.bg} {
+			// The washed colour.
+			hl := mixHex(th.text, under, 0.08)
+			// Both icons.
+			for _, c := range []string{th.find, th.compare} {
+				// The ratio.
+				if r := contrastOf(c, hl); r < 4.5 {
+					// Report.
+					t.Errorf("%s theme: icon %s on the highlighted button (%s) has contrast %.2f, want at least 4.5", th.name, c, hl, r)
+				} // end of the ratio check
+			} // end of the icon loop
+		} // end of the background loop
+	} // end of the theme loop
+} // end of TestButtonHighlightAndIconRules

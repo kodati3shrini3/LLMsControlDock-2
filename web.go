@@ -180,12 +180,6 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	}) // end of the icon route
 	// Route: a GET request for "/about" shows the read-only About page (see about.go).
 	mux.HandleFunc("GET /about", aboutHandler())
-	// Make the two Find LLM handlers: the page with the choices, and the search that reads the public library (see findllm.go).
-	findShow, findSearch := findLLMHandlers(addr, token)
-	// Route: a GET request for "/findllm" shows the choices and asks nothing from the internet.
-	mux.HandleFunc("GET /findllm", findShow)
-	// Route: a POST request for "/findllm/search" reads the library list and shows the matching models.
-	mux.HandleFunc("POST /findllm/search", findSearch)
 	// Make the two Settings handlers: the first shows the page, the second saves the form (see settingspage.go).
 	settingsShow, settingsSave := settingsHandlers(addr, mon, token)
 	// Route: a GET request for "/settings" shows the Settings page.
@@ -230,6 +224,12 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	// Open the saved results.
 	// One history store, shared by the performance pages and the comparison page.
 	perfHistory := openPerfStore(histPath, histNote)
+	// Make the two Find LLM handlers: the page with the choices, and the search that reads the public library (see findllm.go); the search marks installed versions with their saved speed, so it gets the saved results.
+	findShow, findSearch := findLLMHandlers(addr, token, perfHistory)
+	// Route: a GET request for "/findllm" shows the choices and asks nothing from the internet.
+	mux.HandleFunc("GET /findllm", findShow)
+	// Route: a POST request for "/findllm/search" reads the library list and shows the matching models.
+	mux.HandleFunc("POST /findllm/search", findSearch)
 	// An older version kept the list of deleted models next to the results; bring it to the new folder first.
 	if msg := moveOldDeletedFile(histPath); msg != "" {
 		// Say so in the log; the list is then simply empty until the file can be moved.
