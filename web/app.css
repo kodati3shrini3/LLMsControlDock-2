@@ -2866,3 +2866,75 @@ html[data-size="medium"] svg[width="22"] {
   /* A little accent colour mixed into the panel colour. */
   background: color-mix(in srgb, var(--cat-accent) 12%, var(--panel));
 } /* end of rule */
+
+/* "What it should do": the ticks on the left and the all-or-any choice on the right; on a narrow window they stack. */
+.abilitywrap {
+  /* Side by side. */
+  display: flex;
+  /* Drop below each other when there is no room. */
+  flex-wrap: wrap;
+  /* Space between the two columns. */
+  gap: 1rem 2rem;
+} /* end of rule */
+
+/* The list of ticks takes the room it needs. */
+.abilitylist {
+  /* Grow a little, never shrink below the longest label. */
+  flex: 1 1 18rem;
+} /* end of rule */
+
+/* The all-or-any choice: a quiet box on the right, with a left line so it reads as a separate choice. */
+.abilitymode {
+  /* Needs about this much room for its explanation. */
+  flex: 1 1 20rem;
+  /* A line in the border colour separates it from the ticks. */
+  border-left: 2px solid var(--border);
+  /* Room between the line and the text. */
+  padding-left: 1rem;
+} /* end of rule */
+
+/* The explanation under each choice: the secondary text colour, indented under the radio button. */
+.modeexplain {
+  /* Lines up under the words of the choice. */
+  margin: 0.1rem 0 0.5rem 1.5rem;
+  /* The secondary colour, readable in every theme. */
+  color: var(--muted);
+} /* end of rule */
+
+/* The heading of the Cloud models section: the symbol and the words side by side, level with each other. */
+.cloudhead {
+  /* Symbol and words in one row. */
+  display: flex;
+  /* Centre them on one line. */
+  align-items: center;
+  /* Space between the symbol and the words. */
+  gap: 0.5rem;
+} /* end of rule */
+
+/* The large cloud symbol in that heading. */
+.cloudbig {
+  /* Sized from the heading's own text, so it stays in proportion at any text size. */
+  width: 1.7em;
+  /* Same as the width. */
+  height: 1.7em;
+  /* Never squeezed in the row. */
+  flex: none;
+  /* The cloud colour of the theme. */
+  color: var(--icon-cloud);
+} /* end of rule */
+
+/* The framed note under it: a thick bar and a faint tint in the cloud colour, so it is noticed. */
+.cloudnote {
+  /* A thick bar on the left in the cloud colour. */
+  border-left: 6px solid var(--icon-cloud);
+  /* A faint tint of the cloud colour over the panel colour. */
+  background: color-mix(in srgb, var(--icon-cloud) 12%, var(--panel));
+  /* Room inside the frame. */
+  padding: 0.6rem 0.9rem;
+  /* Slightly rounded on the right. */
+  border-radius: 0 0.4rem 0.4rem 0;
+  /* Space around the frame. */
+  margin: 0.4rem 0 1rem;
+  /* A little larger than the text around it. */
+  font-size: 1.05em;
+} /* end of rule */

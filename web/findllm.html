@@ -44,9 +44,40 @@
 {{/* What the model should be able to do. */}}
 <fieldset class="findgroup">
 <legend><strong>What it should do</strong></legend>
+{{/* Two columns: the ticks on the left, the all-or-any choice on the right; on a narrow window the choice drops below the ticks. */}}
+<div class="abilitywrap">
+<div class="abilitylist">
 <label class="tickrow"><input type="checkbox" name="ab_chat"{{if .Chat}} checked{{end}}> <span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tips.chat.ID}}">Chat and writing</span><span class="tip" role="tooltip" id="{{.Tips.chat.ID}}">{{template "tip" .Tips.chat}}</span></span></label>
 {{range .Abilities}}<label class="tickrow"><input type="checkbox" name="{{.Name}}"{{if .On}} checked{{end}}> <span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tip.ID}}">{{.Label}}</span><span class="tip" role="tooltip" id="{{.Tip.ID}}">{{template "tip" .Tip}}</span></span></label>
 {{end}}
+</div>
+{{/* How the ticks combine: always one of the two is chosen (Match ALL unless the person chose otherwise). The explanation of each choice is plain text under it, and each choice also has a very short tooltip; the group keeps its name for screen readers without showing it. */}}
+<div class="abilitymode" role="radiogroup" aria-label="How the ticks combine">
+<label class="tickrow"><input type="radio" name="ab_mode" value="all"{{if not .AnyMode}} checked{{end}}> <span class="tipbox"><span class="help" tabindex="0" aria-describedby="tip-mode-all"><strong>Match ALL ticked</strong></span><span class="tip" role="tooltip" id="tip-mode-all">All ticked items needed.</span></span> <small class="muted">(the default)</small></label>
+<p class="modeexplain"><small>The model must do everything you ticked. Example: Uses tools and Understands pictures lists only models that do both.</small></p>
+<label class="tickrow"><input type="radio" name="ab_mode" value="any"{{if .AnyMode}} checked{{end}}> <span class="tipbox"><span class="help" tabindex="0" aria-describedby="tip-mode-any"><strong>Match ANY ticked</strong></span><span class="tip" role="tooltip" id="tip-mode-any">One ticked item is enough.</span></span></label>
+<p class="modeexplain"><small>The model needs at least one of the things you ticked. Example: Uses tools and Understands pictures lists models that do either one or both.</small></p>
+</div>
+</div>
+</fieldset>
+{{/* The field of use: what the model was made for, guessed from the words in its name and description. */}}
+<fieldset class="findgroup">
+<legend><strong>Field of use</strong> <small class="muted">(none ticked: any field)</small></legend>
+{{/* Two columns: the fields on the left, the all-or-any choice on the right; on a narrow window the choice drops below. */}}
+<div class="abilitywrap">
+<div class="abilitylist">
+{{range .Domains}}<label class="tickrow"><input type="checkbox" name="{{.Name}}"{{if .On}} checked{{end}}> <span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.TipID}}">{{.Label}}</span><span class="tip" role="tooltip" id="{{.TipID}}">{{.Tip}}</span></span></label>
+{{end}}
+</div>
+{{/* How the ticked fields combine: always one of the two is chosen (Match ALL unless the person chose otherwise); visible text under each choice and a very short tooltip on each. */}}
+<div class="abilitymode" role="radiogroup" aria-label="How the ticked fields combine">
+<label class="tickrow"><input type="radio" name="dom_mode" value="all"{{if not .DomainAnyMode}} checked{{end}}> <span class="tipbox"><span class="help" tabindex="0" aria-describedby="tip-dom-mode-all"><strong>Match ALL ticked</strong></span><span class="tip" role="tooltip" id="tip-dom-mode-all">All ticked fields needed.</span></span> <small class="muted">(the default)</small></label>
+<p class="modeexplain"><small>The model must fit every field you ticked. Example: Code and software and SQL and data lists only models that fit both.</small></p>
+<label class="tickrow"><input type="radio" name="dom_mode" value="any"{{if .DomainAnyMode}} checked{{end}}> <span class="tipbox"><span class="help" tabindex="0" aria-describedby="tip-dom-mode-any"><strong>Match ANY ticked</strong></span><span class="tip" role="tooltip" id="tip-dom-mode-any">One ticked field is enough.</span></span></label>
+<p class="modeexplain"><small>The model needs to fit at least one field you ticked. Example: Healthcare and medicine and Code and software lists models that fit either one or both.</small></p>
+</div>
+</div>
+<p class="muted"><small>The field is guessed from the words in each model's name and description in the official library. It is not a certification. Healthcare models are not validated for clinical use.</small></p>
 </fieldset>
 {{/* How big the model may be. */}}
 <fieldset class="findgroup">
@@ -103,8 +134,9 @@
 {{end}}
 {{/* The cloud-only models: no versions are read and nothing is downloaded, so there is no fit check, only the cloud symbol with its tooltip. */}}
 {{if .CloudResults}}
-<h2 id="cloudmodels">Cloud models</h2>
-<p class="muted">These models run on Ollama's servers, not on this computer, so your free disk space and memory do not apply to them. Nothing is downloaded. They may need an Ollama account.</p>
+{{/* A large cloud symbol in the heading, sized from the heading's own text, and a framed note whose key phrases are bold, so the person notices that these models are not local. */}}
+<h2 id="cloudmodels" class="cloudhead"><svg class="cloudbig" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18h10a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7.1 9.2 4.4 4.4 0 0 0 7 18z"/></svg><span>Cloud models</span></h2>
+<p class="cloudnote" role="note"><strong>These models run on Ollama's servers, not on this computer,</strong> so your free disk space and memory do not apply to them. <strong>Nothing is downloaded.</strong> <strong>They may need an Ollama account.</strong></p>
 {{range .CloudResults}}
 <div class="findresult">
 <h3><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Name}}<span class="sr-only"> (opens in a new window)</span></a> {{template "stateicon" .Icon}}</h3>

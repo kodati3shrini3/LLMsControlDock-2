@@ -18,6 +18,8 @@ import ( // import lists the standard-library packages this file uses.
 	"net/http"
 	// os reads the home folder and one environment variable.
 	"os"
+	// regexp matches the keywords that assign a model to a field of use.
+	"regexp"
 	// sort orders the results.
 	"sort"
 	// strconv turns typed text into numbers.
@@ -280,8 +282,14 @@ func pullsNumber(text string) float64 {
 type findSelection struct {
 	// Chat is true when "Chat and writing" is ticked: the model is not a search-and-similarity model.
 	Chat bool
-	// Abilities are the ticked abilities (tools, vision, audio, thinking, embedding); a model must have all of them.
+	// Abilities are the ticked abilities (tools, vision, audio, thinking, embedding).
 	Abilities map[string]bool
+	// Domains are the ticked fields of use (keys of findDomains); empty means no filter.
+	Domains map[string]bool
+	// DomainAny is true when the person chose "Match ANY ticked" for the fields of use; false (the default) is "Match ALL ticked".
+	DomainAny bool
+	// Any is true when the person chose "Match ANY ticked": a model needs at least one ticked ability; false (the default) is "Match ALL ticked": it needs every one.
+	Any bool
 	// Sizes are the ticked size classes (empty means any size).
 	Sizes map[string]bool
 	// Contexts are the ticked memory classes (empty means any).
@@ -318,11 +326,23 @@ func parseGB(text string) (float64, error) {
 // parseFindForm reads the form fields into a selection; problems lists what was typed wrongly.
 func parseFindForm(get func(string) string) (findSelection, []string) {
 	// Start empty.
-	sel := findSelection{Abilities: map[string]bool{}, Sizes: map[string]bool{}, Contexts: map[string]bool{}}
+	sel := findSelection{Abilities: map[string]bool{}, Domains: map[string]bool{}, Sizes: map[string]bool{}, Contexts: map[string]bool{}}
 	// The problems found.
 	var problems []string
 	// Chat and writing.
 	sel.Chat = get("ab_chat") == "on"
+	// Match ANY only when that exact choice was sent; anything else, or nothing, is the default Match ALL.
+	sel.Any = get("ab_mode") == "any"
+	// The same for the fields of use.
+	sel.DomainAny = get("dom_mode") == "any"
+	// Each known field of use that is ticked.
+	for _, d := range findDomains {
+		// Ticked.
+		if get("dom_"+d.Key) == "on" {
+			// Remember it.
+			sel.Domains[d.Key] = true
+		} // end of the tick check
+	} // end of the fields
 	// Each ability.
 	for _, k := range abilityKeys {
 		// Ticked.
@@ -369,6 +389,144 @@ func parseFindForm(get func(string) string) (findSelection, []string) {
 	return sel, problems
 } // end of parseFindForm
 
+// domainDef describes one field of use: how a model is assigned to it, from its name and from the first words of its description.
+type domainDef struct {
+	// Key is the short code in the form field name (dom_<key>).
+	Key string
+	// Label is the wording on the page.
+	Label string
+	// Tip is the very short help line; one line, no markup characters.
+	Tip string
+	// Name matches the library name of the model.
+	Name *regexp.Regexp
+	// Lead matches the first words of the description (the part that says what the model is for).
+	Lead *regexp.Regexp
+} // end of domainDef
+
+// domainLeadRunes is how many characters of the description count: the opening, which says what the model is for, not the long list of side abilities after it.
+const domainLeadRunes = 100
+
+// findDomains are the fields of use of the first version. Pharma, legal and finance are left out until the official list has models for them.
+var findDomains = []domainDef{
+	// Healthcare and medicine.
+	{"health", "Healthcare and medicine", "Medical models. Not validated for clinical use.",
+		regexp.MustCompile(`(?i)\bmed(llama|gemma|iton)`),
+		regexp.MustCompile(`(?i)\bmedical\b|\bmedicine\b|\bhealth(care)?\b|\bclinical\b|\bbiomedical\b|\bpatients?\b|\bdoctors?\b|\bdiagnos\w*`)},
+	// Code and software.
+	{"code", "Code and software", "Models made for writing and fixing code.",
+		regexp.MustCompile(`(?i)code|devstral`),
+		regexp.MustCompile(`(?i)\bcode (generation|completion|llm|language model|model|models)\b|\bcoding (model|models|agents|tasks)\b|\bcoding-focused\b|\bcode-specific\b|\bcode intelligence\b`)},
+	// SQL and data.
+	{"sql", "SQL and data", "Models that turn questions into SQL queries.",
+		regexp.MustCompile(`(?i)sql`),
+		regexp.MustCompile(`(?i)\bsql\b|\btext-to-sql\b`)},
+	// Maths and science.
+	{"math", "Maths and science", "Models made for maths problems and science.",
+		regexp.MustCompile(`(?i)math`),
+		regexp.MustCompile(`(?i)\bmath (language )?models?\b|\bmath problems\b|\bmath reasoning\b|\bscientific discovery\b|\btheorem`)},
+	// Documents and OCR.
+	{"docs", "Documents and OCR", "Models that read scans, pages and forms.",
+		regexp.MustCompile(`(?i)ocr|docling|nuextract|reader-lm`),
+		regexp.MustCompile(`(?i)\bocr\b|\binformation extraction\b|\bhtml (content )?to markdown\b|\bdocument understanding\b`)},
+	// Translation and languages.
+	{"lang", "Translation and languages", "Translation and models built for many languages.",
+		regexp.MustCompile(`(?i)translate|^aya|sailor`),
+		regexp.MustCompile(`(?i)\btranslat\w*|\bmultilingual\b|\bbilingual\b|\b\d+ languages\b|\b(chinese|korean|japanese|arabic|german) (dialogue|language)`)},
+	// Safety and moderation.
+	{"safety", "Safety and moderation", "Models that check prompts and answers for risk.",
+		regexp.MustCompile(`(?i)guard|shield|safeguard`),
+		regexp.MustCompile(`(?i)\bcontent safety\b|\bmoderat\w*|\bsafety (classification|reasoning)\b`)},
+} // end of findDomains
+
+// modelDomains returns the keys of the fields of use a model belongs to, judged from its name and the opening of its description. This is a guess from words, not a certification.
+func modelDomains(m siteModel) map[string]bool {
+	// The opening of the description, cut by characters so no letter is split.
+	lead := []rune(m.Description)
+	// Cut it.
+	if len(lead) > domainLeadRunes {
+		// Keep the opening.
+		lead = lead[:domainLeadRunes]
+	} // end of the cut
+	// The result.
+	out := map[string]bool{}
+	// Each field of use.
+	for _, d := range findDomains {
+		// The name or the opening matches.
+		if d.Name.MatchString(m.Name) || d.Lead.MatchString(string(lead)) {
+			// The model belongs to it.
+			out[d.Key] = true
+		} // end of the match
+	} // end of the fields
+	// Done.
+	return out
+} // end of modelDomains
+
+// domainMatch says whether a model satisfies the ticked fields of use: Match ALL (the default) needs every ticked field, Match ANY at least one; nothing ticked lets every model pass.
+func domainMatch(sel findSelection, m siteModel) bool {
+	// Nothing ticked: no filter.
+	if len(sel.Domains) == 0 {
+		// Every model passes.
+		return true
+	} // end of the empty check
+	// The fields of this model.
+	has := modelDomains(m)
+	// How many ticked fields the model belongs to.
+	hits := 0
+	// Count them.
+	for k := range sel.Domains {
+		// A hit.
+		if has[k] {
+			// One more.
+			hits++
+		} // end of the hit
+	} // end of the count
+	// Match ANY: one is enough.
+	if sel.DomainAny {
+		// At least one.
+		return hits > 0
+	} // end of the any check
+	// Match ALL: every ticked field.
+	return hits == len(sel.Domains)
+} // end of domainMatch
+
+// abilitiesMatch says whether a model with the abilities in has satisfies the ticks of "What it should do": with Match ALL (the default) every ticked item must hold, with Match ANY at least one; with nothing ticked every model passes. "Chat and writing" holds for a model that is not a search-and-similarity model.
+func abilitiesMatch(sel findSelection, has map[string]bool) bool {
+	// How many items are ticked and how many of them the model satisfies.
+	ticked, hits := 0, 0
+	// Chat and writing: holds when the model is not an embedding model.
+	if sel.Chat {
+		// One more ticked item.
+		ticked++
+		// Satisfied by a model that is not an embedding model.
+		if !has["embedding"] {
+			// One more hit.
+			hits++
+		} // end of the chat check
+	} // end of the chat item
+	// Each ticked ability.
+	for a := range sel.Abilities {
+		// One more ticked item.
+		ticked++
+		// The model has it.
+		if has[a] {
+			// One more hit.
+			hits++
+		} // end of the ability check
+	} // end of the ability loop
+	// Nothing ticked: no filter.
+	if ticked == 0 {
+		// Every model passes.
+		return true
+	} // end of the empty check
+	// Match ANY: one hit is enough.
+	if sel.Any {
+		// At least one.
+		return hits > 0
+	} // end of the any check
+	// Match ALL: every ticked item.
+	return hits == ticked
+} // end of abilitiesMatch
+
 // findCandidates applies the choices that the list page can answer: cloud-only models are left out, abilities and size classes are checked; the count of models without a readable size is returned when a size class is chosen. A model that carries the cloud label but also lists sizes (for example gemma4 or gpt-oss) has versions that run on this computer, so it stays; its cloud versions are dropped later, when its versions are listed.
 func findCandidates(models []siteModel, sel findSelection) (out []siteModel, noSize int, cloud int) {
 	// Look at every model.
@@ -387,26 +545,16 @@ func findCandidates(models []siteModel, sel findSelection) (out []siteModel, noS
 			// One ability.
 			has[a] = true
 		} // end of the fill
-		// Chat and writing: not a search-and-similarity model.
-		if sel.Chat && has["embedding"] {
-			// Skip.
-			continue
-		} // end of the chat check
-		// Every ticked ability must be present.
-		ok := true
-		// Check each.
-		for a := range sel.Abilities {
-			// Missing one.
-			if !has[a] {
-				// Not this model.
-				ok = false
-			} // end of the check
-		} // end of the ability loop
-		// Skip a model that lacks one.
-		if !ok {
+		// The ticks of "What it should do": all of them or any of them, as chosen.
+		if !abilitiesMatch(sel, has) {
 			// Next.
 			continue
-		} // end of the skip
+		} // end of the ability check
+		// The ticked fields of use: all of them or any of them, as chosen.
+		if !domainMatch(sel, m) {
+			// Next.
+			continue
+		} // end of the field check
 		// Size classes: at least one of the model's sizes must be in a ticked class.
 		if len(sel.Sizes) > 0 {
 			// Whether any size matches, and whether any size could be read.
@@ -477,24 +625,9 @@ func findCloudModels(models []siteModel, sel findSelection) (out []siteModel, sk
 			// One ability.
 			has[a] = true
 		} // end of the fill
-		// Chat and writing: not a search-and-similarity model.
-		if sel.Chat && has["embedding"] {
-			// Skip.
-			continue
-		} // end of the chat check
-		// Every ticked ability must be present.
-		ok := true
-		// Check each.
-		for a := range sel.Abilities {
-			// Missing one.
-			if !has[a] {
-				// Not this model.
-				ok = false
-			} // end of the check
-		} // end of the ability loop
-		// Keep the match.
-		if ok {
-			// Add it.
+		// The ticks of "What it should do": all of them or any of them, as chosen.
+		if abilitiesMatch(sel, has) && domainMatch(sel, m) {
+			// Keep the match.
 			out = append(out, m)
 		} // end of the match check
 	} // end of the model loop
@@ -844,6 +977,12 @@ type findPage struct {
 	Sizes, Contexts []findTick
 	// Chat is whether "Chat and writing" is ticked.
 	Chat bool
+	// AnyMode is whether "Match ANY ticked" is chosen; false means "Match ALL ticked".
+	AnyMode bool
+	// Domains are the boxes of the fields of use.
+	Domains []domainTick
+	// DomainAnyMode is whether "Match ANY ticked" is chosen for the fields of use.
+	DomainAnyMode bool
 	// Disk and Mem are the typed numbers, as text.
 	Disk, Mem string
 	// DiskNote and MemNote explain where the numbers come from.
@@ -876,6 +1015,20 @@ type findPage struct {
 	InstalledNote string
 } // end of findPage
 
+// domainTick is one box of the fields of use.
+type domainTick struct {
+	// Name is the form field name.
+	Name string
+	// Label is the wording.
+	Label string
+	// Tip is the very short help line.
+	Tip string
+	// TipID is the id of its tooltip.
+	TipID string
+	// On is true when ticked.
+	On bool
+} // end of domainTick
+
 // findTick is one tick box.
 type findTick struct {
 	// Name is the form field name.
@@ -906,7 +1059,7 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 	// render draws the page for a selection.
 	render := func(w http.ResponseWriter, r *http.Request, sel findSelection, fm findMachine, problems []string, searched bool, results []resultView, cloudRes []resultView, cloudMore int, total, cloud, noSize int, errText, readAt, copyNote, instNote string, status int) {
 		// The tick boxes.
-		data := findPage{Theme: themeFromRequest(r), Size: sizeFromRequest(r), Token: token, Tips: tips, Chat: sel.Chat, Problems: problems, Searched: searched, Error: errText, ReadAt: readAt, CopyNote: copyNote, InstalledNote: instNote, CloudResults: cloudRes, CloudMore: cloudMore, Results: results, Summary: findSummary(len(results), total, cloud, noSize, readAt)}
+		data := findPage{Theme: themeFromRequest(r), Size: sizeFromRequest(r), Token: token, Tips: tips, Chat: sel.Chat, AnyMode: sel.Any, DomainAnyMode: sel.DomainAny, Problems: problems, Searched: searched, Error: errText, ReadAt: readAt, CopyNote: copyNote, InstalledNote: instNote, CloudResults: cloudRes, CloudMore: cloudMore, Results: results, Summary: findSummary(len(results), total, cloud, noSize, readAt)}
 		// The abilities.
 		for _, k := range abilityKeys {
 			// One box.
@@ -922,6 +1075,11 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 			// One box.
 			data.Contexts = append(data.Contexts, findTick{Name: "cx_" + c.Key, Label: c.Label, Range: c.Range, On: sel.Contexts[c.Key]})
 		} // end of the contexts
+		// The boxes of the fields of use.
+		for _, d := range findDomains {
+			// One box.
+			data.Domains = append(data.Domains, domainTick{Name: "dom_" + d.Key, Label: d.Label, Tip: d.Tip, TipID: "tip-dom-" + d.Key, On: sel.Domains[d.Key]})
+		} // end of the fields
 		// The typed numbers.
 		data.Disk, data.Mem = numberText(sel.DiskGB), numberText(sel.MemGB)
 		// Where the disk number comes from.
