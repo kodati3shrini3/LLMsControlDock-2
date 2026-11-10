@@ -179,7 +179,9 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 		w.Write(appIcon)
 	}) // end of the icon route
 	// Route: a GET request for "/about" shows the read-only About page (see about.go).
-	mux.HandleFunc("GET /about", aboutHandler())
+	mux.HandleFunc("GET /about", aboutHandler(token))
+	// Route: a POST request for "/about/estimate" runs the System check, measures this program and saves the estimate.
+	mux.HandleFunc("POST /about/estimate", selfEstimateHandler(token))
 	// Make the two Settings handlers: the first shows the page, the second saves the form (see settingspage.go).
 	settingsShow, settingsSave := settingsHandlers(addr, mon, token)
 	// Route: a GET request for "/settings" shows the Settings page.

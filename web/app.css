@@ -3018,3 +3018,23 @@ html[data-size="medium"] svg[width="22"] {
   /* The normal text colour. */
   color: var(--text);
 } /* end of rule */
+
+/* The estimate card on the About page: the same outline as the company card. */
+.estimatecard {
+  /* Space above and below the card. */
+  margin: 1.25rem 0;
+  /* Air inside. */
+  padding: 1rem 1.25rem;
+  /* A solid outline. */
+  border: 2px solid var(--border);
+  /* Rounded corners. */
+  border-radius: 0.5rem;
+} /* end of rule */
+
+/* The heading of the estimate card. */
+.estimatecard h2 {
+  /* Tight to the top. */
+  margin: 0.1rem 0 0.3rem;
+  /* A little larger than body text. */
+  font-size: 1.1rem;
+} /* end of rule */
