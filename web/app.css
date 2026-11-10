@@ -3038,3 +3038,93 @@ html[data-size="medium"] svg[width="22"] {
   /* A little larger than body text. */
   font-size: 1.1rem;
 } /* end of rule */
+
+/* The Help page: the card and its topics. */
+.helpcard {
+  /* Space between the topics is made by the topic's own margin. */
+  position: relative;
+} /* end of rule */
+
+/* One topic on the Help page. */
+.helptopic {
+  /* Space above the topic. */
+  margin: 1.5rem 0;
+} /* end of rule */
+
+/* The swimlane picture: as wide as the card, never wider, so the page does not scroll sideways. */
+.swimlane {
+  /* Full width of the card. */
+  width: 100%;
+  /* The height follows the drawing's proportions. */
+  height: auto;
+  /* Never wider than the card. */
+  max-width: 100%;
+  /* A thin outline. */
+  border: 1px solid var(--border);
+  /* Rounded corners. */
+  border-radius: 0.5rem;
+  /* The page colour behind the lanes. */
+  background: var(--bg);
+} /* end of rule */
+
+/* Every second lane is tinted so the lanes can be told apart without colour names. */
+.swimlane .laneband {
+  /* The page colour. */
+  fill: var(--bg);
+} /* end of rule */
+
+/* The tinted lanes. */
+.swimlane .laneodd {
+  /* The panel colour. */
+  fill: var(--panel);
+} /* end of rule */
+
+/* The lane names. */
+.swimlane .lanename {
+  /* The text colour. */
+  fill: var(--text);
+  /* Bold, so they read as headings. */
+  font-weight: 700;
+  /* Size in drawing units. */
+  font-size: 14px;
+} /* end of rule */
+
+/* A step box. */
+.swimlane .lanebox {
+  /* The page colour inside. */
+  fill: var(--bg);
+  /* An outline that is visible in both themes. */
+  stroke: var(--text);
+  /* Outline thickness. */
+  stroke-width: 1.5;
+} /* end of rule */
+
+/* The words in a step box. */
+.swimlane .lanetext {
+  /* The text colour. */
+  fill: var(--text);
+  /* Size in drawing units. */
+  font-size: 13px;
+} /* end of rule */
+
+/* An arrow between two steps. */
+.swimlane .lanearrow {
+  /* No fill, only a line. */
+  fill: none;
+  /* The secondary text colour. */
+  stroke: var(--muted);
+  /* Line thickness. */
+  stroke-width: 2;
+} /* end of rule */
+
+/* The arrow head. */
+.swimlane .lanehead {
+  /* Same colour as the line. */
+  fill: var(--muted);
+} /* end of rule */
+
+/* The numbered steps in words. */
+.helpsteps {
+  /* Room for the numbers. */
+  padding-left: 1.5rem;
+} /* end of rule */
