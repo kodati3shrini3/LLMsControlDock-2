@@ -1016,6 +1016,8 @@ type findPage struct {
 	Summary string
 	// CopyNote says that the list is a saved copy, with its date and why; empty when the list was read live.
 	CopyNote string
+	// CanResort is true when models are listed, so the Sort by choice re-sorts them at once (the page then carries the small sort script).
+	CanResort bool
 	// ShowCopy is true when at least one version fits, so the page carries Copy buttons and the monitor's own copy script.
 	ShowCopy bool
 	// CloudResults are the cloud-only models shown in their own section.
@@ -1056,8 +1058,30 @@ type findTick struct {
 	Tip tipView
 } // end of findTick
 
-// findLLMHandlers makes the two handlers of the Find LLM page: the first shows the choices, the second reads the library and shows the models; the second asks the public website, and only the address of its page leaves this computer.
-func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.HandlerFunc, http.HandlerFunc) {
+// findKept is the last successful search, kept in memory only: it is gone when the program stops, so it is empty at every start.
+type findKept struct {
+	// sel holds the choices that were ticked and typed.
+	sel findSelection
+	// results are the models found, with their versions.
+	results []resultView
+	// cloudRes are the cloud-only models shown.
+	cloudRes []resultView
+	// cloudMore counts the cloud-only models that match but are not shown.
+	cloudMore int
+	// total, cloud and noSize are the counts the summary line needs.
+	total, cloud, noSize int
+	// readAt says when the list was read, with its zone.
+	readAt string
+	// copyNote and instNote are the notes that were shown with the results.
+	copyNote, instNote string
+} // end of findKept
+
+// findLLMHandlers makes the four handlers of the Find LLM page: the first shows the choices (or the kept results of the last search), the second reads the library and shows the models, the third forgets the kept search, the fourth sorts the kept results again; the second asks the public website, and only the address of its page leaves this computer.
+func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.HandlerFunc, http.HandlerFunc, http.HandlerFunc, http.HandlerFunc) {
+	// keptMu guards kept, because requests run side by side.
+	var keptMu sync.Mutex
+	// kept is the last successful search; nil when there is none.
+	var kept *findKept
 	// Parse the template once.
 	page := template.Must(template.New("findllm").Parse(findLLMTemplateText + tipsTemplateText))
 	// Whether Ollama runs on this computer.
@@ -1171,6 +1195,8 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 				} // end of the fit check
 			} // end of the version loop
 		} // end of the model loop
+		// Models are listed: a change of the Sort by choice may re-sort them.
+		data.CanResort = searched && len(results)+len(cloudRes) > 0
 		// Build the page in memory first, so a template error gives a clean 500.
 		var buf bytes.Buffer
 		// Fill the template.
@@ -1183,7 +1209,7 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 			return
 		} // end of the template check
 		// A page with Copy buttons may run the monitor's own script file, and nothing else.
-		if data.ShowCopy {
+		if data.ShowCopy || data.CanResort {
 			// Replace the strict policy by the one that allows the script file.
 			w.Header().Set("Content-Security-Policy", contentSecurityPolicyWithScript)
 		} // end of the script policy
@@ -1198,6 +1224,17 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 	show := func(w http.ResponseWriter, r *http.Request) {
 		// Read the machine.
 		fm := readFindMachine(r.Context(), local)
+		// The last successful search, if there is one.
+		keptMu.Lock()
+		k := kept
+		keptMu.Unlock()
+		// Show it again, exactly as it was found, until a new search or the reset.
+		if k != nil {
+			// Draw the kept choices and results.
+			render(w, r, k.sel, fm, nil, true, k.results, k.cloudRes, k.cloudMore, k.total, k.cloud, k.noSize, "", k.readAt, k.copyNote, k.instNote, http.StatusOK)
+			// Done.
+			return
+		} // end of the kept check
 		// The starting choices: chat and writing, small and medium models, no ability or memory filter.
 		sel := findSelection{Chat: true, Abilities: map[string]bool{}, Sizes: map[string]bool{"small": true, "medium": true}, Contexts: map[string]bool{}, DiskGB: fm.DiskGB, MemGB: fm.MemGB}
 		// Draw.
@@ -1332,12 +1369,90 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 			// Say how many were left out.
 			cloudLeft = cloud
 		} // end of the class check
+		// The time the list was read, with its zone.
+		readAtText := at.Format("2006-01-02 15:04:05 MST (UTC-07:00)")
+		// Keep this search in memory, so a visit to the monitor and back shows it again.
+		keptMu.Lock()
+		kept = &findKept{sel: sel, results: results, cloudRes: cloudRes, cloudMore: cloudMore, total: len(cands), cloud: cloudLeft, noSize: noSize, readAt: readAtText, copyNote: copyNote, instNote: instNote}
+		keptMu.Unlock()
 		// Draw the results, with the time the list was read and its zone.
-		render(w, r, sel, fm, nil, true, results, cloudRes, cloudMore, len(cands), cloudLeft, noSize, "", at.Format("2006-01-02 15:04:05 MST (UTC-07:00)"), copyNote, instNote, http.StatusOK)
+		render(w, r, sel, fm, nil, true, results, cloudRes, cloudMore, len(cands), cloudLeft, noSize, "", readAtText, copyNote, instNote, http.StatusOK)
 	} // end of search
-	// Hand back both.
-	return show, search
+	// reset forgets the kept search and shows the starting choices again.
+	reset := func(w http.ResponseWriter, r *http.Request) {
+		// Only the page's own form may do this.
+		if !tokenValid(token, r.PostFormValue("token")) {
+			// Refuse.
+			http.Error(w, "forbidden", http.StatusForbidden)
+			// Stop.
+			return
+		} // end of the token check
+		// Forget the kept search.
+		keptMu.Lock()
+		kept = nil
+		keptMu.Unlock()
+		// Back to the page with the starting choices; a redirect keeps a reload from sending the form again.
+		http.Redirect(w, r, "/findllm", http.StatusSeeOther)
+	} // end of reset
+	// resort sorts the kept results again for the chosen order, without reading anything from the internet.
+	resort := func(w http.ResponseWriter, r *http.Request) {
+		// Only the page's own form may do this.
+		if !tokenValid(token, r.PostFormValue("token")) {
+			// Refuse.
+			http.Error(w, "forbidden", http.StatusForbidden)
+			// Stop.
+			return
+		} // end of the token check
+		// Change the kept search under the lock.
+		keptMu.Lock()
+		// Only when there is a kept search.
+		if kept != nil {
+			// The new order: Name A to Z or, by default, most downloaded.
+			if r.PostFormValue("sort") == "name" {
+				// By name.
+				kept.sel.Sort = "name"
+			} else {
+				// By downloads.
+				kept.sel.Sort = "downloads"
+			} // end of the order choice
+			// Sort the local models, keeping the ones with a fitting version first.
+			resortViews(kept.results, kept.sel.Sort == "name", true)
+			// Sort the cloud-only models (they have no versions to fit).
+			resortViews(kept.cloudRes, kept.sel.Sort == "name", false)
+		} // end of the kept check
+		keptMu.Unlock()
+		// Back to the page at the Sort by choice; a redirect keeps a reload from sending the form again.
+		http.Redirect(w, r, "/findllm#sortby", http.StatusSeeOther)
+	} // end of resort
+	// Hand back all four.
+	return show, search, reset, resort
 } // end of findLLMHandlers
+
+// resortViews puts shown models in order again: Name A to Z or most downloaded first (equal counts by name); with fitFirst a model that has a fitting version stays ahead of the others.
+func resortViews(list []resultView, byName, fitFirst bool) {
+	// A stable sort, so equal models keep their places.
+	sort.SliceStable(list, func(i, j int) bool {
+		// Fitting models first, when asked.
+		if fitFirst && (list[i].FitCount > 0) != (list[j].FitCount > 0) {
+			// The fitting one is first.
+			return list[i].FitCount > 0
+		} // end of the fit check
+		// By name.
+		if byName {
+			// A to Z.
+			return list[i].Name < list[j].Name
+		} // end of the name order
+		// The download counts.
+		pi, pj := pullsNumber(list[i].Pulls), pullsNumber(list[j].Pulls)
+		// The higher count first.
+		if pi != pj {
+			// Decide by count.
+			return pi > pj
+		} // end of the count check
+		// Then by name.
+		return list[i].Name < list[j].Name
+	}) // end of the sort
+} // end of resortViews
 
 // findSummary writes the sentence above the results in correct singular and plural.
 func findSummary(shown, total, cloud, noSize int, readAt string) string {

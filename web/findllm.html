@@ -81,19 +81,19 @@
 </fieldset>
 {{/* How big the model may be. */}}
 <fieldset class="findgroup">
-<legend><span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tips.size.ID}}"><strong>Model size</strong></span><span class="tip" role="tooltip" id="{{.Tips.size.ID}}">{{template "tip" .Tips.size}}</span></span> <small class="muted">(none ticked: any size)</small></legend>
+<legend><span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tips.size.ID}}"><strong>Model size</strong></span><span class="tip" role="tooltip" id="{{.Tips.size.ID}}">{{template "tip" .Tips.size}}</span></span> <small class="muted">(none ticked: any size)</small> <small class="anynote">Matches ANY ticked</small></legend>
 {{range .Sizes}}<label class="tickrow"><input type="checkbox" name="{{.Name}}"{{if .On}} checked{{end}}> {{.Label}} <small class="muted">({{.Range}})</small></label>
 {{end}}
 </fieldset>
 {{/* How much the model remembers of a conversation. */}}
 <fieldset class="findgroup">
-<legend><span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tips.context.ID}}"><strong>Memory of a conversation</strong></span><span class="tip" role="tooltip" id="{{.Tips.context.ID}}">{{template "tip" .Tips.context}}</span></span> <small class="muted">(none ticked: any length)</small></legend>
+<legend><span class="tipbox"><span class="help" tabindex="0" aria-describedby="{{.Tips.context.ID}}"><strong>Memory of a conversation</strong></span><span class="tip" role="tooltip" id="{{.Tips.context.ID}}">{{template "tip" .Tips.context}}</span></span> <small class="muted">(none ticked: any length)</small> <small class="anynote">Matches ANY ticked</small></legend>
 {{range .Contexts}}<label class="tickrow"><input type="checkbox" name="{{.Name}}"{{if .On}} checked{{end}}> {{.Label}} <small class="muted">({{.Range}})</small></label>
 {{end}}
 </fieldset>
 {{/* The button: the first and only thing that reads the internet. */}}
 {{/* The button, with the order of the results beside it. */}}
-<p class="findaction"><button type="submit" class="btn-solid">Find LLM</button> <label class="sortpick" for="sortby">Sort by <select class="keepselect" id="sortby" name="sort"><option value="downloads"{{if not .SortName}} selected{{end}}>Most downloaded</option><option value="name"{{if .SortName}} selected{{end}}>Name A to Z</option></select></label></p>
+<p class="findaction"><button type="submit" class="btn-solid btn-go">Find LLM</button> <label class="sortpick" for="sortby">Sort by <select class="keepselect" id="sortby" name="sort"{{if .CanResort}} data-resort="/findllm/resort"{{end}}><option value="downloads"{{if not .SortName}} selected{{end}}>Most downloaded</option><option value="name"{{if .SortName}} selected{{end}}>Name A to Z</option></select></label>{{if .Searched}} <span class="tipbox"><button type="submit" class="btn-plain" formaction="/findllm/reset" formnovalidate aria-describedby="tip-reset">Reset Find LLM search options</button><span class="tip tip-icon" role="tooltip" id="tip-reset">Forget the last search and show the starting ticks.</span></span>{{end}} <span class="tipbox backhere"><a class="backcircle" href="/" aria-label="Back to the monitor" aria-describedby="tipback-row"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg></a><span class="tip tip-icon" role="tooltip" id="tipback-row">Back to the monitor</span></span></p>
 </form>
 {{/* The results appear only after the button was pressed. */}}
 {{if .Searched}}
@@ -154,9 +154,14 @@
 <p class="muted"><small>The command must run where Ollama runs, because the model is stored there. The Copy button only copies the text; you paste it into the terminal yourself. The Kubernetes line has not been tested on a real cluster.</small></p>
 <p id="copystatus" class="sr-only" role="status" aria-live="polite"></p>
 {{end}}
+{{/* The back arrow again at the bottom of the page, only when models are listed (a long page); with nothing listed the arrow in the button row is enough. */}}
+{{if or .Results .CloudResults}}
+<p class="backbottom"><span class="tipbox backhere"><a class="backcircle" href="/" aria-label="Back to the monitor" aria-describedby="tipback-bottom"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg></a><span class="tip tip-icon" role="tooltip" id="tipback-bottom">Back to the monitor</span></span></p>
+{{end}}
 </section>
 </main>
 {{if .ShowCopy}}<script src="/copy.js" defer></script>{{end}}
+{{if .CanResort}}<script src="/sortpick.js" defer></script>{{end}}
 </body>
 </html>
 {{/* A state icon with its tooltip: the check mark (can be installed), the cross (cannot be installed) or the cloud (runs on Ollama's servers). The words next to it say the same, so the symbol is never the only signal. */}}
