@@ -591,8 +591,8 @@ func TestFindResultsHaveCopyButtons(t *testing.T) {
 			t.Errorf("the results lack %q", want)
 		} // end of the look
 	} // end of the loop
-	// The script once, the status line for screen readers, and a policy that allows this address's scripts only.
-	if strings.Count(body, `<script src="/copy.js" defer></script>`) != 1 || strings.Count(body, "<script") != 1 || !strings.Contains(body, `id="copystatus"`) {
+	// The copy script once, the sort script once (and no other), the status line for screen readers, and a policy that allows this address's scripts only.
+	if strings.Count(body, `<script src="/copy.js" defer></script>`) != 1 || strings.Count(body, `<script src="/sortpick.js" defer></script>`) != 1 || strings.Count(body, "<script") != 2 || !strings.Contains(body, `id="copystatus"`) {
 		// Report.
 		t.Errorf("script or status line missing")
 	} // end of the script check
@@ -601,16 +601,16 @@ func TestFindResultsHaveCopyButtons(t *testing.T) {
 		// Report.
 		t.Errorf("policy %q", csp)
 	} // end of the policy check
-	// A search where nothing fits (no disk space at all) has no button, no script and the strict policy.
+	// A search where nothing fits (no disk space at all) has no copy button and no copy script (the sort script stays, because models are listed).
 	res2 := post(t, rig.h, "/findllm/search", url.Values{"token": {rig.token}, "ab_chat": {"on"}, "disk_gb": {"0.1"}, "mem_gb": {"0.1"}}, fromThisPage)
 	// Close it at the end.
 	defer res2.Body.Close()
 	// Read it.
 	raw2, _ := io.ReadAll(res2.Body)
 	// Nothing to copy.
-	if strings.Contains(string(raw2), "copybtn") || strings.Contains(string(raw2), "<script") || strings.Contains(res2.Header.Get("Content-Security-Policy"), "script-src") {
+	if strings.Contains(string(raw2), "copybtn") || strings.Contains(string(raw2), "/copy.js") || strings.Count(string(raw2), "<script") > 1 {
 		// Report.
-		t.Errorf("a page without a fitting version must carry no copy button, no script and the strict policy")
+		t.Errorf("a page without a fitting version must carry no copy button and no copy script")
 	} // end of the check
 } // end of TestFindResultsHaveCopyButtons
 
@@ -674,7 +674,7 @@ func TestOfflineCopyIsSavedAndShown(t *testing.T) {
 		} // end of the look
 	} // end of the loop
 	// No version, no command, no copy button: nothing is guessed.
-	for _, bad := range []string{"<code>ollama pull", "<strong>Fits:</strong>", "copybtn", "<script"} {
+	for _, bad := range []string{"<code>ollama pull", "<strong>Fits:</strong>", "copybtn", "/copy.js"} {
 		// It must be absent.
 		if strings.Contains(body, bad) {
 			// Report.
@@ -1827,7 +1827,7 @@ func TestFindSortChoice(t *testing.T) {
 	// The empty form page.
 	_, _, form := get(t, rig.h, http.MethodGet, "/findllm")
 	// The choice sits in the same paragraph as the button, with Most downloaded selected.
-	for _, want := range []string{`<p class="findaction"><button type="submit" class="btn-solid">Find LLM</button>`, `name="sort"`, `<option value="downloads" selected>Most downloaded</option>`, `<option value="name">Name A to Z</option>`, `Sort by <select class="keepselect" id="sortby" name="sort">`} {
+	for _, want := range []string{`<p class="findaction"><button type="submit" class="btn-solid btn-go">Find LLM</button>`, `name="sort"`, `<option value="downloads" selected>Most downloaded</option>`, `<option value="name">Name A to Z</option>`, `Sort by <select class="keepselect" id="sortby" name="sort">`} {
 		// Look for it.
 		if !strings.Contains(form, want) {
 			// Report.
@@ -1849,3 +1849,143 @@ func TestFindSortChoice(t *testing.T) {
 		t.Error("an unknown sort value did not fall back to Most downloaded")
 	} // end of the fallback check
 } // end of TestFindSortChoice
+
+// TestFindKeptSearchAndReset: the last search is kept in memory (choices and results) and shown again when the page is opened; the Reset button appears only after a search and forgets it; a new program starts empty.
+func TestFindKeptSearchAndReset(t *testing.T) {
+	// The saved library list goes to a throw-away folder, never to the real data folder.
+	isolateFindData(t)
+	// Start with an empty saved list.
+	theListCache = listCache{}
+	// Clear it again at the end.
+	t.Cleanup(func() { theListCache = listCache{} })
+	// A fake library.
+	fakeSite(t, findTestPages())
+	// The rig (a new program: nothing is kept).
+	rig := newThemeRig(t)
+	// Before any search: the starting form, no results, no Reset button.
+	_, _, first := get(t, rig.h, http.MethodGet, "/findllm")
+	// The checks.
+	if strings.Contains(first, "Reset Find LLM search options") || strings.Contains(first, "Models found") {
+		// Report.
+		t.Error("the page before any search shows a Reset button or results")
+	} // end of the first check
+	// A search with Name A to Z.
+	_, found := postFind(t, rig, url.Values{"token": {rig.token}, "sort": {"name"}, "disk_gb": {"100"}, "mem_gb": {"64"}})
+	// The results page has the Reset button and the results.
+	if !strings.Contains(found, "Reset Find LLM search options") || !strings.Contains(found, "Models found") {
+		// Report.
+		t.Fatal("the results page lacks the Reset button or the results")
+	} // end of the found check
+	// Back to the monitor and back again: the page shows the same results and choices.
+	_, _, again := get(t, rig.h, http.MethodGet, "/findllm")
+	// What must be there.
+	for _, want := range []string{"Reset Find LLM search options", "Models found", `<option value="name" selected>Name A to Z</option>`, `value="100.0"`, `value="64.0"`} {
+		// Look for it.
+		if !strings.Contains(again, want) {
+			// Report.
+			t.Errorf("the reopened page lacks %q", want)
+		} // end of the look
+	} // end of the loop
+	// The results are the same as the first time (the part after the heading "Models found").
+	if i, j := strings.Index(found, "Models found"), strings.Index(again, "Models found"); i < 0 || j < 0 || !strings.Contains(again[j:], "<h3>") && strings.Contains(found[i:], "<h3>") {
+		// Report.
+		t.Error("the reopened page does not show the kept models")
+	} // end of the same-results check
+	// A reset with a wrong token is refused and keeps the search.
+	if res := post(t, rig.h, "/findllm/reset", url.Values{"token": {"wrong"}}, fromThisPage); res.StatusCode != http.StatusForbidden {
+		// Report.
+		t.Errorf("reset with a wrong token = %d, want 403", res.StatusCode)
+	} // end of the token check
+	// The page still shows the kept search.
+	if _, _, still := get(t, rig.h, http.MethodGet, "/findllm"); !strings.Contains(still, "Models found") {
+		// Report.
+		t.Error("a refused reset forgot the search")
+	} // end of the still check
+	// A real reset redirects back to the page.
+	res := post(t, rig.h, "/findllm/reset", url.Values{"token": {rig.token}}, fromThisPage)
+	// Redirect to the page.
+	if res.StatusCode != http.StatusSeeOther || res.Header.Get("Location") != "/findllm" {
+		// Report.
+		t.Errorf("reset = %d to %q, want 303 to /findllm", res.StatusCode, res.Header.Get("Location"))
+	} // end of the redirect check
+	// After the reset: the starting form again, no results, no Reset button, Most downloaded selected.
+	_, _, cleared := get(t, rig.h, http.MethodGet, "/findllm")
+	// Nothing kept.
+	if strings.Contains(cleared, "Reset Find LLM search options") || strings.Contains(cleared, "Models found") || !strings.Contains(cleared, `<option value="downloads" selected>Most downloaded</option>`) {
+		// Report.
+		t.Error("the page after the reset still shows the kept search")
+	} // end of the cleared check
+	// A search that could not run (typed wrongly) is not kept.
+	postFind(t, rig, url.Values{"token": {rig.token}, "disk_gb": {"not a number"}})
+	// The page is still the starting form.
+	if _, _, after := get(t, rig.h, http.MethodGet, "/findllm"); strings.Contains(after, "Models found") {
+		// Report.
+		t.Error("a search with a typing mistake was kept")
+	} // end of the mistake check
+} // end of TestFindKeptSearchAndReset
+
+// TestFindPageHeadingsButtonAndArrows: the two range groups say Matches ANY ticked, the Find LLM button has the green of the System check page, and the back arrow is at the top, at the right end of the button row and at the bottom.
+func TestFindPageHeadingsButtonAndArrows(t *testing.T) {
+	// The saved library list goes to a throw-away folder, never to the real data folder.
+	isolateFindData(t)
+	// A fake library, which must not be asked.
+	fakeSite(t, findTestPages())
+	// The rig.
+	rig := newThemeRig(t)
+	// The empty form page.
+	_, _, form := get(t, rig.h, http.MethodGet, "/findllm")
+	// The note after each of the two range headings.
+	if n := strings.Count(form, `<small class="anynote">Matches ANY ticked</small>`); n != 2 {
+		// Report.
+		t.Errorf("Matches ANY ticked appears %d times, want 2", n)
+	} // end of the note check
+	// The note follows the group wording.
+	for _, want := range []string{"(none ticked: any size)</small> <small class=\"anynote\">", "(none ticked: any length)</small> <small class=\"anynote\">"} {
+		// Look for it.
+		if !strings.Contains(form, want) {
+			// Report.
+			t.Errorf("the page lacks %q", want)
+		} // end of the look
+	} // end of the loop
+	// The button uses the same classes as the green button of the System check page.
+	_, _, check := get(t, rig.h, http.MethodGet, "/systemcheck")
+	// The System check page has its green button.
+	if !strings.Contains(check, `class="btn-solid btn-go"`) || !strings.Contains(form, `<button type="submit" class="btn-solid btn-go">Find LLM</button>`) {
+		// Report.
+		t.Error("the Find LLM button does not use the green button classes")
+	} // end of the button check
+	// Before any search there is nothing to scroll past: two back arrows (top and button row), no bottom one.
+	if n := strings.Count(form, `aria-label="Back to the monitor"`); n != 2 || strings.Contains(form, `class="backbottom"`) {
+		// Report.
+		t.Errorf("the empty page has %d back arrows or a bottom arrow, want 2 and none", n)
+	} // end of the empty-page check
+	// Their bubbles have different ids.
+	for _, id := range []string{`id="tipback"`, `id="tipback-row"`} {
+		// Look for it.
+		if !strings.Contains(form, id) {
+			// Report.
+			t.Errorf("the page lacks %s", id)
+		} // end of the look
+	} // end of the loop
+	// The row arrow is inside the button row, after the order choice.
+	row, rowArrow := strings.Index(form, `<p class="findaction">`), strings.Index(form, `id="tipback-row"`)
+	// Order.
+	if row < 0 || rowArrow < row {
+		// Report.
+		t.Errorf("the row arrow is in the wrong place (row %d, row arrow %d)", row, rowArrow)
+	} // end of the order check
+	// A search that lists models: the third arrow appears at the bottom, after the row arrow.
+	_, listed := postFind(t, rig, url.Values{"token": {rig.token}, "disk_gb": {"100"}, "mem_gb": {"64"}})
+	// Three arrows, the bottom one last.
+	if n := strings.Count(listed, `aria-label="Back to the monitor"`); n != 3 || strings.Index(listed, `id="tipback-bottom"`) < strings.Index(listed, `id="tipback-row"`) {
+		// Report.
+		t.Errorf("the page with results has %d back arrows, want 3 with the bottom one last", n)
+	} // end of the listed check
+	// A search that lists nothing: only two arrows, no bottom one.
+	_, empty := postFind(t, rig, url.Values{"token": {rig.token}, "ab_embedding": {"on"}, "ab_tools": {"on"}, "disk_gb": {"100"}, "mem_gb": {"64"}})
+	// Nothing found, and no bottom arrow.
+	if !strings.Contains(empty, "No model matches") || strings.Contains(empty, `class="backbottom"`) || strings.Count(empty, `aria-label="Back to the monitor"`) != 2 {
+		// Report.
+		t.Errorf("the page with no match is wrong: has the words %v, %d arrows", strings.Contains(empty, "No model matches"), strings.Count(empty, `aria-label="Back to the monitor"`))
+	} // end of the empty-result check
+} // end of TestFindPageHeadingsButtonAndArrows

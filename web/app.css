@@ -2973,22 +2973,48 @@ html[data-size="medium"] svg[width="22"] {
   font-size: 1.05em;
 } /* end of rule */
 
-/* The button and the order choice on one line; plain inline layout. */
+/* The button row: the Find LLM button, the order choice, the reset button, and the back arrow at the right end. */
 .findaction {
-  /* Space above and below the line, as in a paragraph. */
-  line-height: 2.6;
+  /* The parts sit in a row. */
+  display: flex;
+  /* On a narrow window the parts wrap to the next line. */
+  flex-wrap: wrap;
+  /* Level with each other. */
+  align-items: center;
+  /* Space between the parts, across and down. */
+  gap: 0.5rem 1rem;
 } /* end of rule */
 
-/* The label and the list of the order choice. */
-.sortpick {
-  /* Next to the button, wrapping below it on a narrow window. */
-  display: inline-block;
-  /* Space between the button and the choice. */
-  margin-left: 1rem;
+/* The back arrow in the button row goes to the right end. */
+.findaction .backhere {
+  /* Push it to the right end of the row. */
+  margin-left: auto;
 } /* end of rule */
 
-/* The tags help line inside the row has the same space above and below as the twistie, so both sit level. */
-.keyrow .groupedhelp {
-  /* Same space as the twistie line. */
-  margin: 0.4rem 0 0.75rem;
+/* The back arrow at the bottom of the page, at the right end. */
+.backbottom {
+  /* To the right end. */
+  text-align: right;
+  /* Space above, so it is not glued to the last result. */
+  margin: 1.2rem 0 0;
+} /* end of rule */
+
+/* The two extra back arrows: the bubble ends at the right edge of the arrow, like the one at the top. */
+.backhere .tip-icon {
+  /* No left anchor. */
+  left: auto;
+  /* Its right edge lines up with the arrow. */
+  right: anchor(right);
+  /* As wide as its words. */
+  width: max-content;
+  /* Never wider than the normal bubble. */
+  max-width: min(26rem, 92vw);
+} /* end of rule */
+
+/* "Matches ANY ticked" after the heading of a group whose ticks always mean any of them. */
+.anynote {
+  /* A little bolder than the grey words next to it, so it is noticed. */
+  font-weight: 600;
+  /* The normal text colour. */
+  color: var(--text);
 } /* end of rule */

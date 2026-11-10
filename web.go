@@ -224,12 +224,16 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	// Open the saved results.
 	// One history store, shared by the performance pages and the comparison page.
 	perfHistory := openPerfStore(histPath, histNote)
-	// Make the two Find LLM handlers: the page with the choices, and the search that reads the public library (see findllm.go); the search marks installed versions with their saved speed, so it gets the saved results.
-	findShow, findSearch := findLLMHandlers(addr, token, perfHistory)
+	// Make the three Find LLM handlers: the page with the choices (or the kept results), the search that reads the public library, and the reset that forgets the kept search (see findllm.go); the search marks installed versions with their saved speed, so it gets the saved results.
+	findShow, findSearch, findReset, findResort := findLLMHandlers(addr, token, perfHistory)
 	// Route: a GET request for "/findllm" shows the choices and asks nothing from the internet.
 	mux.HandleFunc("GET /findllm", findShow)
 	// Route: a POST request for "/findllm/search" reads the library list and shows the matching models.
 	mux.HandleFunc("POST /findllm/search", findSearch)
+	// Route: a POST request for "/findllm/reset" forgets the kept search and shows the starting choices.
+	mux.HandleFunc("POST /findllm/reset", findReset)
+	// Route: a POST to "/findllm/resort" sorts the kept results again for the chosen order (no new search).
+	mux.HandleFunc("POST /findllm/resort", findResort)
 	// An older version kept the list of deleted models next to the results; bring it to the new folder first.
 	if msg := moveOldDeletedFile(histPath); msg != "" {
 		// Say so in the log; the list is then simply empty until the file can be moved.
@@ -301,6 +305,8 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	mux.HandleFunc("GET /countdown.js", countdownHandler)
 	// Route: a GET request for "/copy.js" sends the small script behind the copy buttons next to commands (only the restore page uses it).
 	mux.HandleFunc("GET /copy.js", copyHandler)
+	// Route: a GET request for "/sortpick.js" sends the small script that re-sorts the Find LLM results when the Sort by choice changes.
+	mux.HandleFunc("GET /sortpick.js", sortPickHandler)
 	// Route: a GET request for "/loading.js" sends the small script that shows the waiting message while a model loads (only the load warning page uses it).
 	mux.HandleFunc("GET /loading.js", loadingHandler)
 	// Route: a GET request for "/attention.js" sends the small script that opens the problem dialog (only the System check page uses it, and only when it found a problem).
