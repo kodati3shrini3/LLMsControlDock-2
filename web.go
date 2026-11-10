@@ -311,6 +311,8 @@ func newWebHandlerWith(addr ollamaAddress, timeout time.Duration, mon *monitor) 
 	mux.HandleFunc("GET /copy.js", copyHandler)
 	// Route: a GET request for "/sortpick.js" sends the small script that re-sorts the Find LLM results when the Sort by choice changes.
 	mux.HandleFunc("GET /sortpick.js", sortPickHandler)
+	// Route: a GET request for "/helpclose.js" sends the small script that makes the collapse buttons of the Help page work.
+	mux.HandleFunc("GET /helpclose.js", helpCloseHandler)
 	// Route: a GET request for "/loading.js" sends the small script that shows the waiting message while a model loads (only the load warning page uses it).
 	mux.HandleFunc("GET /loading.js", loadingHandler)
 	// Route: a GET request for "/attention.js" sends the small script that opens the problem dialog (only the System check page uses it, and only when it found a problem).

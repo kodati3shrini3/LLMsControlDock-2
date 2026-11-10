@@ -3045,10 +3045,28 @@ html[data-size="medium"] svg[width="22"] {
   position: relative;
 } /* end of rule */
 
-/* One topic on the Help page. */
+/* One topic on the Help page: a block of its own, with a transparent bar on the left so that opening a topic does not move anything. */
 .helptopic {
-  /* Space above the topic. */
-  margin: 1.5rem 0;
+  /* A small space between the topics, so the bands read as separate blocks. */
+  margin: 0.4rem 0;
+  /* Room inside the block. */
+  padding: 0.1rem 0.9rem 0.1rem 0.7rem;
+  /* The bar on the left: invisible while the topic is closed, so the text does not shift when it opens. */
+  border-left: 6px solid transparent;
+  /* Slightly rounded corners, like the other boxes. */
+  border-radius: 0.5rem;
+} /* end of rule */
+
+/* Every second topic is tinted with the same soft blue band as the category rows (text contrast 13.9:1 in light, 10.6:1 in dark). */
+details.helptopic:nth-of-type(even) {
+  /* The band colour from the variables, set for light and dark. */
+  background: var(--cat-bg);
+} /* end of rule */
+
+/* The open topic shows the accent bar at its left edge (the same colour as the category rows), so the long diagram's start and end are easy to see. */
+details.helptopic[open] {
+  /* The accent colour from the variables, set for light and dark. */
+  border-left-color: var(--cat-accent);
 } /* end of rule */
 
 /* The swimlane picture: as wide as the card, never wider, so the page does not scroll sideways. */
@@ -3127,4 +3145,44 @@ html[data-size="medium"] svg[width="22"] {
 .helpsteps {
   /* Room for the numbers. */
   padding-left: 1.5rem;
+} /* end of rule */
+
+/* The clickable title row of a closed or open topic. */
+.helpsum {
+  /* Shows the pointing hand over the title. */
+  cursor: pointer;
+  /* Space around the title, so it is easy to hit. */
+  padding: 0.4rem 0;
+} /* end of rule */
+
+/* The title inside the clickable row stays on the same line as the open or close triangle. */
+.helpsum h2 {
+  /* Next to the triangle. */
+  display: inline;
+  /* Same size as other section headings. */
+  font-size: 1.1rem;
+} /* end of rule */
+
+/* The back arrow row at the top and bottom of an open topic: the arrow sits at the right end. */
+.helpback {
+  /* At the right. */
+  text-align: right;
+  /* Space above and below. */
+  margin: 0.6rem 0;
+} /* end of rule */
+
+/* The collapse button of the Help page is a real button: same round look as the back arrow, with no extra padding and a pointing hand. */
+button.helpclose {
+  /* No padding of a normal button. */
+  padding: 0;
+  /* The pointing hand. */
+  cursor: pointer;
+  /* The same font as the page. */
+  font: inherit;
+} /* end of rule */
+
+/* The collapse button is hidden until the script shows it. */
+button.helpclose[hidden] {
+  /* Really hidden, even though the circle sets its own display. */
+  display: none;
 } /* end of rule */
