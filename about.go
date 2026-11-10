@@ -142,6 +142,10 @@ type aboutPage struct {
 	Services []companyService
 	// Platform is the Go version, the operating system and the processor type.
 	Platform string
+	// Token is the page's secret for the estimate button.
+	Token string
+	// Estimate is the last saved estimate, or nil when there is none.
+	Estimate *estimateView
 } // end of aboutPage
 
 // revisionFromBuild picks the short revision, the modified flag and the revision date (always shown in UTC) out of the recorded build facts.
@@ -192,7 +196,7 @@ func revisionFromBuild() (string, bool, string) {
 } // end of revisionFromBuild
 
 // aboutHandler builds the handler of the read-only About page; it changes nothing and needs no token.
-func aboutHandler() http.HandlerFunc {
+func aboutHandler(token string) http.HandlerFunc {
 	// Read the template once; Must stops the program at start-up if it is broken, which a test would catch first.
 	page := template.Must(template.New("about").Parse(aboutTemplateText))
 	// The handler itself.
@@ -239,9 +243,18 @@ func aboutHandler() http.HandlerFunc {
 			CompanyURL: companyLink("about-card"),
 			// The services.
 			Services: companyServices,
+			// The form's token for the estimate button.
+			Token: token,
 			// Go version, system and processor.
 			Platform: runtime.Version() + " on " + runtime.GOOS + "/" + runtime.GOARCH,
 		} // end of the data
+		// The last saved estimate, if there is one.
+		if e, ok := loadSelfEstimate(); ok {
+			// Its texts.
+			v := viewOfEstimate(e)
+			// Show it.
+			data.Estimate = &v
+		} // end of the estimate check
 		// Build the page in memory first, so a template error produces a clean 500 and not a half page.
 		var buf bytes.Buffer
 		// Run the template.
