@@ -22,13 +22,21 @@
 {{/* The name of the page. */}}
 <h1>Help</h1>
 {{/* What the page is. */}}
-<p class="muted">Each topic shows who does what, in lanes, from the top down. This is the first topic; more follow.</p>
-{{/* The topics. */}}
+<p class="muted">Each topic shows who does what, in lanes, from the top down. Click a topic's title to open it. This is the first topic; more follow.</p>
+{{/* The contents: a link to every topic's title. */}}
+<nav aria-label="Help topics">
+<ul class="helptoc">
+{{range .Topics}}<li><a href="#{{.ID}}">{{.Title}}</a></li>
+{{end}}</ul>
+</nav>
+{{/* The topics; each one starts closed and opens when its title is clicked (no script is needed). */}}
 {{range $t := .Topics}}
 {{/* One topic. */}}
-<section class="helptopic" id="{{.ID}}" aria-labelledby="{{.ID}}-title">
-{{/* Its heading. */}}
-<h2 id="{{.ID}}-title">{{.Title}}</h2>
+<details class="helptopic" id="{{.ID}}">
+{{/* Its heading, which is also the button that opens it. */}}
+<summary class="helpsum"><h2 id="{{.ID}}-title">{{.Title}}</h2></summary>
+{{/* A way back to the monitor at the top of the open topic. */}}
+<p class="helpback"><span class="tipbox backhere"><a class="backcircle" href="/" aria-label="Back to the monitor" aria-describedby="tipback-{{$t.ID}}-top"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg></a><span class="tip tip-icon" role="tooltip" id="tipback-{{$t.ID}}-top">Back to the monitor</span></span></p>
 {{/* The plain introduction. */}}
 <p>{{.Intro}}</p>
 {{/* The picture; its name and description are read by screen readers, and the numbered list below says the same in words. */}}
@@ -56,8 +64,10 @@
 <ol class="helpsteps">
 {{range .List}}<li><strong>{{.Lane}}:</strong> {{.Text}}</li>
 {{end}}</ol>
+{{/* A way back to the monitor at the bottom of the open topic, because the pictures are long. */}}
+<p class="helpback"><span class="tipbox backhere"><a class="backcircle" href="/" aria-label="Back to the monitor" aria-describedby="tipback-{{$t.ID}}-bottom"><svg class="ico" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M11 6l-6 6 6 6"/></svg></a><span class="tip tip-icon" role="tooltip" id="tipback-{{$t.ID}}-bottom">Back to the monitor</span></span></p>
 {{/* End of the topic. */}}
-</section>
+</details>
 {{end}}
 {{/* A link back. */}}
 <p><a class="btn-plain" href="/">Back to the monitor</a></p>

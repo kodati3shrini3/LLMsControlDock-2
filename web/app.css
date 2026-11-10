@@ -3128,3 +3128,33 @@ html[data-size="medium"] svg[width="22"] {
   /* Room for the numbers. */
   padding-left: 1.5rem;
 } /* end of rule */
+
+/* The list of topic links at the top of the Help page. */
+.helptoc {
+  /* Room for the bullets. */
+  padding-left: 1.5rem;
+} /* end of rule */
+
+/* The clickable title row of a closed or open topic. */
+.helpsum {
+  /* Shows the pointing hand over the title. */
+  cursor: pointer;
+  /* Space around the title, so it is easy to hit. */
+  padding: 0.4rem 0;
+} /* end of rule */
+
+/* The title inside the clickable row stays on the same line as the open or close triangle. */
+.helpsum h2 {
+  /* Next to the triangle. */
+  display: inline;
+  /* Same size as other section headings. */
+  font-size: 1.1rem;
+} /* end of rule */
+
+/* The back arrow row at the top and bottom of an open topic: the arrow sits at the right end. */
+.helpback {
+  /* At the right. */
+  text-align: right;
+  /* Space above and below. */
+  margin: 0.6rem 0;
+} /* end of rule */

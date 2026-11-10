@@ -131,6 +131,38 @@ func TestHelpPage(t *testing.T) {
 			t.Errorf("lane %q has no name in the picture", l)
 		} // end of the look
 	} // end of the lane loop
+	// Each topic is a closed section that opens when its title is clicked, and the contents list links to it.
+	for _, tp := range helpTopics {
+		// The closed section (no "open" word).
+		if !strings.Contains(body, `<details class="helptopic" id="`+tp.ID+`">`) || strings.Contains(body, `<details class="helptopic" id="`+tp.ID+`" open`) {
+			// Report.
+			t.Errorf("topic %s is not a closed section", tp.ID)
+		} // end of the section check
+		// The contents link.
+		if !strings.Contains(body, `<li><a href="#`+tp.ID+`">`+html.EscapeString(tp.Title)+`</a></li>`) {
+			// Report.
+			t.Errorf("the contents list lacks a link to %s", tp.ID)
+		} // end of the link check
+		// The title is the clickable row.
+		if !strings.Contains(body, `<summary class="helpsum"><h2 id="`+tp.ID+`-title">`) {
+			// Report.
+			t.Errorf("topic %s has no clickable title", tp.ID)
+		} // end of the title check
+		// An arrow at the top of the open topic (before the picture) and one at the bottom (after the list).
+		top, bottom := strings.Index(body, `id="tipback-`+tp.ID+`-top"`), strings.Index(body, `id="tipback-`+tp.ID+`-bottom"`)
+		// The picture and the list.
+		svg, list := strings.Index(body, `<svg class="swimlane"`), strings.Index(body, `<ol class="helpsteps">`)
+		// Check the order.
+		if top < 0 || bottom < 0 || !(top < svg && list < bottom) {
+			// Report.
+			t.Errorf("topic %s: arrows at %d and %d, picture at %d, list at %d", tp.ID, top, bottom, svg, list)
+		} // end of the arrow check
+	} // end of the topic loop
+	// The page's own arrow plus two for every topic.
+	if n := strings.Count(body, `aria-label="Back to the monitor"`); n != 1+2*len(helpTopics) {
+		// Report.
+		t.Errorf("%d back arrows, want %d", n, 1+2*len(helpTopics))
+	} // end of the arrow count
 	// The monitor links to the Help page.
 	if _, _, main := get(t, rig.h, http.MethodGet, "/"); !strings.Contains(main, `<a class="brandbtn" href="/help">Help</a>`) {
 		// Report.
