@@ -83,6 +83,32 @@
 {{end}}
 {{/* End of the estimate card. */}}
 </section>
+{{/* Where the program keeps its files: on this computer, and on each system. */}}
+<section id="places" class="estimatecard" aria-labelledby="placestitle">
+{{/* The heading. */}}
+<h2 id="placestitle">Where this program keeps its files</h2>
+{{/* What happens without and with installing. */}}
+<p class="muted">The program makes each folder only when it first needs it, so a folder can be missing until then. Running the program once with <code>-install</code> makes them all at once, after asking, and also places the program and the desktop icon. Uninstall removes them again.</p>
+{{/* The places on this computer. */}}
+<h3>On this computer</h3>
+<table class="settingtable placestable">
+<thead><tr><th scope="col">What</th><th scope="col">Where</th><th scope="col">Now</th></tr></thead>
+<tbody>
+{{range .Places}}<tr><th scope="row">{{.What}}</th><td data-label="Where"><code>{{.Where}}</code></td><td data-label="Now">{{.State}}</td></tr>
+{{end}}</tbody>
+</table>
+{{/* The same places on each system. */}}
+<h3>On each system</h3>
+<table class="settingtable placestable">
+<thead><tr><th scope="col">What</th><th scope="col">Linux</th><th scope="col">Windows</th><th scope="col">macOS</th></tr></thead>
+<tbody>
+{{range .Systems}}<tr><th scope="row">{{.What}}</th><td data-label="Linux"><code>{{.Linux}}</code></td><td data-label="Windows"><code>{{.Windows}}</code></td><td data-label="macOS"><code>{{.Mac}}</code></td></tr>
+{{end}}</tbody>
+</table>
+{{/* The meaning of the short forms. */}}
+<p class="muted"><small><code>~</code> is your home folder. <code>%AppData%</code> and <code>%LocalAppData%</code> are your Windows folders of that name. On Linux, the settings, data and state folders follow <code>$XDG_CONFIG_HOME</code>, <code>$XDG_DATA_HOME</code> and <code>$XDG_STATE_HOME</code> when they are set. On macOS the three are one folder. The desktop icon sits on your Desktop when you choose it.</small></p>
+{{/* End of the places card. */}}
+</section>
 {{/* The dedication, set apart so it stands out. */}}
 <blockquote class="dedication">{{.Dedication}}</blockquote>
 {{/* The developer's company: what it does, and a way to find out more. */}}

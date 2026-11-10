@@ -42,8 +42,8 @@ func TestWrapText(t *testing.T) {
 func TestHelpTopicsFitTheirBoxes(t *testing.T) {
 	// Each topic.
 	for _, tp := range helpTopics {
-		// There must be steps and an introduction.
-		if len(tp.Steps) < 2 || tp.Intro == "" || tp.ID == "" || tp.Title == "" {
+		// There must be an introduction, and either steps (a diagram) or a guide, never both.
+		if (len(tp.Steps) < 2) == (len(tp.Guide) == 0) || tp.Intro == "" || tp.ID == "" || tp.Title == "" {
 			// Report.
 			t.Errorf("topic %q is incomplete", tp.ID)
 		} // end of the completeness check
@@ -117,6 +117,11 @@ func TestHelpPage(t *testing.T) {
 	boxes, arrows := 0, 0
 	// Add them up.
 	for _, tp := range helpTopics {
+		// A guide topic has no diagram.
+		if len(tp.Steps) == 0 {
+			// Nothing to add.
+			continue
+		} // end of the guide case
 		// Steps and the arrows between them.
 		boxes += len(tp.Steps)
 		// One fewer arrow than steps.
@@ -160,6 +165,13 @@ func TestHelpPage(t *testing.T) {
 		top, bottom := strings.Index(sec, `id="tipclose-`+tp.ID+`-top"`), strings.Index(sec, `id="tipclose-`+tp.ID+`-bottom"`)
 		// The picture and the list.
 		svg, list := strings.Index(sec, `<svg class="swimlane"`), strings.Index(sec, `<ol class="helpsteps">`)
+		// A guide topic has its guide in place of both.
+		if len(tp.Guide) > 0 {
+			// The guide stands for the picture and the list.
+			svg = strings.Index(sec, `<div class="helpguide">`)
+			// The same place.
+			list = svg
+		} // end of the guide case
 		// Check the order.
 		if top < 0 || bottom < 0 || !(top < svg && list < bottom) {
 			// Report.
@@ -297,3 +309,103 @@ func TestHelpTopicsAreBanded(t *testing.T) {
 		} // end of the muted contrast
 	} // end of the loop
 } // end of TestHelpTopicsAreBanded
+
+// TestHelpPerformanceGuide checks the reading guide: it follows the Performance test topic, every figure is explained with an example taken from the Performance page's own help bubbles, the page opens it when a link asks for it, and the Performance and Compare pages link to it.
+func TestHelpPerformanceGuide(t *testing.T) {
+	// Find the guide and the topic before it.
+	idx := -1
+	// Look through the topics.
+	for i, tp := range helpTopics {
+		// The guide.
+		if tp.ID == helpPerfGuideID {
+			// Found.
+			idx = i
+		} // end of the match
+	} // end of the search
+	// It must exist and come right after the Performance test topic.
+	if idx < 1 || helpTopics[idx-1].ID != "performance-test" || len(helpTopics[idx].Steps) != 0 || len(helpTopics[idx].Guide) == 0 {
+		// Stop.
+		t.Fatalf("the guide is missing, misplaced or not a guide (index %d)", idx)
+	} // end of the place check
+	// The filled guide.
+	parts := fillGuide(helpTopics[idx].Guide)
+	// Count the figures.
+	rows := 0
+	// Each part and row.
+	for _, part := range parts {
+		// A heading and a paragraph.
+		if part.Heading == "" || part.Text == "" {
+			// Report.
+			t.Errorf("a part lacks its heading or text: %+v", part)
+		} // end of the part check
+		// Each row.
+		for _, r := range part.Rows {
+			// One more.
+			rows++
+			// Every column is filled.
+			if r.Figure == "" || r.Means == "" || r.Better == "" || r.Example == "" {
+				// Report.
+				t.Errorf("figure %q has an empty column", r.Figure)
+			} // end of the column check
+			// A figure with a help bubble says exactly what the bubble says.
+			if tip, ok := helpFor(r.Figure); ok && (r.Means != tip.Plain || r.Example != tip.Example) {
+				// Report.
+				t.Errorf("figure %q differs from its help bubble", r.Figure)
+			} // end of the bubble check
+		} // end of the row loop
+	} // end of the part loop
+	// Every main figure of the Performance page is in the guide.
+	for _, want := range []string{"Answer speed", "Prompt reading speed", "Time to first word", "Total time", "Load time", "Processor split", "Memory used", "Embedding time", "Vector length", "Tokens counted", "Change since the previous run", "Other models loaded", "CPU load", "Swap in use", "GPU"} {
+		// Look for it.
+		found := false
+		// Each part and row.
+		for _, part := range parts {
+			// Each row.
+			for _, r := range part.Rows {
+				// A match.
+				if r.Figure == want {
+					// Found.
+					found = true
+				} // end of the match
+			} // end of the row loop
+		} // end of the part loop
+		// It must be there.
+		if !found {
+			// Report.
+			t.Errorf("the guide does not explain %q", want)
+		} // end of the found check
+	} // end of the figure loop
+	// The page.
+	rig := newThemeRig(t)
+	// Without a request, every topic is closed and the guide is drawn as tables.
+	_, _, body := get(t, rig.h, http.MethodGet, "/help")
+	// No open topic, and one table row per figure.
+	if strings.Contains(body, `" open>`) || strings.Count(body, `<td data-label="What it tells you">`) != rows {
+		// Report.
+		t.Errorf("closed page: open topic found or %d figure rows, want %d", strings.Count(body, `<td data-label="What it tells you">`), rows)
+	} // end of the closed check
+	// Asked for the guide: only the guide is open.
+	_, _, body = get(t, rig.h, http.MethodGet, "/help?topic="+helpPerfGuideID)
+	// Exactly one open topic, and it is the guide.
+	if strings.Count(body, `" open>`) != 1 || !strings.Contains(body, `<details class="helptopic" id="`+helpPerfGuideID+`" open>`) {
+		// Report.
+		t.Error("the guide is not the one open topic when asked for")
+	} // end of the open check
+	// An unknown name opens nothing and is not written into the page.
+	_, _, body = get(t, rig.h, http.MethodGet, "/help?topic=%3Cb%3Enope")
+	// Nothing open, nothing echoed.
+	if strings.Contains(body, `" open>`) || strings.Contains(body, "nope") {
+		// Report.
+		t.Error("an unknown topic name opened a topic or was echoed")
+	} // end of the unknown check
+	// The link that the Performance and Compare pages carry.
+	link := `href="/help?topic=` + helpPerfGuideID + `#` + helpPerfGuideID + `">How to read these results</a>`
+	// Both templates carry it.
+	for name, text := range map[string]string{"performance": performanceTemplateText, "compare": compareTemplateText} {
+		// Look for it.
+		if !strings.Contains(text, link) {
+			// Report.
+			t.Errorf("the %s page has no link to the guide", name)
+		} // end of the link check
+	} // end of the template loop
+} // end of TestHelpPerformanceGuide

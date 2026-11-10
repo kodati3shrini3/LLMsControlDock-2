@@ -166,10 +166,10 @@ page_check "monitor (home) page" / 200 text/html "LLMsControlDock"
 page_check "About page" /about 200 text/html "About LLMsControlDock"
 # The Help page.
 page_check "Help page" /help 200 text/html "Help"
-# The Help page must carry all eleven topics.
+# The Help page must carry all thirteen topics.
 TOPICS="$(grep -o '<details class="helptopic"' "$WORK/body" | wc -l)"
 # Count them.
-if [ "$TOPICS" = "11" ]; then ok "Help page has 11 topics"; else bad "Help page has 11 topics" "found $TOPICS"; fi
+if [ "$TOPICS" = "13" ]; then ok "Help page has 13 topics"; else bad "Help page has 13 topics" "found $TOPICS"; fi
 # The Settings page.
 page_check "Settings page" /settings 200 text/html "Settings"
 # The Find LLM page (only the choices; this does not search the internet).

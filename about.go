@@ -26,7 +26,7 @@ import ( // import lists the packages this file uses.
 var aboutTemplateText string
 
 // appVersion is the version of LLMsControlDock; it is raised by hand when a release is made.
-const appVersion = "0.31.0"
+const appVersion = "0.32.0"
 
 // appDeveloper is the name of the developer, shown on the About page.
 const appDeveloper = "Shrinivas Kodati"
@@ -146,6 +146,10 @@ type aboutPage struct {
 	Token string
 	// Estimate is the last saved estimate, or nil when there is none.
 	Estimate *estimateView
+	// Places are the places on this computer where the program keeps its files.
+	Places []placeRow
+	// Systems are the same places written for Linux, Windows and macOS.
+	Systems []systemPlaces
 } // end of aboutPage
 
 // revisionFromBuild picks the short revision, the modified flag and the revision date (always shown in UTC) out of the recorded build facts.
@@ -247,6 +251,10 @@ func aboutHandler(token string) http.HandlerFunc {
 			Token: token,
 			// Go version, system and processor.
 			Platform: runtime.Version() + " on " + runtime.GOOS + "/" + runtime.GOARCH,
+			// The places on this computer, from the same functions that create them.
+			Places: placesHere(),
+			// The same places on each system.
+			Systems: placesBySystem(),
 		} // end of the data
 		// The last saved estimate, if there is one.
 		if e, ok := loadSelfEstimate(); ok {
