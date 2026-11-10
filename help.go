@@ -46,8 +46,23 @@ type helpTopic struct {
 	Steps []helpStep
 } // end of helpTopic
 
-// helpTopics are the topics of the Help page; each one is checked against what the program really does.
+// helpTopics are the topics of the Help page, in the order a person typically meets them (first start, finding and loading a model, tuning, testing, comparing, tidying up, settings, stopping, uninstalling); each one is checked against what the program really does.
 var helpTopics = []helpTopic{
+	{
+		ID:    "system-check",
+		Title: "System check: what this computer offers",
+		Intro: "The first time the program starts, it shows this report before the monitor. It lists the processors, memory and graphics cards of this computer, checks that Ollama is found and states what the tool needs. If a problem stops the tool from working fully, an alert lists the steps to fix it. The report stays available later in the footer bar.",
+		Steps: []helpStep{
+			{0, "Start LLMsControlDock for the first time."},
+			{1, "Opens the System check before the monitor."},
+			{1, "Reads this computer: processors, memory, graphics cards."},
+			{1, "Asks Ollama for its version."},
+			{2, "Answers with its version, or does not answer."},
+			{1, "Shows the report. A problem opens an alert with the fixes."},
+			{0, "Read it and press Continue to the monitor."},
+			{1, "Remembers the answer and opens the monitor."},
+		},
+	},
 	{
 		ID:    "find-llm",
 		Title: "Find LLM: from your needs to a model you can install",
@@ -65,6 +80,142 @@ var helpTopics = []helpTopic{
 			{1, "Checks every version against your limits and lists them."},
 			{0, "Copy the command of a version that fits."},
 			{2, "Downloads the model when you run the command."},
+		},
+	},
+	{
+		ID:    "load-model",
+		Title: "Load a model into memory",
+		Intro: "Loading puts an installed model into memory, so that it answers quickly. Nothing is loaded until you confirm. If the free memory is short or close to what the model needs, the page warns you first.",
+		Steps: []helpStep{
+			{0, "Press Load on the model's row in the monitor."},
+			{1, "Shows the free memory and the memory the model needs."},
+			{0, "Choose how long it stays loaded and confirm."},
+			{1, "Asks Ollama to load the model."},
+			{2, "Reads the model from disk into memory."},
+			{1, "Asks Ollama until the model is listed as loaded."},
+			{2, "Reports its loaded models."},
+			{1, "Shows the result and the time before Ollama unloads it."},
+		},
+	},
+	{
+		ID:    "tune-model",
+		Title: "Tune a model: inference parameters",
+		Intro: "Inference parameters are stored inside the model in Ollama, so every program that loads the model without a value of its own uses them. The model must not be loaded: a loaded model keeps the settings it was loaded with. A saved setting can be changed but never emptied. The Modelfile button only shows the model's Modelfile, read-only.",
+		Steps: []helpStep{
+			{0, "Press the inference parameters icon on an unloaded model."},
+			{1, "Shows the saved values and a field for each new one."},
+			{0, "Type the new values and press Review the changes."},
+			{1, "Shows now and after saving, and warns that the model changes."},
+			{0, "Press Yes, save them into the model."},
+			{1, "Asks Ollama to save the values in the model."},
+			{2, "Stores them inside the model."},
+			{1, "Asks Ollama again what it reports and shows the result."},
+		},
+	},
+	{
+		ID:    "performance-test",
+		Title: "Performance test of a model",
+		Intro: "The test measures how fast a model runs on this machine. It uses the same fixed prompt every time and saves only numbers, never any text. Do not run it while the model is in use: a loaded model is refused, and the page warns when the machine looks busy.",
+		Steps: []helpStep{
+			{0, "Press Performance on an unloaded model's row."},
+			{1, "Shows the cautions, the steps of the test and its time."},
+			{0, "Make sure nobody uses the model and press Run."},
+			{1, "Sends a warm-up request; its load time is the cold figure."},
+			{2, "Loads the model from disk and answers."},
+			{1, "Sends three timed requests and keeps the median."},
+			{2, "Answers each timed request."},
+			{1, "Reads Ollama's report and the machine; saves numbers only."},
+			{2, "Unloads the model, so memory is left as it was found."},
+			{1, "Shows the speed and the tests saved for this model."},
+		},
+	},
+	{
+		ID:    "compare-models",
+		Title: "Compare tested models, and re-test",
+		Intro: "Compare lists the models that already went through a performance test, in groups, with the reason for each group and how to read the figures. A re-test adds new results for a group and keeps the old ones. A loaded model is left alone, because it may be in use.",
+		Steps: []helpStep{
+			{0, "Press Compare tested models on the monitor."},
+			{1, "Groups the tested models and shows their figures."},
+			{0, "Read the groups. Save a PDF or CSV if you wish."},
+			{0, "Press Re-test this group to add new results."},
+			{1, "Shows which models will be tested. Nothing runs yet."},
+			{0, "Press Yes, re-test."},
+			{1, "Tests the models one after another, as in a performance test."},
+			{2, "Loads each model, answers, and unloads it."},
+			{1, "Saves a new result for each model. Old results stay."},
+			{0, "Press Show the comparison to see the new figures."},
+		},
+	},
+	{
+		ID:    "unload-model",
+		Title: "Unload a model from memory",
+		Intro: "Unloading frees the memory of a loaded model. The monitor cannot see whether a model is working on a request right now, so the page warns you first. If you do nothing, Ollama unloads the model by itself after its time runs out.",
+		Steps: []helpStep{
+			{0, "Press Unload on a loaded model's row."},
+			{1, "Warns that it cannot see whether the model is in use."},
+			{0, "Press Yes, unload it now, only if nothing uses the model."},
+			{1, "Asks Ollama to unload the model now."},
+			{2, "Unloads the model."},
+			{1, "Checks that it left the loaded list and tells you."},
+		},
+	},
+	{
+		ID:    "delete-restore",
+		Title: "Delete a model, and restore it later",
+		Intro: "Delete removes a model from this computer and frees its disk space; the tuning you made is lost. Restore downloads the latest version of the same name again. A model you made yourself, from a Modelfile or an import, cannot be downloaded again. A loaded model asks for a hold, or for its name typed to force the delete.",
+		Steps: []helpStep{
+			{0, "Press Delete on the model's row."},
+			{1, "Explains what you lose and how much space it frees."},
+			{0, "Press Yes, delete it."},
+			{1, "Saves a snapshot of the model's inference parameters."},
+			{1, "Asks Ollama to delete the model."},
+			{2, "Removes the model and frees the disk space."},
+			{1, "Remembers name, size and time; greys the row out."},
+			{0, "Press Restore when you want the model back."},
+			{1, "Shows the pull command for each way Ollama runs."},
+			{0, "Run the command where Ollama runs."},
+			{3, "Sends the latest version of that name."},
+			{2, "Stores it; the greyed row disappears."},
+		},
+	},
+	{
+		ID:    "settings",
+		Title: "Settings",
+		Intro: "Settings holds the Ollama address, the check interval, the timeout, the chart history and the access from other machines. Values marked restart are used the next time the monitor starts; the others apply at once. The desktop icon is created, updated or removed on the same page.",
+		Steps: []helpStep{
+			{0, "Press Settings in the monitor's top bar."},
+			{1, "Shows each setting: in use now, new value and default."},
+			{0, "Change what you need and press Save settings."},
+			{1, "Checks every value. A wrong one is refused with a reason."},
+			{1, "Saves the values in the settings folder."},
+			{1, "Applies at once what is not marked restart."},
+			{0, "Stop and start the program for settings marked restart."},
+		},
+	},
+	{
+		ID:    "stop-program",
+		Title: "Stop the program",
+		Intro: "Stopping closes LLMsControlDock. Ollama and its models are not touched: whatever is loaded stays loaded.",
+		Steps: []helpStep{
+			{0, "Press Stop in the monitor's top bar."},
+			{1, "Asks first, and says what is running right now."},
+			{0, "Press Yes, stop the monitor."},
+			{1, "Closes the program."},
+			{2, "Stays as it was. Loaded models stay loaded."},
+			{0, "Start the program again when you need it."},
+		},
+	},
+	{
+		ID:    "uninstall",
+		Title: "Uninstall",
+		Intro: "Uninstalling deletes what this tool collected on this computer: its settings, the performance results and saved comparisons, the list of deleted models, the check history and the desktop icon. Ollama, its models and the program file are not touched. A running program cannot delete itself, so you delete the program file yourself.",
+		Steps: []helpStep{
+			{0, "Open System check and press Uninstall this tool."},
+			{1, "Lists what would be removed, and where."},
+			{0, "If data was saved, type uninstall and press OK."},
+			{1, "Deletes those items and stops the program."},
+			{2, "Not touched. Its models stay."},
+			{0, "Delete the program file yourself. The page shows where it is."},
 		},
 	},
 } // end of helpTopics
@@ -260,7 +411,9 @@ func helpHandler() http.HandlerFunc {
 			// Stop here.
 			return
 		} // end of the template check
-		// Tell the browser this is an HTML page; the strict policy without scripts stays in place.
+		// The page runs the monitor's own small script file, and nothing else.
+		w.Header().Set("Content-Security-Policy", contentSecurityPolicyWithScript)
+		// Tell the browser this is an HTML page.
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		// Send the finished page.
 		w.Write(buf.Bytes())
