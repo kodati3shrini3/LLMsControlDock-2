@@ -114,6 +114,8 @@ type uninstallItem struct {
 
 // sysPage is what the System check templates show.
 type sysPage struct {
+	// ProgramGone is true when the running program file was the copy -install placed and the uninstall removed it.
+	ProgramGone bool
 	// Kind is report, uninstall or removed.
 	Kind string
 	// Theme and Size are the saved look.
@@ -236,6 +238,24 @@ func uninstallPlan(d desktopIcon) []uninstallItem {
 		// Add it.
 		items = append(items, uninstallItem{What: "Desktop icon", Where: d.desktopPath(), remove: d.removeFiles})
 	} // end of the icon case
+	// The program copy that -install placed (only that copy, only when it is unchanged and in the standard place).
+	if path, ok := installedCopy(stateRoot()); ok {
+		// Add it, with its own removal.
+		items = append(items, uninstallItem{What: "Installed program (placed by -install)", Where: path, remove: func() error {
+			// Remove the file.
+			if err := os.Remove(path); err != nil {
+				// Windows cannot delete a program while it runs: say what to do.
+				return fmt.Errorf("%v (if this copy is the one running, delete the file after the program has stopped)", err)
+			} // end of the remove check
+			// Its own folder on Windows is removed too when it is empty now (an error just means it is not empty).
+			if filepath.Base(filepath.Dir(path)) == dataFolderName {
+				// Only an empty folder is removed.
+				_ = os.Remove(filepath.Dir(path))
+			} // end of the folder check
+			// Done.
+			return nil
+		}}) // end of the program item
+	} // end of the program case
 	// The three folders; on macOS they are the same folder, so equal paths are joined into one line.
 	type folder struct {
 		// what names it.
@@ -486,8 +506,17 @@ func systemCheckHandlers(addr ollamaAddress, mon *monitor, token string, desktop
 				stopRequest()
 			}() // end of the goroutine
 		}) // end of once
+		// The program file was the installed copy and is gone now: nothing is left to delete by hand.
+		gone := false
+		// Only a known path that no longer exists counts.
+		if exe != "" {
+			// Look for it.
+			_, statErr := os.Stat(exe)
+			// Missing now.
+			gone = statErr != nil
+		} // end of the gone check
 		// Send the result page.
-		send(w, r, sysPage{Kind: "removed", Items: items, Program: exe})
+		send(w, r, sysPage{Kind: "removed", Items: items, Program: exe, ProgramGone: gone})
 		// Send it now, so it reaches the browser before the program ends.
 		if f, ok := w.(http.Flusher); ok {
 			// Flush.

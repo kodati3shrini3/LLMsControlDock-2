@@ -2,7 +2,7 @@
 
 A small program that watches an [Ollama](https://ollama.com) server and lets you control it from one web page: see which models are loaded, load and unload them, change their settings, test their speed and compare them. It runs on your own computer and needs nothing but Ollama and a web browser.
 
-> **Status: pre-release, version 0.31.0.** Not yet ready for everyday use. See "What is tested" below.
+> **Status: pre-release, version 0.32.0.** Not yet ready for everyday use. See "What is tested" below.
 
 ## What it does
 
@@ -48,6 +48,8 @@ go build -trimpath -o bin\LLMsControlDock.exe .
 
 Then open http://127.0.0.1:8765/ in your browser. On the first start you see a System check of your computer.
 
+Installing is optional: the program runs from wherever you put it and makes its folders when it first needs them. Run it once with `-install` to do everything up front, after it asks you: it shows the System check, makes its folders, copies itself to `~/.local/bin` (Windows: `%LocalAppData%\Programs\LLMsControlDock`) and creates the desktop icon. No administrator rights are needed. The About page shows where the files are.
+
 | Option | Effect |
 |---|---|
 | `-listen host:port` | Where the page listens (default `127.0.0.1:8765`) |
@@ -56,6 +58,7 @@ Then open http://127.0.0.1:8765/ in your browser. On the first start you see a S
 | `-check` | One check, one line; exit code 0 = online, 1 = offline |
 | `-models` | Print the installed and loaded models as tables |
 | `-check-links` | Open every reference address of the comparison page once |
+| `-install` | Install for the current user, after asking (see above) |
 
 The Ollama address can also come from the `LLMSCONTROLDOCK_OLLAMA_URL` environment variable.
 

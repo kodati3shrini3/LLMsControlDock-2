@@ -159,6 +159,8 @@
 {{if .LeftLoaded}}
 <p class="warn" role="alert"><strong>⚠ The model could not be unloaded again.</strong> It is still in memory; use the Unload button on the monitor page.</p>
 {{end}}
+{{/* The way to the reading guide on the Help page, opened at the right topic. */}}
+<p><a class="btn-plain" href="/help?topic=read-performance#read-performance">How to read these results</a></p>
 {{/* The four tables. */}}
 {{range .Groups}}{{template "perfgroup" .}}{{end}}
 {{/* The saved tests, with the clear button. */}}

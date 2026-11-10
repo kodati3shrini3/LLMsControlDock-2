@@ -102,12 +102,13 @@
 <li>your settings (Ollama address, intervals, theme),</li>
 <li>the performance test results and the comparison copies you saved,</li>
 <li>the list of deleted models, and the check history behind the charts,</li>
-<li>the desktop icon.</li>
+<li>the desktop icon,</li>
+<li>the program copy that <code>-install</code> placed, when there is one (it is listed below).</li>
 </ul>
-<p>Not touched: Ollama and your models, and the program file itself. The monitor stops when you confirm.</p>
+<p>Not touched: Ollama and your models, and a program file you started from anywhere else. The monitor stops when you confirm.</p>
 {{else}}
-<p>Nothing has been collected yet. Nothing is deleted until you press OK.</p>
-<p class="muted">Not touched: Ollama and your models, and the program file itself.</p>
+<p>No results or settings have been collected yet. Only what is listed below is deleted, and only when you press OK.</p>
+<p class="muted">Not touched: Ollama and your models, and a program file you started from anywhere else than the place <code>-install</code> uses.</p>
 {{end}}
 {{if .Items}}
 <table class="settingtable"><thead><tr><th scope="col">What</th><th scope="col">Where</th></tr></thead><tbody>
@@ -143,8 +144,8 @@
 {{else}}
 <p>There was nothing to remove.</p>
 {{end}}
-<p>To finish, delete the program file yourself (a running program cannot reliably delete itself):</p>
-{{if .Program}}<p><code>{{.Program}}</code></p>{{else}}<p class="muted">The location of the program file could not be found; it is the file you started.</p>{{end}}
+{{if .ProgramGone}}<p>The program file was the copy that <code>-install</code> placed, and it was removed too.</p>{{else}}<p>To finish, delete the program file yourself (a running program cannot reliably delete itself):</p>
+{{if .Program}}<p><code>{{.Program}}</code></p>{{else}}<p class="muted">The location of the program file could not be found; it is the file you started.</p>{{end}}{{end}}
 <p class="muted">Ollama and its models were not touched.</p>
 {{end}}
 {{/* End of the panel. */}}

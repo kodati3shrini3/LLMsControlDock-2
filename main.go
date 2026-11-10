@@ -121,6 +121,8 @@ func main() {
 	checkFlag := flag.Bool("check", false, "check Ollama once, print one status line, and exit (0 = online, 1 = offline)")
 	// Define a -models switch: false unless given on the command line.
 	modelsFlag := flag.Bool("models", false, "print the installed and loaded models as tables, and exit (0 = printed, 1 = Ollama not reachable)")
+	// Define an -install switch: the optional installation for the current user, after asking.
+	installFlag := flag.Bool("install", false, "install this program for the current user after asking: shows the System check, creates the folders, copies the program to its standard place and creates the desktop icon (no administrator rights needed)")
 	// Define a -check-links switch: opens every reference address of the comparison page once, prints the result, and exits (the only time the program contacts the internet).
 	linksFlag := flag.Bool("check-links", false, "open every reference address of the comparison page once, print which answer, and exit (0 = all answered, 1 = at least one did not)")
 	// Read the command line now, so the variables above receive their values.
@@ -129,7 +131,7 @@ func main() {
 	// The one-shot modes cannot be combined; ask the person to choose one.
 	modes := 0
 	// Count the modes that were given.
-	for _, on := range []bool{*checkFlag, *modelsFlag, *linksFlag, *launchFlag} {
+	for _, on := range []bool{*checkFlag, *modelsFlag, *linksFlag, *launchFlag, *installFlag} {
 		// One more mode.
 		if on {
 			// Count it.
@@ -139,7 +141,7 @@ func main() {
 	// More than one is not allowed.
 	if modes > 1 {
 		// log.Fatal prints the message and exits with code 1.
-		log.Fatal("use only one of -check, -models, -check-links and -launch")
+		log.Fatal("use only one of -check, -models, -check-links, -launch and -install")
 	} // end of the combination check
 
 	// In -check-links mode, no Ollama is needed: open the reference addresses, print the result and leave.
@@ -179,6 +181,12 @@ func main() {
 	} // end of the address check
 	// Print the address (any password shown as xxxxx) and which layer supplied it.
 	log.Printf("Ollama address: %s (from %s)", addr.URL.Redacted(), addr.Source)
+
+	// The install mode: the System check, the plan, the question, then the steps.
+	if *installFlag {
+		// Run it with the real input, output, Ollama address, program file and desktop, and leave with its exit code.
+		os.Exit(runInstall(installEnv{in: os.Stdin, out: os.Stdout, ollama: addr.URL, exe: os.Executable, desktop: realDesktopEnv()}))
+	} // end of the install mode
 
 	// In -models mode, print both tables and leave without starting the web page.
 	if *modelsFlag {

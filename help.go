@@ -42,12 +42,88 @@ type helpTopic struct {
 	Title string
 	// Intro is one or two plain sentences before the diagram.
 	Intro string
-	// Steps are the steps, in order.
+	// Steps are the steps, in order; a guide topic has none.
 	Steps []helpStep
+	// Guide holds the parts of a reading guide; a topic has either steps (a diagram) or a guide (tables of figures).
+	Guide []helpGuidePart
 } // end of helpTopic
+
+// helpGuidePart is one part of a reading guide: a heading, a plain paragraph and, when there is one, a table of figures.
+type helpGuidePart struct {
+	// Heading is the part's heading.
+	Heading string
+	// Text is a plain paragraph under the heading.
+	Text string
+	// Rows are the figures of this part; empty for a part with text only.
+	Rows []helpGuideRow
+} // end of helpGuidePart
+
+// helpGuideRow is one figure of the Performance page, explained: its name as the page shows it, what it tells you, which way is better, and a real example.
+// Means and Example are left empty for every figure that has a help bubble on the Performance page: they are then taken from that bubble, so the guide and the page always say the same.
+type helpGuideRow struct {
+	// Figure is the name as the Performance page shows it.
+	Figure string
+	// Means is what the figure tells you, in plain words (empty: taken from the figure's help bubble).
+	Means string
+	// Better says which way is better.
+	Better string
+	// Example is a real figure measured on a DGX Spark (empty: taken from the figure's help bubble).
+	Example string
+} // end of helpGuideRow
+
+// fillGuide returns a copy of a guide in which every empty explanation and example is taken from the help bubble of the same figure.
+func fillGuide(parts []helpGuidePart) []helpGuidePart {
+	// The copy.
+	out := make([]helpGuidePart, len(parts))
+	// Each part.
+	for i, part := range parts {
+		// The part itself.
+		out[i] = part
+		// Its own copy of the rows, so the shared list is never changed.
+		out[i].Rows = make([]helpGuideRow, len(part.Rows))
+		// Each row.
+		for j, row := range part.Rows {
+			// The bubble of this figure, when it has one.
+			if tip, ok := helpFor(row.Figure); ok {
+				// The explanation, when none is written here.
+				if row.Means == "" {
+					// From the bubble.
+					row.Means = tip.Plain
+				} // end of the explanation check
+				// The example, when none is written here.
+				if row.Example == "" {
+					// From the bubble.
+					row.Example = tip.Example
+				} // end of the example check
+			} // end of the bubble check
+			// Keep the row.
+			out[i].Rows[j] = row
+		} // end of the row loop
+	} // end of the part loop
+	// The filled copy.
+	return out
+} // end of fillGuide
+
+// helpPerfGuideID is the name of the reading guide; the Performance and Compare pages link to it.
+const helpPerfGuideID = "read-performance"
 
 // helpTopics are the topics of the Help page, in the order a person typically meets them (first start, finding and loading a model, tuning, testing, comparing, tidying up, settings, stopping, uninstalling); each one is checked against what the program really does.
 var helpTopics = []helpTopic{
+	{
+		ID:    "install",
+		Title: "Install (optional), and where the files go",
+		Intro: "Installing is optional: the program runs from wherever you put it and makes each folder when it first needs it. Running it once with -install does everything up front, after asking, without administrator rights. The About page shows where every folder is, on this computer and on Linux, Windows and macOS.",
+		Steps: []helpStep{
+			{0, "Run the program once with -install in a terminal."},
+			{1, "Runs the System check and prints it."},
+			{2, "Answers with its version."},
+			{1, "Lists the folders, the program copy and the icon."},
+			{0, "Type yes to agree; anything else stops."},
+			{1, "Creates the three folders."},
+			{1, "Copies the program to its standard place."},
+			{1, "Creates the desktop icon and reports each step."},
+		},
+	},
 	{
 		ID:    "system-check",
 		Title: "System check: what this computer offers",
@@ -130,6 +206,57 @@ var helpTopics = []helpTopic{
 		},
 	},
 	{
+		ID:    helpPerfGuideID,
+		Title: "Read the results of a performance test",
+		Intro: "The Performance page shows figures measured on this machine. Read them in three steps: check that the test was fair, read the main figures, then compare. Ollama publishes no official limits for fast or slow, so this guide gives none: compare models with each other, on the same machine. The examples were measured on a DGX Spark.",
+		Guide: []helpGuidePart{
+			{
+				Heading: "1. Check that the test was fair",
+				Text:    "Look at the warnings at the top of the results and at the table Machine condition during the test. When the machine was busy, the figures come out too low: run the test again when it is quiet.",
+				Rows: []helpGuideRow{
+					{Figure: "The machine looked busy (warning)", Means: "Other work was running when the test started.", Better: "No warning", Example: "The page names the reason: the graphics card was more than 10% busy, or the processor load was above half of its cores."},
+					{Figure: "Other models loaded", Better: "None"},
+					{Figure: "CPU load", Better: "At most half the number of cores (above that, the page warns)"},
+					{Figure: "Swap in use", Better: "0"},
+					{Figure: "GPU", Better: "At most 10% busy (above that, the page warns)"},
+				},
+			},
+			{
+				Heading: "2. Read the main figures (models that write text)",
+				Text:    "Tokens are pieces of words; a short English word is often one token. Speeds are the middle value (median) of three timed runs.",
+				Rows: []helpGuideRow{
+					{Figure: "Answer speed", Better: "Higher"},
+					{Figure: "Prompt reading speed", Better: "Higher"},
+					{Figure: "Time to first word", Better: "Lower"},
+					{Figure: "Total time", Better: "Lower"},
+					{Figure: "Load time", Better: "Lower"},
+					{Figure: "Processor split", Better: "100% on the graphics card"},
+					{Figure: "Memory used", Better: "Lower leaves room for other models"},
+				},
+			},
+			{
+				Heading: "Embedding models (they turn text into numbers for search)",
+				Text:    "An embedding model writes no text, so the page shows two other figures.",
+				Rows: []helpGuideRow{
+					{Figure: "Embedding time", Better: "Lower"},
+					{Figure: "Vector length", Better: "Neither: it must fit your search system"},
+				},
+			},
+			{
+				Heading: "3. Compare fairly",
+				Text:    "Compare only results from this same machine. One run can differ a little from the next, so when two models are close, run the test again before you decide. The Compare page puts the tested models side by side.",
+				Rows: []helpGuideRow{
+					{Figure: "Tokens counted", Better: "The same prompt version on both sides"},
+					{Figure: "Change since the previous run", Better: "Up for speeds, down for times"},
+				},
+			},
+			{
+				Heading: "Which figure matters for your work",
+				Text:    "For a chat, look first at Answer speed and Time to first word. For long documents, look at Prompt reading speed. If you switch models often, look at Load time. When a model is slow and Processor split shows a share on the processor, a smaller model or a smaller version may fit on the graphics card.",
+			},
+		},
+	},
+	{
 		ID:    "compare-models",
 		Title: "Compare tested models, and re-test",
 		Intro: "Compare lists the models that already went through a performance test, in groups, with the reason for each group and how to read the figures. A re-test adds new results for a group and keeps the old ones. A loaded model is left alone, because it may be in use.",
@@ -208,14 +335,14 @@ var helpTopics = []helpTopic{
 	{
 		ID:    "uninstall",
 		Title: "Uninstall",
-		Intro: "Uninstalling deletes what this tool collected on this computer: its settings, the performance results and saved comparisons, the list of deleted models, the check history and the desktop icon. Ollama, its models and the program file are not touched. A running program cannot delete itself, so you delete the program file yourself.",
+		Intro: "Uninstalling deletes what this tool collected on this computer: its settings, the performance results and saved comparisons, the list of deleted models, the check history and the desktop icon, and the program copy that -install placed. Ollama, its models and a program file you started from anywhere else are not touched; you delete that file yourself.",
 		Steps: []helpStep{
 			{0, "Open System check and press Uninstall this tool."},
 			{1, "Lists what would be removed, and where."},
 			{0, "If data was saved, type uninstall and press OK."},
 			{1, "Deletes those items and stops the program."},
 			{2, "Not touched. Its models stay."},
-			{0, "Delete the program file yourself. The page shows where it is."},
+			{0, "Delete any other program file yourself."},
 		},
 	},
 } // end of helpTopics
@@ -290,6 +417,10 @@ type helpTopicView struct {
 	List []helpListItem
 	// Description is a sentence for screen readers that says what the picture is.
 	Description string
+	// Guide holds the parts of a reading guide; empty for a diagram topic.
+	Guide []helpGuidePart
+	// Open is true when the page was asked to show this topic open (from a link on another page).
+	Open bool
 } // end of helpTopicView
 
 // wrapText cuts a sentence into lines of at most width characters, breaking only between words; a word longer than the width stays whole.
@@ -330,7 +461,12 @@ func wrapText(s string, width int) []string {
 // buildHelpTopic works out where every lane, box, line of text and arrow goes.
 func buildHelpTopic(t helpTopic) helpTopicView {
 	// The basic facts.
-	v := helpTopicView{ID: t.ID, Title: t.Title, Intro: t.Intro, Width: helpLaneW * len(helpLanes)}
+	v := helpTopicView{ID: t.ID, Title: t.Title, Intro: t.Intro, Width: helpLaneW * len(helpLanes), Guide: fillGuide(t.Guide)}
+	// A guide has no diagram, so nothing more is worked out.
+	if len(t.Guide) > 0 {
+		// The finished view.
+		return v
+	} // end of the guide check
 	// The height: the header, a margin, and every step with its gap.
 	top := helpHeaderH + 14
 	// The total height.
@@ -398,8 +534,19 @@ func helpHandler() http.HandlerFunc {
 	} // end of the topic loop
 	// The handler itself.
 	return func(w http.ResponseWriter, r *http.Request) {
+		// The topic asked to be shown open, for example by the link on the Performance page; only a known name is used, nothing is echoed.
+		want := r.URL.Query().Get("topic")
+		// A copy of the topics for this request, so the shared list is never changed.
+		shown := make([]helpTopicView, len(topics))
+		// Copy them.
+		copy(shown, topics)
+		// Mark the wanted one open.
+		for i := range shown {
+			// Only an exact match.
+			shown[i].Open = shown[i].ID == want
+		} // end of the open loop
 		// What the template shows.
-		data := helpPage{Theme: themeFromRequest(r), Size: sizeFromRequest(r), Topics: topics}
+		data := helpPage{Theme: themeFromRequest(r), Size: sizeFromRequest(r), Topics: shown}
 		// Build the page in memory first, so a template error produces a clean 500 and not a half page.
 		var buf bytes.Buffer
 		// Run the template.

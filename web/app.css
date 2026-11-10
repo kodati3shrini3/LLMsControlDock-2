@@ -3069,6 +3069,28 @@ details.helptopic[open] {
   border-left-color: var(--cat-accent);
 } /* end of rule */
 
+/* The tables of places on the About page: as wide as the card, never wider; long paths break anywhere instead of pushing the page sideways. */
+.placestable {
+  /* As wide as the card. */
+  width: 100%;
+  /* Columns share the width instead of growing with the longest path. */
+  table-layout: fixed;
+} /* end of rule */
+
+/* A path inside these tables may break at any character. */
+.placestable code {
+  /* Break long paths. */
+  overflow-wrap: anywhere;
+} /* end of rule */
+
+/* The reading guide of the Help page: its tables fill the width, and a little space separates the parts. */
+.helpguide table {
+  /* As wide as the topic. */
+  width: 100%;
+  /* Space under each table. */
+  margin-bottom: 1rem;
+} /* end of rule */
+
 /* The swimlane picture: as wide as the card, never wider, so the page does not scroll sideways. */
 .swimlane {
   /* Full width of the card. */
