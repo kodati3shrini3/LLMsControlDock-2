@@ -71,6 +71,10 @@ type siteTag struct {
 	Context string
 	// Input is what the version accepts, as the page writes it, for example "Text input"; empty when not shown.
 	Input string
+	// Age is how long ago the version was updated, as the page writes it (for example "1 year ago"); empty when not shown. The page gives no exact date.
+	Age string
+	// AgeHours is that age in hours, rounded the way the words are (a month counts as 730 hours, a year as 8760); -1 when no age was shown, so it sorts last.
+	AgeHours int64
 } // end of siteTag
 
 // listSplit cuts the list page at the start of every model entry.
@@ -169,6 +173,38 @@ var tagSize = regexp.MustCompile(`([0-9]+(?:\.[0-9]+)?)\s*(KB|MB|GB|TB)`)
 // tagContext finds a context length such as 128K or 1M.
 var tagContext = regexp.MustCompile(`([0-9]+(?:\.[0-9]+)?[KM]?) context window`)
 
+// tagAge finds the update age such as "1 year ago", "3 weeks ago" or "an hour ago".
+var tagAge = regexp.MustCompile(`\b(\d+|an?) (second|minute|hour|day|week|month|year)s? ago\b`)
+
+// ageHours turns the words of an age into hours, rounded the way the words are; unreadable words give -1.
+func ageHours(count, unit string) int64 {
+	// "a" and "an" mean one.
+	n := int64(1)
+	// A written number.
+	if count != "a" && count != "an" {
+		// Read it; a failure means unreadable.
+		v, err := strconv.ParseInt(count, 10, 64)
+		// Unreadable.
+		if err != nil {
+			// Not known.
+			return -1
+		} // end of the read check
+		// Use it.
+		n = v
+	} // end of the number check
+	// Hours in one unit.
+	per := map[string]int64{"second": 0, "minute": 0, "hour": 1, "day": 24, "week": 168, "month": 730, "year": 8760}
+	// The unit must be known.
+	h, ok := per[unit]
+	// Unknown unit.
+	if !ok {
+		// Not known.
+		return -1
+	} // end of the unit check
+	// The age in hours.
+	return n * h
+} // end of ageHours
+
 // tagInput finds the input kinds such as "Text input" or "Text, Image input".
 var tagInput = regexp.MustCompile(`((?:Text|Image|Audio|Video)(?:, (?:Text|Image|Audio|Video))* input)`)
 
@@ -255,6 +291,15 @@ func parseSiteTags(page string) ([]siteTag, error) {
 			// As written.
 			t.Input = in[1]
 		} // end of the input
+		// The update age, with no age as -1.
+		t.AgeHours = -1
+		// The age words.
+		if a := tagAge.FindStringSubmatch(text); a != nil {
+			// As written.
+			t.Age = a[0]
+			// In hours.
+			t.AgeHours = ageHours(a[1], a[2])
+		} // end of the age
 		// Add the version.
 		out = append(out, t)
 	} // end of the block loop

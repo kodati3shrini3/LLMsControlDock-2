@@ -723,6 +723,10 @@ type versionView struct {
 	Installed bool
 	// Note is the line shown for an installed version: its saved answer speed with the date of the test, or that it was not tested yet (empty when not installed).
 	Note string
+	// Age is how long ago the version was updated, as ollama.com writes it (empty when not shown).
+	Age string
+	// ageHours and sizeBytes order the versions: newest first, then the smaller one first.
+	ageHours, sizeBytes int64
 	// Icon is the can-be-installed or cannot-be-installed symbol with its tooltip.
 	Icon iconView
 } // end of versionView
@@ -784,6 +788,44 @@ func installedFirst(vs []versionView) []versionView {
 	// Installed first.
 	return append(have, other...)
 } // end of installedFirst
+
+// sortVersions orders versions by update age (newest first) and then by download size (smaller first); a version without an age or size comes after those that have one. The sort is stable, so equal versions keep the page's order.
+func sortVersions(vs []versionView) {
+	// A stable sort.
+	sort.SliceStable(vs, func(i, j int) bool {
+		// The ages; unknown (-1) counts as the oldest.
+		ai, aj := vs[i].ageHours, vs[j].ageHours
+		// Unknown last.
+		if ai < 0 {
+			// Treated as very old.
+			ai = 1 << 60
+		} // end of the first check
+		// Unknown last.
+		if aj < 0 {
+			// Treated as very old.
+			aj = 1 << 60
+		} // end of the second check
+		// The newer one first.
+		if ai != aj {
+			// Decide by age.
+			return ai < aj
+		} // end of the age check
+		// The sizes; unknown (0) counts as the largest.
+		si, sj := vs[i].sizeBytes, vs[j].sizeBytes
+		// Unknown last.
+		if si == 0 {
+			// Treated as very large.
+			si = 1 << 60
+		} // end of the first size check
+		// Unknown last.
+		if sj == 0 {
+			// Treated as very large.
+			sj = 1 << 60
+		} // end of the second size check
+		// The smaller one first.
+		return si < sj
+	}) // end of the sort
+} // end of sortVersions
 
 // installedName makes a model name comparable: Ollama writes a model without a tag as name:latest.
 func installedName(name string) string {
@@ -869,7 +911,7 @@ func buildResult(m siteModel, tags []siteTag, why string, sel findSelection, mar
 			continue
 		} // end of the cloud check
 		// Its view.
-		v := versionView{Tag: t.Tag, Command: "ollama pull " + t.Tag, Size: t.SizeText, Context: t.Context, Input: t.Input}
+		v := versionView{Tag: t.Tag, Command: "ollama pull " + t.Tag, Size: t.SizeText, Context: t.Context, Input: t.Input, Age: t.Age, ageHours: t.AgeHours, sizeBytes: t.SizeBytes}
 		// Whether this version is installed here, and what the saved tests say about it.
 		if mark != nil {
 			// Ask the marker.
@@ -906,7 +948,11 @@ func buildResult(m siteModel, tags []siteTag, why string, sel findSelection, mar
 		// The check mark state.
 		r.State = "fits"
 	} // end of the state choice
-	// The versions that fit first, then the others; inside each group the installed ones come first, then the page's order.
+	// Inside each group: the most recently updated first, then the smaller download first (versions with no age, or no size, come last).
+	sortVersions(fit)
+	// The same for the others.
+	sortVersions(nofit)
+	// The versions that fit first, then the others; inside each group the installed ones come first, then the order above.
 	all := append(installedFirst(fit), installedFirst(nofit)...)
 	// Cut the list.
 	if len(all) > maxFindVersions {
@@ -1016,6 +1062,8 @@ type findPage struct {
 	Summary string
 	// CopyNote says that the list is a saved copy, with its date and why; empty when the list was read live.
 	CopyNote string
+	// AgeNote is true when at least one version shows an update age, so the page explains how the ages are written and used.
+	AgeNote bool
 	// CanResort is true when models are listed, so the Sort by choice re-sorts them at once (the page then carries the small sort script).
 	CanResort bool
 	// ShowCopy is true when at least one version fits, so the page carries Copy buttons and the monitor's own copy script.
@@ -1188,6 +1236,11 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 					// One more.
 					data.InstalledCount++
 				} // end of the installed count
+				// An update age is shown.
+				if v.Age != "" {
+					// Explain the ages once.
+					data.AgeNote = true
+				} // end of the age check
 				// One that fits is enough.
 				if v.Fits {
 					// Show the buttons.
