@@ -302,6 +302,10 @@ h2 {
   position: relative;
   /* Only as wide as its content, so the pointer must be on the heading. */
   display: inline-block;
+  /* Every heading box is its own anchor: its bubble is tied to it, so the bubble follows it when the page scrolls. */
+  anchor-name: --tipicon;
+  /* Keep the name private to this box, so the bubbles of other boxes never get mixed up. */
+  anchor-scope: --tipicon;
 } /* end of rule */
 
 /* The category heading box stays at the left edge while the table scrolls sideways. */
@@ -356,6 +360,22 @@ h2 {
   text-align: left;
   /* Above every cell, including the sticky ones. */
   z-index: 10;
+} /* end of rule */
+
+/* A bubble that is not an icon bubble is tied to its own heading too: it opens just below the heading and follows it when the page scrolls (a plain fixed bubble stays where the heading was before scrolling, which can be far off the screen). */
+.tip:not(.tip-icon) {
+  /* The bubble is tied to the box of its own heading. */
+  position-anchor: --tipicon;
+  /* Its top edge sits on the bottom edge of the heading, so it opens downwards... */
+  top: anchor(bottom);
+  /* ...and its left edge lines up with the heading. */
+  left: anchor(left);
+  /* No centring shift: the older rule moved it left by half its width. */
+  transform: none;
+  /* A little gap between the heading and the bubble. */
+  margin: 0.25rem 0 0 0;
+  /* If there is no room below, open upwards; if there is no room to the right, line up with the right edge of the heading instead. */
+  position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
 } /* end of rule */
 
 /* Show the bubble when the pointer is over the area or when the keyboard focus is inside it. */
@@ -1129,8 +1149,8 @@ button.btn-plain {
 
 /* On a narrow window the bubble spans the window width instead, so it is never cut at the right edge. */
 @media (max-width: 40rem) {
-  /* The icon bubble. */
-  .tip-icon {
+  /* The icon bubble and the heading bubble. */
+  .tip-icon, .tip:not(.tip-icon) {
     /* Start near the left edge. */
     left: 0.5rem;
     /* End near the right edge. */
