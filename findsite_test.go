@@ -116,7 +116,7 @@ func TestParseSiteTagsReadsSizeContextAndInput(t *testing.T) {
 		t.Fatalf("got %d tags, want 3: %+v", len(got), got)
 	} // end of the count check
 	// The first version in full.
-	want0 := siteTag{Tag: "m:1b", SizeText: "3.3GB", SizeBytes: 3300000000, Context: "128K", Input: "Text input"}
+	want0 := siteTag{Tag: "m:1b", SizeText: "3.3GB", SizeBytes: 3300000000, Context: "128K", Input: "Text input", Age: "1 year ago", AgeHours: 8760}
 	// Compare.
 	if got[0] != want0 {
 		// Report.
