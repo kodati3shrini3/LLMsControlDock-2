@@ -37,3 +37,6 @@ settings.json
 # Stray files from saving a comparison with the browser (PDF and CSV): they must never reach GitHub
 LLMsControlDock-comparison*
 OllamaControlCenter-comparison*
+
+# Developer regression test (local only, not part of the program)
+regressionTest/
