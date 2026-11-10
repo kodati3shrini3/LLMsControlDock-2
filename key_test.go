@@ -93,3 +93,45 @@ func TestTagsHelpAlwaysShown(t *testing.T) {
 		t.Error("the style for the key row is missing")
 	} // end of the style check
 } // end of TestTagsHelpAlwaysShown
+
+// TestTipsFollowTheirHeading: every help bubble is tied to its own heading box, so it stays next to the heading when the page is scrolled (a plain fixed bubble stays far off the screen).
+func TestTipsFollowTheirHeading(t *testing.T) {
+	// Read the style file.
+	raw, err := os.ReadFile("web/app.css")
+	// The file must be readable.
+	if err != nil {
+		// Report it.
+		t.Fatal(err)
+	} // end of the read check
+	// The text of the style file.
+	css := string(raw)
+	// The rule of the heading box (.tipbox) must make the box an anchor with a private name.
+	box := css[strings.Index(css, ".tipbox {"):]
+	// Cut the rule at its end marker.
+	box = box[:strings.Index(box, "} /* end of rule */")]
+	// Both anchor lines must be in this rule.
+	for _, want := range []string{"anchor-name: --tipicon;", "anchor-scope: --tipicon;"} {
+		// Report a missing line.
+		if !strings.Contains(box, want) {
+			t.Errorf(".tipbox rule lacks %q", want)
+		} // end of the line check
+	} // end of the loop over the anchor lines
+	// The rule of the heading bubbles (not icon bubbles) must tie them to that anchor and open them below it.
+	at := strings.Index(css, ".tip:not(.tip-icon) {")
+	// The rule must exist.
+	if at < 0 {
+		// Nothing more to check.
+		t.Fatal("the rule for heading bubbles is missing")
+	} // end of the existence check
+	// Cut the rule at its end marker.
+	rule := css[at:]
+	// Only this rule.
+	rule = rule[:strings.Index(rule, "} /* end of rule */")]
+	// The lines that tie the bubble to its heading.
+	for _, want := range []string{"position-anchor: --tipicon;", "top: anchor(bottom);", "left: anchor(left);", "transform: none;", "position-try-fallbacks:"} {
+		// Report a missing line.
+		if !strings.Contains(rule, want) {
+			t.Errorf("heading bubble rule lacks %q", want)
+		} // end of the line check
+	} // end of the loop over the bubble lines
+} // end of TestTipsFollowTheirHeading
