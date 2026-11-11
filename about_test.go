@@ -69,9 +69,9 @@ func TestAboutPageShowsTheRequiredFacts(t *testing.T) {
 		// The copyright holder, the same as in the NOTICE file.
 		"© 2026 termGate Consulting Limited.",
 		// The licence, as a link to the LICENSE file.
-		`href="https://github.com/kodati3shrini3/LLMsControlDock/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">Apache License 2.0<span class="sr-only"> (opens in a new window)</span></a>`,
+		`href="https://github.com/kodati3shrini3/LLMsControlDock-2/blob/main/LICENSE" target="_blank" rel="noopener noreferrer">Apache License 2.0<span class="sr-only"> (opens in a new window)</span></a>`,
 		// The repository link, safe to follow.
-		`href="https://github.com/kodati3shrini3/LLMsControlDock" target="_blank" rel="noopener noreferrer"`,
+		`href="https://github.com/kodati3shrini3/LLMsControlDock-2" target="_blank" rel="noopener noreferrer"`,
 		// The way back.
 		`href="/"`,
 	} { // end of the list
