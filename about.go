@@ -50,7 +50,7 @@ const appLicence = "Apache License 2.0"
 const appLicenceURL = appRepository + "/blob/main/LICENSE"
 
 // appRepository is the address of the source code; the repository is private, so only its owner can open it.
-const appRepository = "https://github.com/kodati3shrini3/LLMsControlDock"
+const appRepository = "https://github.com/kodati3shrini3/LLMsControlDock-2"
 
 // companyName is the developer's company, shown in the header, the footer bar and the About page.
 const companyName = "termGate Consulting"
