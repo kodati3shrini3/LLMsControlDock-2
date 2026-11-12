@@ -76,7 +76,7 @@ LLMsControlDock is an independent tool. It is not affiliated with, endorsed by o
 
 ## Contributing
 
-Questions, bug reports and ideas are welcome as issues. Code contributions are not accepted for now.
+Questions, bug reports and ideas are welcome as [issues](https://github.com/kodati3shrini3/LLMsControlDock-2/issues). To report a problem, [open a new issue](https://github.com/kodati3shrini3/LLMsControlDock-2/issues/new) (a free GitHub account is needed) and tell us which version you use (the About page shows it), which system, which Ollama version, and what you did and what happened. Please do not paste passwords or private addresses. Code contributions are not accepted for now.
 
 ## Licence
 
