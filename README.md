@@ -2,7 +2,7 @@
 
 A small program that watches an [Ollama](https://ollama.com) server and lets you control it from one web page: see which models are loaded, load and unload them, change their settings, test their speed and compare them. It runs on your own computer and needs nothing but Ollama and a web browser.
 
-> **Status: pre-release, version 0.32.0.** Not yet ready for everyday use. See "What is tested" below.
+> **Status: pre-release, version 0.33.0 (first public release).** Early software, tested on two systems only. See "What is tested" below.
 
 ## What it does
 
@@ -10,7 +10,9 @@ A small program that watches an [Ollama](https://ollama.com) server and lets you
 - Shows the loaded and the installed models, with their memory use.
 - Loads and unloads a model (it asks first, and warns about memory).
 - Shows and changes a model's settings, and shows its Modelfile.
-- Tests a model's speed with one fixed built-in prompt, and compares the tested models (PDF and CSV).
+- Finds models: **Find LLM** reads the public Ollama model list, lets you search and sort it, and shows which models you already have.
+- Tests a model's speed with one fixed built-in prompt, and compares the tested models (PDF and CSV). A built-in guide explains each figure in plain words.
+- Has a Help page with 13 topics, each drawn as a swimlane diagram of who does what (You, LLMsControlDock, Ollama, ollama.com).
 - Deletes a model and helps you restore it later (it shows the commands; you run them yourself).
 - Checks your computer on the first start (processor, memory, graphics cards) and says plainly if it is not enough for running models.
 
@@ -26,12 +28,16 @@ A small program that watches an [Ollama](https://ollama.com) server and lets you
 | System | Tested with | Status |
 |---|---|---|
 | Linux arm64 (NVIDIA DGX Spark) | Ollama 0.34.4 | Tested |
-| Windows 11 x64 | Ollama 0.21.2 | Tested in part; a fix for the model categories awaits a re-test |
+| Windows 11 x64 | Ollama 0.21.2 | Tested on three computers; `-install` not yet tested on Windows |
 | Linux x64, Windows arm64, macOS arm64 and x64 | none | Builds without errors; **not tested** |
 
 ## Start it
 
-There are no ready-made downloads yet; the first release will be a 0.x version with one file per system. Until then, build it yourself. You need [Go](https://go.dev/doc/install) (the version named in `go.mod`) only to build, not to run.
+**Download:** each [release](https://github.com/kodati3shrini3/LLMsControlDock-2/releases) has one file per system and a `SHA256SUMS` file. Check the checksum before you run a file. The programs are not code-signed, so Windows SmartScreen may warn (macOS has not been tested). Or build it yourself: you need [Go](https://go.dev/doc/install) (the version named in `go.mod`) only to build, not to run.
+
+```bash
+git clone https://github.com/kodati3shrini3/LLMsControlDock-2.git && cd LLMsControlDock-2
+```
 
 ```bash
 # Linux and macOS
