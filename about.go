@@ -26,7 +26,7 @@ import ( // import lists the packages this file uses.
 var aboutTemplateText string
 
 // appVersion is the version of LLMsControlDock; it is raised by hand when a release is made.
-const appVersion = "0.32.0"
+const appVersion = "0.33.0"
 
 // appDeveloper is the name of the developer, shown on the About page.
 const appDeveloper = "Shrinivas Kodati"
@@ -49,7 +49,7 @@ const appLicence = "Apache License 2.0"
 // appLicenceURL is where the licence text is: the LICENSE file in the repository.
 const appLicenceURL = appRepository + "/blob/main/LICENSE"
 
-// appRepository is the address of the source code; the repository is private, so only its owner can open it.
+// appRepository is the address of the source code (the GitHub repository).
 const appRepository = "https://github.com/kodati3shrini3/LLMsControlDock-2"
 
 // companyName is the developer's company, shown in the header, the footer bar and the About page.
