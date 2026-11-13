@@ -29,11 +29,11 @@ A small program that watches an [Ollama](https://ollama.com) server and lets you
 |---|---|---|
 | Linux arm64 (NVIDIA DGX Spark) | Ollama 0.34.4 | Tested |
 | Windows 11 x64 | Ollama 0.21.2 | Tested on three computers; `-install` not yet tested on Windows |
-| Linux x64, Windows arm64, macOS arm64 and x64 | none | Builds without errors; **not tested** |
+| Linux x64, Windows arm64, macOS arm64 and x64 | none | Start-up check passed on GitHub's test machines; **not used by hand** |
 
 ## Start it
 
-**Download:** each [release](https://github.com/kodati3shrini3/LLMsControlDock-2/releases) has one file per system and a `SHA256SUMS` file. Check the checksum before you run a file. The programs are not code-signed, so Windows SmartScreen may warn (macOS has not been tested). Or build it yourself: you need [Go](https://go.dev/doc/install) (the version named in `go.mod`) only to build, not to run.
+**Download:** each [release](https://github.com/kodati3shrini3/LLMsControlDock-2/releases) has one file per system and a `SHA256SUMS` file. Check the checksum before you run a file. On Linux and macOS, make the file runnable once with `chmod +x` and its file name. The programs are not code-signed, so Windows SmartScreen may warn (macOS has not been tested). Or build it yourself: you need [Go](https://go.dev/doc/install) (the version named in `go.mod`) only to build, not to run.
 
 ```bash
 git clone https://github.com/kodati3shrini3/LLMsControlDock-2.git && cd LLMsControlDock-2

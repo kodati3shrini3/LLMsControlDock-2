@@ -9,5 +9,8 @@
 *.sh text eol=lf
 go.mod text eol=lf
 go.sum text eol=lf
+# The licence files have no file extension, so they need their own lines: without them Windows checks them out with CRLF and the licence test fails there.
+LICENSE text eol=lf
+NOTICE text eol=lf
 # Pictures and the built program are binary: never changed.
 *.png binary

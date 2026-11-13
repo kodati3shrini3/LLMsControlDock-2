@@ -88,12 +88,23 @@ func TestMeasureSelfUsesTheSystemCheck(t *testing.T) {
 	t.Cleanup(func() { executablePath = oldExe })
 	// Use it.
 	executablePath = func() (string, error) { return exe, nil }
-	// Some saved data.
-	os.WriteFile(filepath.Join(dataRoot(), "x.txt"), []byte("0123456789"), 0o600)
+	// The state folder goes to a throw-away place too, so the real one is never counted (the lookups are put back at the end).
+	stateBase := t.TempDir()
+	userStateDir = func() (string, error) { return stateBase, nil }
+	// The data folder does not exist yet: make it, or the file below cannot be written.
+	if err := os.MkdirAll(dataRoot(), 0o700); err != nil {
+		// Stop.
+		t.Fatalf("data folder: %v", err)
+	} // end of the folder check
+	// Some saved data: 10 bytes.
+	if err := os.WriteFile(filepath.Join(dataRoot(), "x.txt"), []byte("0123456789"), 0o600); err != nil {
+		// Stop.
+		t.Fatalf("data file: %v", err)
+	} // end of the file check
 	// Measure.
 	e := measureSelf(context.Background())
 	// The checks.
-	if e.MachineRAM != 64<<30 || e.RAMBytes != 256<<20 || e.RAMKind != "resident" || len(e.GPUs) != 1 || !strings.Contains(e.GPUs[0], "Test Card") || e.DataBytes < 10 || e.ExeBytes != 7 || e.FreeDisk <= 0 {
+	if e.MachineRAM != 64<<30 || e.RAMBytes != 256<<20 || e.RAMKind != "resident" || len(e.GPUs) != 1 || !strings.Contains(e.GPUs[0], "Test Card") || e.DataBytes != 10 || e.ExeBytes != 7 || e.FreeDisk <= 0 {
 		// Report.
 		t.Errorf("estimate %+v", e)
 	} // end of the checks

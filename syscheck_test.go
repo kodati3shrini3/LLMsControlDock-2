@@ -433,15 +433,19 @@ func TestUninstallSameFolder(t *testing.T) {
 
 // TestGuardedRoot checks that only the program's own folder inside the standard base folder may be deleted.
 func TestGuardedRoot(t *testing.T) {
+	// A real absolute base folder of the running system (a Unix-style path such as /home/ann is not absolute on Windows).
+	base := t.TempDir()
 	// A base folder lookup.
-	look := func() (string, error) { return "/home/ann/.config", nil }
+	look := func() (string, error) { return base, nil }
+	// The path separator of this system, for the paths below that must not be tidied up.
+	sep := string(filepath.Separator)
 	// The good path.
-	if !guardedRoot("/home/ann/.config/"+dataFolderName, look) {
+	if !guardedRoot(filepath.Join(base, dataFolderName), look) {
 		// Report it.
 		t.Errorf("the program's own folder was refused")
 	} // end of the good case
 	// The bad paths.
-	for _, p := range []string{"", "/", "/home/ann", "/home/ann/.config", "/home/ann/.config/Other", "/home/ann/.config/" + dataFolderName + "/sub", "relative/" + dataFolderName, "/home/ann/.config/../" + dataFolderName} {
+	for _, p := range []string{"", sep, filepath.Dir(base), base, filepath.Join(base, "Other"), filepath.Join(base, dataFolderName, "sub"), "relative" + sep + dataFolderName, base + sep + ".." + sep + filepath.Base(base) + sep + dataFolderName} {
 		// Each is refused.
 		if guardedRoot(p, look) {
 			// Report it.
