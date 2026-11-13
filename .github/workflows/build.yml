@@ -156,13 +156,13 @@ jobs:
           # Wait up to 30 seconds for the main page.
           ok=0
           for i in $(seq 1 30); do
-            if curl -fsS -o main.html http://127.0.0.1:8765/ 2> /dev/null; then ok=1; break; fi
+            if curl -fsSL -o main.html http://127.0.0.1:8765/ 2> /dev/null; then ok=1; break; fi
             sleep 1
           done
           if [ "$ok" != "1" ]; then echo "The program did not answer within 30 seconds"; cat run.log; exit 1; fi
-          # The main page names the program, the About page carries the version, the Settings page answers.
-          grep -q "<title>LLMsControlDock</title>" main.html
-          curl -fsS http://127.0.0.1:8765/about | grep -q "$VERSION"
+          # A fresh machine has no saved data folder, so the program answers the main address with its System check (a redirect that curl -L followed above); the About page carries the version, the Settings page answers.
+          grep -q "<title>System check - LLMsControlDock</title>" main.html || { echo "The first page is not the System check; its start is:"; head -c 600 main.html; exit 1; }
+          curl -fsS http://127.0.0.1:8765/about | grep -q "$VERSION" || { echo "The About page does not carry version $VERSION"; exit 1; }
           curl -fsS -o /dev/null http://127.0.0.1:8765/settings
           echo "PASS: $FILE answered on $RUNNER_OS $RUNNER_ARCH"
           cat run.log
