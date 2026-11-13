@@ -18,6 +18,8 @@ import ( // import lists the standard-library packages this file uses.
 	"os"
 	// path/filepath builds the throw-away paths.
 	"path/filepath"
+	// runtime tells which system the test runs on (Unix file modes are not reported on Windows).
+	"runtime"
 	// strings looks for words in the output and the pages.
 	"strings"
 	// testing is Go's built-in test framework.
@@ -195,8 +197,8 @@ func TestRunInstall(t *testing.T) {
 	for _, p := range []string{configRoot(), dataRoot(), stateRoot()} {
 		// Look.
 		info, err := os.Stat(p)
-		// A folder with 0700.
-		if err != nil || !info.IsDir() || info.Mode().Perm() != 0o700 {
+		// A folder; on Unix with mode 0700 (Windows does not report Unix modes, so only the folder is checked there).
+		if err != nil || !info.IsDir() || (runtime.GOOS != "windows" && info.Mode().Perm() != 0o700) {
 			// Report.
 			t.Errorf("%s: %v %v", p, info, err)
 		} // end of the folder check
@@ -209,7 +211,7 @@ func TestRunInstall(t *testing.T) {
 		t.Errorf("copy: %q %v", got, err)
 	} // end of the bytes check
 	// Runnable.
-	if info, err := os.Stat(r.target); err != nil || info.Mode().Perm()&0o100 == 0 {
+	if info, err := os.Stat(r.target); err != nil || (runtime.GOOS != "windows" && info.Mode().Perm()&0o100 == 0) {
 		// Report.
 		t.Errorf("the copy is not runnable: %v %v", info, err)
 	} // end of the mode check

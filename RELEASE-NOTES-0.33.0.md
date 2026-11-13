@@ -26,12 +26,12 @@ Each file is one program for one system. Pick the one that matches your computer
 
 | System | File | Tested |
 |---|---|---|
-| Linux, ARM64 (Ubuntu on NVIDIA DGX Spark) | `LLMsControlDock-linux-arm64` | **Yes** |
-| Windows 11, x86-64 | `LLMsControlDock-windows-amd64.exe` | **Yes** (`-install` not yet tested on Windows) |
-| Linux, x86-64 | `LLMsControlDock-linux-amd64` | No, builds without errors |
-| Windows, ARM64 | `LLMsControlDock-windows-arm64.exe` | No, builds without errors |
-| macOS, Apple silicon | `LLMsControlDock-darwin-arm64` | No, builds without errors |
-| macOS, Intel | `LLMsControlDock-darwin-amd64` | No, builds without errors |
+| Linux, ARM64 (Ubuntu on NVIDIA DGX Spark) | `LLMsControlDock-linux-arm64` | **Used by hand**; start-up check on GitHub passed |
+| Windows 11, x86-64 | `LLMsControlDock-windows-amd64.exe` | **Used by hand** (`-install` not yet tested by hand on Windows); start-up check on GitHub passed |
+| Linux, x86-64 | `LLMsControlDock-linux-amd64` | Not used by hand; start-up check on GitHub passed |
+| Windows, ARM64 | `LLMsControlDock-windows-arm64.exe` | Not used by hand; start-up check on GitHub passed |
+| macOS, Apple silicon | `LLMsControlDock-darwin-arm64` | Not used by hand; start-up check on GitHub passed |
+| macOS, Intel | `LLMsControlDock-darwin-amd64` | Not used by hand; start-up check on GitHub passed |
 
 `SHA256SUMS` lists the checksum of every file. Check yours before running it:
 
@@ -47,21 +47,26 @@ sha256sum -c SHA256SUMS --ignore-missing      # macOS: shasum -a 256 -c SHA256SU
 
 ## First start
 
-1. Start the program; it prints the address (default `http://127.0.0.1:8765/`) and you open it in your browser.
-2. The System check page opens first. Press **Continue**.
-3. The executables are **not code-signed**. Windows SmartScreen may warn that the publisher is unknown: choose "More info" and "Run anyway" only if the checksum matched. macOS may also block an unsigned program; this has not been tested.
+1. Linux and macOS only: make the file runnable once, for example `chmod +x LLMsControlDock-linux-arm64` (use the name of your file).
+2. Start the program; it prints the address (default `http://127.0.0.1:8765/`) and you open it in your browser.
+3. The System check page opens first. Press **Continue**.
+4. The executables are **not code-signed**. Windows SmartScreen may warn that the publisher is unknown: choose "More info" and "Run anyway" only if the checksum matched. macOS may also block an unsigned program; this has not been tested.
 
 ## Verified so far
 
 - An automated suite of about 490 tests runs on every change.
 - A 39-check smoke and load test and a 54-check functional regression test (every page and button, checked against Ollama's own API) pass on the DGX Spark. These two are developer tools and are not part of the download.
 - Used by hand on Ubuntu ARM64 (DGX Spark) and on Windows 11 x86-64.
+- On 2026-11-13 GitHub built the same Go code on six machines (Linux x86-64 and ARM64, Windows x86-64 and ARM64, macOS Apple silicon and Intel). On each, the program started, answered its first page (the System check), showed version 0.33.0 on the About page and answered the Settings page. No Ollama was installed on these machines. [See the run](https://github.com/kodati3shrini3/LLMsControlDock-2/actions/runs/43384050578).
+- The automated tests passed on Linux x86-64, Linux ARM64 and both macOS systems. On both Windows systems four tests failed (see "Known limits").
+- The files in this release were built on the author's computer. GitHub built the same Go code separately, so its check did not run these exact files.
 
 ## Known limits
 
-- Tested on two systems only (table above). The other four builds compile but have never been run.
+- Used by hand on two systems only (table above). The other four started and answered their pages on GitHub's machines, but nobody has used them with a real Ollama.
+- Four automated tests fail on Windows: `TestGuardedRoot`, `TestRunInstall`, `TestLicenceFilesAgreeWithThePage` and `TestMeasureSelfUsesTheSystemCheck`. Three of them look like tests that assume Linux paths, file permissions or line endings, and the cause of the fourth is not yet confirmed. They will be looked at in a later version.
 - The executables are unsigned (see "First start").
-- `-install` has been tested on Linux only.
+- `-install` has been tested by hand on Linux only.
 - The speed-test limits (for example the 1000 ms response-time limit used in the load test) are the author's own choice, not a standard.
 - Memory use grew from 15 MB to 19 MB over about 14,700 requests in one run. One run cannot show whether that is a leak.
 
