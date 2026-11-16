@@ -53,7 +53,7 @@ func tagEntry(tag, size, context string) string {
 // TestParseSiteListReadsNamesAbilitiesSizesAndCloud checks what one list page gives.
 func TestParseSiteListReadsNamesAbilitiesSizesAndCloud(t *testing.T) {
 	// A page with three entries: a normal one, an embedding one without sizes, and a cloud one with an unknown label.
-	page := "<html><ul>" + listEntry("alpha", "A &amp; B model.", "tools", "thinking", "0.6b", "8b") + listEntry("beta-embed", "Turns text into numbers.", "embedding") + listEntry("gamma", "Runs far away.", "cloud", "decision", "e4b", "vision") + "</ul></html>"
+	page := "<html><ul>" + listEntry("alpha", "A &amp; B model.", "tools", "thinking", "0.6b", "8b") + listEntry("beta-embed", "Turns text into numbers.", "embedding") + listEntry("gamma", "Runs far away.", "cloud", "decision", "e4b", "vision", "invented-label") + "</ul></html>"
 	// Read it.
 	got, err := parseSiteList(page)
 	// It must work.
@@ -78,8 +78,8 @@ func TestParseSiteListReadsNamesAbilitiesSizesAndCloud(t *testing.T) {
 		// Report.
 		t.Errorf("second model = %+v", got[1])
 	} // end of the second check
-	// The cloud model is marked, keeps its unknown label apart, and counts e4b as a size.
-	if !got[2].Cloud || !reflect.DeepEqual(got[2].Other, []string{"decision"}) || !reflect.DeepEqual(got[2].Sizes, []string{"e4b"}) || !reflect.DeepEqual(got[2].Abilities, []string{"vision"}) {
+	// The cloud model is marked, keeps its unknown label apart, reads decision as an ability, and counts e4b as a size.
+	if !got[2].Cloud || !reflect.DeepEqual(got[2].Other, []string{"invented-label"}) || !reflect.DeepEqual(got[2].Sizes, []string{"e4b"}) || !reflect.DeepEqual(got[2].Abilities, []string{"decision", "vision"}) {
 		// Report.
 		t.Errorf("third model = %+v", got[2])
 	} // end of the third check

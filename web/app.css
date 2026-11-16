@@ -2787,6 +2787,12 @@ html[data-size="medium"] svg[width="22"] {
   color: var(--bad);
 } /* end of rule */
 
+/* Needs a newer Ollama: the same red as the warning line, drawn as a triangle. */
+.state-warn {
+  /* The problem colour, as the warning bar above the versions. */
+  color: var(--bad);
+} /* end of rule */
+
 /* A cloud model: soft blue. */
 .state-cloud {
   /* The cloud colour. */

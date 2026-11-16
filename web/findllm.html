@@ -115,10 +115,20 @@
 <h3><a href="{{.URL}}" target="_blank" rel="noopener noreferrer">{{.Name}}<span class="sr-only"> (opens in a new window)</span></a> {{template "stateicon" .Icon}}</h3>
 <p>{{.Description}}</p>
 <p class="muted"><small>Abilities: {{if .Abilities}}{{.Abilities}}{{else}}none listed{{end}} &middot; Sizes: {{if .Sizes}}{{.Sizes}}{{else}}none listed{{end}} &middot; Downloads: {{.Pulls}}</small></p>
+{{/* Which of the person's choices this model matched. */}}
+{{if .Because}}<p class="muted"><small><strong>Matched your choices:</strong> {{range $bi, $b := .Because}}{{if $bi}} &middot; {{end}}{{$b}}{{end}}</small></p>{{end}}
+{{/* The Ollama version the model page says the model needs, judged against the running Ollama. */}}
+{{if .OllamaNote}}<p class="{{if eq .OllamaState "old"}}warn{{else}}muted{{end}}" role="status">{{if eq .OllamaState "old"}}<strong>&#9888;</strong> {{end}}{{.OllamaNote}}</p>
+{{if eq .OllamaState "old"}}<details class="othercmds"><summary>How to update Ollama</summary>
+<table class="cmds"><tbody>
+<tr><th scope="row">Windows or macOS</th><td>Click the Ollama icon in the taskbar or menu bar and choose Restart to update, or download the latest version from the official download page, https://ollama.com/download</td></tr>
+<tr><th scope="row">Linux (install script)</th><td><code>curl -fsSL https://ollama.com/install.sh | sh</code></td></tr>
+<tr><th scope="row">In Docker</th><td><code>docker pull ollama/ollama</code>, then stop and remove the container (<code>docker stop &lt;container-name&gt;</code> and <code>docker rm &lt;container-name&gt;</code>) and start it again with the same <code>docker run</code> command, including the same <code>-v</code> volume, so the downloaded models stay. The command is on https://docs.ollama.com/docker</td></tr>
+</tbody></table></details>{{end}}{{end}}
 {{if .Unavailable}}<p class="warn">{{.Unavailable}}. Open the official page above for its versions.</p>{{else}}
 {{if eq .FitCount 0}}<p class="warn">None of its versions fit your choices. The versions are listed below with the reason.</p>{{end}}
 <ul class="findversions">
-{{range $vi, $v := .Versions}}<li{{if not .Fits}} class="nofit"{{end}}>{{template "stateicon" .Icon}} {{if .Fits}}<strong>Fits:</strong> <code id="cmd-{{$ri}}-{{$vi}}-local">{{.Command}}</code> <button type="button" class="copybtn" data-target="cmd-{{$ri}}-{{$vi}}-local" hidden aria-label="Copy command: directly on the computer"><svg class="copyicon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span class="copylabel">Copy</span></button>{{else}}<strong>Does not fit:</strong> <code>{{.Command}}</code>{{end}} &middot; {{if .Size}}{{.Size}}{{else}}size not shown{{end}}{{if .Context}} &middot; {{.Context}} context{{end}}{{if .Age}} &middot; updated {{.Age}}{{end}}{{if .Input}} &middot; {{.Input}}{{end}}{{if .Installed}} &middot; <span class="installedmark">{{.Note}}</span>{{end}}{{if .Reason}}<br><small>{{.Reason}}</small>{{end}}
+{{range $vi, $v := .Versions}}<li{{if not .Fits}} class="nofit"{{end}}>{{template "stateicon" .Icon}} {{if .Fits}}<strong>{{if .NeedsUpdate}}Fits, after you update Ollama:{{else}}Fits:{{end}}</strong> <code id="cmd-{{$ri}}-{{$vi}}-local">{{.Command}}</code> <button type="button" class="copybtn" data-target="cmd-{{$ri}}-{{$vi}}-local" hidden aria-label="Copy command: directly on the computer"><svg class="copyicon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><rect x="5" y="5" width="9" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M11 5V3.5A1.5 1.5 0 0 0 9.5 2h-6A1.5 1.5 0 0 0 2 3.5v6A1.5 1.5 0 0 0 3.5 11H5" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span class="copylabel">Copy</span></button>{{else}}<strong>Does not fit:</strong> <code>{{.Command}}</code>{{end}} &middot; {{if .Size}}{{.Size}}{{else}}size not shown{{end}}{{if .Context}} &middot; {{.Context}} context{{end}}{{if .Age}} &middot; updated {{.Age}}{{end}}{{if .Input}} &middot; {{.Input}}{{end}}{{if .Installed}} &middot; <span class="installedmark">{{.Note}}</span>{{end}}{{if .Reason}}<br><small>{{.Reason}}</small>{{end}}
 {{if .Fits}}
 {{/* The command depends on where Ollama runs; the monitor cannot know that, so Docker and Kubernetes are offered too, folded away until wanted. */}}
 <details class="othercmds"><summary>Docker or Kubernetes</summary>
@@ -132,6 +142,11 @@
 {{end}}
 </ul>
 {{if .More}}<p class="muted"><small>{{.More}} more versions are on the official page.</small></p>{{end}}
+{{/* A simple comparison of the plain size versions, smallest download first. */}}
+{{if .SizeRows}}<details class="othercmds"><summary>Compare sizes ({{len .SizeRows}} versions)</summary>
+<table class="cmds"><thead><tr><th scope="col">Version</th><th scope="col">Download</th><th scope="col">Context</th><th scope="col">On this computer</th></tr></thead><tbody>
+{{range .SizeRows}}<tr><td><code>{{.Tag}}</code>{{if .Installed}} <strong>Installed</strong>{{end}}</td><td>{{if .Size}}{{.Size}}{{else}}not shown{{end}}</td><td>{{if .Context}}{{.Context}}{{else}}not shown{{end}}</td><td>{{if .Fits}}fits{{if .NeedsUpdate}} (update Ollama first){{end}}{{else}}{{.Reason}}{{end}}</td></tr>
+{{end}}</tbody></table></details>{{end}}
 {{end}}
 </div>
 {{end}}
@@ -167,4 +182,4 @@
 </body>
 </html>
 {{/* A state icon with its tooltip: the check mark (can be installed), the cross (cannot be installed) or the cloud (runs on Ollama's servers). The words next to it say the same, so the symbol is never the only signal. */}}
-{{define "stateicon"}}{{if .Kind}}<span class="tipbox"><span class="stateicon state-{{.Kind}}" tabindex="0" role="img" aria-label="{{.Label}}" aria-describedby="{{.ID}}"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{{if eq .Kind "fits"}}<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/>{{else if eq .Kind "nofit"}}<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/>{{else}}<path d="M7 18h10a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7.1 9.2 4.4 4.4 0 0 0 7 18z"/>{{end}}</svg></span><span class="tip tip-icon" role="tooltip" id="{{.ID}}">{{.Text}}</span></span>{{end}}{{end}}
+{{define "stateicon"}}{{if .Kind}}<span class="tipbox"><span class="stateicon state-{{.Kind}}" tabindex="0" role="img" aria-label="{{.Label}}" aria-describedby="{{.ID}}"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">{{if eq .Kind "fits"}}<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16 9.5"/>{{else if eq .Kind "nofit"}}<circle cx="12" cy="12" r="9"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/>{{else if eq .Kind "warn"}}<path d="M12 4l9 16H3z"/><path d="M12 10v4"/><path d="M12 17v.01"/>{{else}}<path d="M7 18h10a4 4 0 0 0 .6-7.95A5.5 5.5 0 0 0 7.1 9.2 4.4 4.4 0 0 0 7 18z"/>{{end}}</svg></span><span class="tip tip-icon" role="tooltip" id="{{.ID}}">{{.Text}}</span></span>{{end}}{{end}}

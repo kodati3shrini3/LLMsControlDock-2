@@ -56,11 +56,15 @@ const (
 	tipModelNoFit = "No version of this model can be installed here with your choices; the reasons are written under each version."
 	// tipVersionFits is for a version that fits.
 	tipVersionFits = "This version can be installed here: it fits your free disk space, memory and choices."
+	// tipModelOld is for a model that fits the disk and memory but needs a newer Ollama than the running one.
+	tipModelOld = "This model fits your disk and memory, but it needs a newer Ollama than yours. Update Ollama first (see the warning under the name); until then downloading it fails."
+	// tipVersionOld is the same for one version.
+	tipVersionOld = "This version fits your disk, memory and choices, but it needs a newer Ollama than yours. Update Ollama first."
 	// tipVersionNoFit is for a version that does not fit.
 	tipVersionNoFit = "This version cannot be installed here with your choices; the reason is written under it."
 )
 
-// iconView is a state icon with its tooltip: Kind is fits, nofit or cloud (empty means no icon), Label is the hidden name for screen readers, ID names the tooltip, Text is the tooltip.
+// iconView is a state icon with its tooltip: Kind is fits, nofit, warn or cloud (empty means no icon), Label is the hidden name for screen readers, ID names the tooltip, Text is the tooltip.
 type iconView struct {
 	// Kind picks the drawing and the colour.
 	Kind string
@@ -153,8 +157,26 @@ var contextClasses = []struct {
 
 // paramsBillions turns a size label such as 0.6b, 350m or e4b into billions; ok is false for a label it cannot read.
 func paramsBillions(label string) (float64, bool) {
+	// The label in lower case.
+	l := strings.ToLower(label)
+	// A mixture such as 8x7b is 8 parts of 7 billion: all parts must be loaded, so the sizes are multiplied.
+	mult := 1.0
+	// The mixture sign must have a number in front of it.
+	if i := strings.Index(l, "x"); i > 0 {
+		// The number of parts.
+		f, err := strconv.ParseFloat(l[:i], 64)
+		// Not a number: unreadable.
+		if err != nil {
+			// Unknown.
+			return 0, false
+		} // end of the parts check
+		// Keep the number of parts and read the rest as a normal size.
+		mult = f
+		// The size of one part.
+		l = l[i+1:]
+	} // end of the mixture check
 	// An effective-size label such as e4b counts as its number.
-	l := strings.TrimPrefix(strings.ToLower(label), "e")
+	l = strings.TrimPrefix(l, "e")
 	// The last letter is the unit.
 	if len(l) < 2 {
 		// Too short to read.
@@ -171,12 +193,12 @@ func paramsBillions(label string) (float64, bool) {
 	switch l[len(l)-1] {
 	// Billions.
 	case 'b':
-		// As it is.
-		return n, true
+		// As it is, times the number of parts.
+		return n * mult, true
 	// Millions.
 	case 'm':
-		// A thousandth of a billion.
-		return n / 1000, true
+		// A thousandth of a billion, times the number of parts.
+		return n / 1000 * mult, true
 	} // end of the unit switch
 	// Unknown unit.
 	return 0, false
@@ -280,9 +302,9 @@ func pullsNumber(text string) float64 {
 
 // findSelection is what the person chose on the page.
 type findSelection struct {
-	// Chat is true when "Chat and writing" is ticked: the model is not a search-and-similarity model.
+	// Chat is true when "Chat and writing" is ticked: the model is not a search-and-similarity model and not a decision model.
 	Chat bool
-	// Abilities are the ticked abilities (tools, vision, audio, thinking, embedding).
+	// Abilities are the ticked abilities (tools, vision, audio, thinking, embedding, decision).
 	Abilities map[string]bool
 	// Sort is how the models are ordered: "downloads" (the default, also when empty) or "name".
 	Sort string
@@ -303,7 +325,7 @@ type findSelection struct {
 } // end of findSelection
 
 // abilityKeys are the ability tick boxes, in the order shown; each is also the label the library list page uses.
-var abilityKeys = []string{"tools", "vision", "audio", "thinking", "embedding"}
+var abilityKeys = []string{"tools", "vision", "audio", "thinking", "embedding", "decision"}
 
 // parseGB reads a typed number of gigabytes; empty text means "not known" (-1); a bad or absurd number is an error.
 func parseGB(text string) (float64, error) {
@@ -518,12 +540,12 @@ func modelBefore(sel findSelection, a, b siteModel) bool {
 func abilitiesMatch(sel findSelection, has map[string]bool) bool {
 	// How many items are ticked and how many of them the model satisfies.
 	ticked, hits := 0, 0
-	// Chat and writing: holds when the model is not an embedding model.
+	// Chat and writing: holds when the model is neither an embedding model nor a decision model (a decision model answers with a choice and probabilities, not with text).
 	if sel.Chat {
 		// One more ticked item.
 		ticked++
-		// Satisfied by a model that is not an embedding model.
-		if !has["embedding"] {
+		// Satisfied by a model that is not an embedding or a decision model.
+		if !has["embedding"] && !has["decision"] {
 			// One more hit.
 			hits++
 		} // end of the chat check
@@ -727,6 +749,8 @@ type versionView struct {
 	Age string
 	// ageHours and sizeBytes order the versions: newest first, then the smaller one first.
 	ageHours, sizeBytes int64
+	// NeedsUpdate is true when the version fits this computer but the model needs a newer Ollama than the running one.
+	NeedsUpdate bool
 	// Icon is the can-be-installed or cannot-be-installed symbol with its tooltip.
 	Icon iconView
 } // end of versionView
@@ -755,6 +779,16 @@ type resultView struct {
 	State string
 	// Icon is the symbol of the state with its tooltip.
 	Icon iconView
+	// Because lists the choices of the person that this model matched (empty when nothing was ticked).
+	Because []string
+	// SizeRows compare the plain size versions of the model by download size, smallest first (empty when there are fewer than two).
+	SizeRows []versionView
+	// NeedsOllama is the Ollama version the model page says the model needs (empty when the page says nothing).
+	NeedsOllama string
+	// OllamaState is old (the running Ollama is older), ok (new enough) or unknown (the running version could not be read); empty when NeedsOllama is empty.
+	OllamaState string
+	// OllamaNote is the sentence shown for it.
+	OllamaNote string
 } // end of resultView
 
 // isCloudTag says whether a version name is a cloud version: Ollama names them name:cloud or name:size-cloud.
@@ -890,10 +924,189 @@ func installedMarker(list []installedModel, store *perfStore, ok bool) func(stri
 	}
 } // end of installedMarker
 
+// classLabelOf returns the plain word of the size class with the given key.
+func classLabelOf(key string) string {
+	// Look it up.
+	for _, c := range paramClasses {
+		// The same key.
+		if c.Key == key {
+			// Its word.
+			return c.Label
+		} // end of the key check
+	} // end of the loop
+	// Not found: the key itself.
+	return key
+} // end of classLabelOf
+
+// qualifyReasons lists, in plain words, the choices of the person that this model matched, so the results say why a model is listed.
+func qualifyReasons(m siteModel, sel findSelection) []string {
+	// The abilities of the model, by label.
+	has := map[string]bool{}
+	// Fill it.
+	for _, a := range m.Abilities {
+		// One ability.
+		has[a] = true
+	} // end of the ability loop
+	// The reasons.
+	var out []string
+	// Chat and writing: the model is neither an embedding nor a decision model.
+	if sel.Chat && !has["embedding"] && !has["decision"] {
+		// The reason.
+		out = append(out, "Chat and writing")
+	} // end of the chat check
+	// The ticked abilities the model has, in the order of the page.
+	for _, k := range abilityKeys {
+		// Ticked and present.
+		if sel.Abilities[k] && has[k] {
+			// The plain word.
+			out = append(out, findAbilityLabels[k])
+		} // end of the ability check
+	} // end of the ability loop
+	// The ticked fields of use the model belongs to (a guess from its name and description).
+	fields := modelDomains(m)
+	// In the order of the page.
+	for _, d := range findDomains {
+		// Ticked and matched.
+		if sel.Domains[d.Key] && fields[d.Key] {
+			// The reason.
+			out = append(out, "Field of use: "+d.Label)
+		} // end of the field check
+	} // end of the field loop
+	// The sizes of the model that are in a ticked class.
+	for _, s := range m.Sizes {
+		// Readable and in a ticked class.
+		if b, ok := paramsBillions(s); ok && sel.Sizes[paramClassOf(b)] {
+			// For example: Size 8b (Medium).
+			out = append(out, "Size "+s+" ("+classLabelOf(paramClassOf(b))+")")
+		} // end of the size check
+	} // end of the size loop
+	// The memory-of-a-conversation classes apply to the versions, so the reason is general.
+	if len(sel.Contexts) > 0 {
+		// The reason.
+		out = append(out, "Memory of a conversation: only versions in your ticked classes fit")
+	} // end of the context check
+	// The reasons.
+	return out
+} // end of qualifyReasons
+
+// sizeRows compares the plain size versions of a model (tags such as 8b, 70b or 8x7b, and latest when it is a size of its own) by download size, smallest first; it returns nothing when there are fewer than two rows, because one row compares nothing.
+func sizeRows(all []versionView) []versionView {
+	// The rows.
+	var rows []versionView
+	// Look at every version.
+	for _, v := range all {
+		// The part after the colon.
+		part := strings.ToLower(v.Tag)
+		// Cut at the colon.
+		if i := strings.LastIndex(part, ":"); i >= 0 {
+			// The tag part.
+			part = part[i+1:]
+		} // end of the cut
+		// Only plain size tags and latest.
+		if part == "latest" || sizeLabel.MatchString(part) {
+			// Keep it.
+			rows = append(rows, v)
+		} // end of the tag check
+	} // end of the loop
+	// Latest is dropped when another row has exactly the same download size (it is that row).
+	var kept []versionView
+	// Check each row.
+	for _, v := range rows {
+		// Is this latest, and does another row have its size?
+		dup := false
+		// Only latest can be dropped.
+		if strings.HasSuffix(strings.ToLower(v.Tag), ":latest") && v.sizeBytes > 0 {
+			// Look for another row of the same size.
+			for _, o := range rows {
+				// A different tag with the same size.
+				if o.Tag != v.Tag && o.sizeBytes == v.sizeBytes {
+					// It is a duplicate.
+					dup = true
+				} // end of the same-size check
+			} // end of the other-row loop
+		} // end of the latest check
+		// Keep the others.
+		if !dup {
+			// Keep it.
+			kept = append(kept, v)
+		} // end of the keep check
+	} // end of the loop
+	// One row compares nothing.
+	if len(kept) < 2 {
+		// No table.
+		return nil
+	} // end of the count check
+	// Smallest first; rows without a size come last; equal sizes keep the tag order.
+	sort.SliceStable(kept, func(i, j int) bool {
+		// A row without a size goes last.
+		if (kept[i].sizeBytes == 0) != (kept[j].sizeBytes == 0) {
+			// The one with a size first.
+			return kept[i].sizeBytes != 0
+		} // end of the unknown-size check
+		// Smaller first.
+		if kept[i].sizeBytes != kept[j].sizeBytes {
+			// By size.
+			return kept[i].sizeBytes < kept[j].sizeBytes
+		} // end of the size check
+		// Then by tag.
+		return kept[i].Tag < kept[j].Tag
+	}) // end of the sort
+	// A long table keeps the six smallest and the six largest.
+	if len(kept) > 12 {
+		// Join the two ends.
+		kept = append(append([]versionView{}, kept[:6]...), kept[len(kept)-6:]...)
+	} // end of the cut
+	// The rows.
+	return kept
+} // end of sizeRows
+
+// applyOllamaNeed records on a result which Ollama version the model page says the model needs, and whether the running Ollama is new enough; run is the answer of the version check.
+func applyOllamaNeed(r *resultView, need string, run checkResult) {
+	// Keep the version.
+	r.NeedsOllama = need
+	// The version that is running, when it could be read.
+	cur, curOK := parseOllamaVersion(run.Version)
+	// The version needed (read before, so it is valid).
+	req, _ := parseOllamaVersion(need)
+	// Judge.
+	switch {
+	// The running version could not be read: say what is needed and that nothing can be compared.
+	case !run.Online || !curOK:
+		// Unknown.
+		r.OllamaState = "unknown"
+		// The sentence.
+		r.OllamaNote = "Needs Ollama " + need + " or newer (the model page on ollama.com says so). This monitor could not read the version of your Ollama, so it cannot say whether yours is new enough."
+	// Older than needed: pulling fails with "requires a newer version of Ollama".
+	case compareVersions(cur, req) < 0:
+		// Old.
+		r.OllamaState = "old"
+		// The sentence.
+		r.OllamaNote = "Needs Ollama " + need + " or newer (the model page on ollama.com says so). Your Ollama is " + run.Version + ", so downloading it would fail with \"requires a newer version of Ollama\". Update Ollama first."
+		// The versions that fit the computer cannot be installed until Ollama is updated.
+		for i := range r.Versions {
+			// Only a version that fits is affected.
+			r.Versions[i].NeedsUpdate = r.Versions[i].Fits
+		} // end of the version loop
+		// The same in the size table.
+		for i := range r.SizeRows {
+			// Only a row that fits is affected.
+			r.SizeRows[i].NeedsUpdate = r.SizeRows[i].Fits
+		} // end of the row loop
+	// New enough.
+	default:
+		// Fine.
+		r.OllamaState = "ok"
+		// The sentence.
+		r.OllamaNote = "Needs Ollama " + need + " or newer (the model page says so); yours (" + run.Version + ") is new enough."
+	} // end of the judgement
+} // end of applyOllamaNeed
+
 // buildResult turns a model and its versions into the view; tags is nil when the tags page could not be read, and why says what went wrong.
 func buildResult(m siteModel, tags []siteTag, why string, sel findSelection, mark func(string) (bool, string)) resultView {
 	// The basic facts.
 	r := resultView{Name: m.Name, Description: m.Description, Abilities: strings.Join(m.Abilities, ", "), Sizes: strings.Join(m.Sizes, ", "), Pulls: m.Pulls, URL: ollamaSite + "/library/" + m.Name}
+	// Which choices of the person this model matched.
+	r.Because = qualifyReasons(m, sel)
 	// The tags page could not be read: say so, never guess.
 	if tags == nil {
 		// The reason.
@@ -952,6 +1165,25 @@ func buildResult(m siteModel, tags []siteTag, why string, sel findSelection, mar
 	sortVersions(fit)
 	// The same for the others.
 	sortVersions(nofit)
+	// The size comparison uses every plain size version, not only the ones listed below.
+	r.SizeRows = sizeRows(append(append([]versionView{}, fit...), nofit...))
+	// A model with a fitting version also matched the typed disk space and memory.
+	if r.FitCount > 0 && (sel.DiskGB >= 0 || sel.MemGB >= 0) {
+		// The figures that were used.
+		var figs []string
+		// The disk.
+		if sel.DiskGB >= 0 {
+			// For example: 3419.9 GB free disk.
+			figs = append(figs, findGBText(sel.DiskGB)+" free disk")
+		} // end of the disk check
+		// The memory.
+		if sel.MemGB >= 0 {
+			// For example: 130.7 GB memory.
+			figs = append(figs, findGBText(sel.MemGB)+" memory")
+		} // end of the memory check
+		// The reason.
+		r.Because = append(r.Because, "A version fits "+strings.Join(figs, " and "))
+	} // end of the disk and memory reason
 	// The versions that fit first, then the others; inside each group the installed ones come first, then the order above.
 	all := append(installedFirst(fit), installedFirst(nofit)...)
 	// Cut the list.
@@ -1216,10 +1448,20 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 		for ri := range data.Results {
 			// The model's icon.
 			data.Results[ri].Icon = modelIcon(data.Results[ri].State, fmt.Sprintf("tipstate-%d", ri))
+			// A model that fits but needs a newer Ollama gets the warning symbol instead of the check mark.
+			if data.Results[ri].State == "fits" && data.Results[ri].OllamaState == "old" {
+				// The triangle.
+				data.Results[ri].Icon = iconView{Kind: "warn", Label: "Needs a newer Ollama", ID: fmt.Sprintf("tipstate-%d", ri), Text: tipModelOld}
+			} // end of the model warning
 			// Each version's icon.
 			for vi := range data.Results[ri].Versions {
 				// One version.
 				data.Results[ri].Versions[vi].Icon = versionIcon(data.Results[ri].Versions[vi].Fits, fmt.Sprintf("tipver-%d-%d", ri, vi))
+				// A version that fits but needs a newer Ollama gets the warning symbol too.
+				if data.Results[ri].Versions[vi].NeedsUpdate {
+					// The triangle.
+					data.Results[ri].Versions[vi].Icon = iconView{Kind: "warn", Label: "Needs a newer Ollama", ID: fmt.Sprintf("tipver-%d-%d", ri, vi), Text: tipVersionOld}
+				} // end of the version warning
 			} // end of the version loop
 		} // end of the model loop
 		// The cloud section's icons.
@@ -1349,6 +1591,8 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 		inst, instErr := fetchInstalled(r.Context(), addr.URL, defaultCheckTimeout)
 		// The marker for the versions (nil when the list could not be read).
 		mark := installedMarker(inst, store, instErr == nil)
+		// The version of the Ollama that is running, to judge the models that need a newer one.
+		runVer := checkOllama(r.Context(), addr.URL, defaultCheckTimeout)
 		// The results, filled side by side.
 		results := make([]resultView, len(shown))
 		// Wait for all of them.
@@ -1383,6 +1627,14 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 				} // end of the failure check
 				// The model with its versions.
 				results[i] = buildResult(shown[i], tags, "", sel, mark)
+				// The model's own page may say which Ollama version it needs; when the page cannot be read, nothing is said about it.
+				if txt, perr := fetchSiteModelText(r.Context(), shown[i].Name); perr == nil {
+					// A sentence of the kind "requires Ollama 0.35.1 or later".
+					if need, ok := ollamaNeeded(txt); ok {
+						// Record it and judge it against the running version.
+						applyOllamaNeed(&results[i], need, runVer)
+					} // end of the sentence check
+				} // end of the page check
 			}(i) // end of the goroutine
 		} // end of the model loop
 		// Wait.
@@ -1399,6 +1651,16 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 			// The reason, in plain words.
 			instNote = "The installed models could not be read just now (" + instErr.Error() + "), so installed versions are not marked."
 		} // end of the note check
+		// A label on ollama.com that this program does not know is reported instead of ignored.
+		if lab := unknownLabelNote(models); lab != "" {
+			// Keep an earlier note and add this one.
+			if instNote != "" {
+				// A space between the two sentences.
+				instNote += " "
+			} // end of the space check
+			// Add the sentence.
+			instNote += lab
+		} // end of the label note
 		// The cloud-only models get their own section: no versions are read for them, because nothing is downloaded.
 		cloudModels, cloudSkipped := findCloudModels(models, sel)
 		// How many are shown and how many are only counted.
