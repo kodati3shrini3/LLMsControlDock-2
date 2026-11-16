@@ -84,11 +84,11 @@ func TestRestorePageHasCopyButtons(t *testing.T) {
 		// The direct command.
 		"cmd-local": "ollama pull alpha:1b",
 		// Docker.
-		"cmd-docker": "docker exec &lt;container-name&gt; ollama pull alpha:1b",
+		"cmd-docker": "docker exec -it &lt;container-name&gt; ollama pull alpha:1b",
 		// Docker, finding the name.
 		"cmd-docker-find": "docker ps",
 		// Kubernetes.
-		"cmd-k8s": "kubectl exec -n &lt;namespace&gt; &lt;pod-name&gt; -- ollama pull alpha:1b",
+		"cmd-k8s": "kubectl exec -it -n &lt;namespace&gt; &lt;pod-name&gt; -- ollama pull alpha:1b",
 		// Kubernetes, finding the pod.
 		"cmd-k8s-find": "kubectl get pods -n &lt;namespace&gt;",
 	} // end of the table
