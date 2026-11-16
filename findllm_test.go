@@ -584,7 +584,7 @@ func TestFindResultsHaveCopyButtons(t *testing.T) {
 		} // end of the target check
 	} // end of the loop
 	// The three ways of running the pull, for the version that fits.
-	for _, want := range []string{">ollama pull alpha:0.6b</code>", ">docker exec &lt;container-name&gt; ollama pull alpha:0.6b</code>", ">kubectl exec -n &lt;namespace&gt; &lt;pod-name&gt; -- ollama pull alpha:0.6b</code>"} {
+	for _, want := range []string{">ollama pull alpha:0.6b</code>", ">docker exec -it &lt;container-name&gt; ollama pull alpha:0.6b</code>", ">kubectl exec -it -n &lt;namespace&gt; &lt;pod-name&gt; -- ollama pull alpha:0.6b</code>"} {
 		// Look for it.
 		if !strings.Contains(body, want) {
 			// Report.

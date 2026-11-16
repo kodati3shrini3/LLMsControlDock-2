@@ -490,7 +490,7 @@ func TestDeleteConfirmDeletesAndRemembers(t *testing.T) {
 	// The restore page shows the manual command.
 	restore := bodyOf(post(t, rig.h, "/restore", url.Values{"token": {rig.token}, "model": {"alpha:1b"}}, fromThisPage))
 	// The words.
-	for _, want := range []string{"ollama pull alpha:1b", "latest version", `class="lossbox"`, "You lose your tuning.", "cannot be downloaded again", "docker exec &lt;container-name&gt; ollama pull alpha:1b", "kubectl exec -n &lt;namespace&gt; &lt;pod-name&gt; -- ollama pull alpha:1b", "Directly on the computer"} {
+	for _, want := range []string{"ollama pull alpha:1b", "latest version", `class="lossbox"`, "You lose your tuning.", "cannot be downloaded again", "docker exec -it &lt;container-name&gt; ollama pull alpha:1b", "kubectl exec -it -n &lt;namespace&gt; &lt;pod-name&gt; -- ollama pull alpha:1b", "Directly on the computer"} {
 		// Look for it.
 		if !strings.Contains(restore, want) {
 			// Report the gap.
