@@ -10,7 +10,7 @@ A small program that watches an [Ollama](https://ollama.com) server and lets you
 - Shows the loaded and the installed models, with their memory use.
 - Loads and unloads a model (it asks first, and warns about memory).
 - Shows and changes a model's settings, and shows its Modelfile.
-- Finds models: **Find LLM** reads the public Ollama model list, lets you search and sort it, and shows which models you already have. Each result says which of your choices it matched, warns when a model needs a newer Ollama than yours, and has a size comparison table.
+- Finds models: **Find LLM** reads the public Ollama model list, lets you search and sort it, and shows which models you already have. Each result says which of your choices it matched, warns when a model needs a newer Ollama than yours, and has a size comparison table. A separate tick finds decision models (they classify or score text and do not chat), and a label that ollama.com shows and this program does not know yet is named in a notice.
 - Tests a model's speed with one fixed built-in prompt, and compares the tested models (PDF and CSV). A built-in guide explains each figure in plain words.
 - Has a Help page with 13 topics, each drawn as a swimlane diagram of who does what (You, LLMsControlDock, Ollama, ollama.com).
 - Deletes a model and helps you restore it later (it shows the commands; you run them yourself).

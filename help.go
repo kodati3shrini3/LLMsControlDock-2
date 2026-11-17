@@ -142,7 +142,7 @@ var helpTopics = []helpTopic{
 	{
 		ID:    "find-llm",
 		Title: "Find LLM: from your needs to a model you can install",
-		Intro: "Find LLM lists the models of the official Ollama library that fit what you tick and what this computer has. It never installs anything: you copy a command and run it yourself. If ollama.com cannot be reached, a saved copy of the list is shown with its date and without versions.",
+		Intro: "Find LLM lists the models of the official Ollama library that fit what you tick and what this computer has. Each result says which of your choices it matched, has a table to compare its sizes, and warns you, with the steps to update, when it needs a newer Ollama than yours. Decision models, which classify or score text and do not chat, have their own tick. A label that ollama.com shows and this program does not know yet is named in a notice. It never installs anything: you copy a command and run it yourself. If ollama.com cannot be reached, a saved copy of the list is shown with its date and without versions.",
 		Steps: []helpStep{
 			{0, "Open Find LLM from the monitor."},
 			{1, "Shows the choices, with free disk and memory filled in."},

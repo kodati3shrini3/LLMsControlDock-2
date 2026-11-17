@@ -409,3 +409,30 @@ func TestHelpPerformanceGuide(t *testing.T) {
 		} // end of the link check
 	} // end of the template loop
 } // end of TestHelpPerformanceGuide
+
+// TestHelpFindLLMIntroNamesTheNewBehaviour keeps the Find LLM introduction in step with the page: matched choices, the size table, the newer-Ollama warning, decision models and the notice for unknown labels.
+func TestHelpFindLLMIntroNamesTheNewBehaviour(t *testing.T) {
+	// The Find LLM topic, found by its id.
+	var intro string
+	// Look through all topics.
+	for _, tp := range helpTopics {
+		// Only the Find LLM topic is wanted.
+		if tp.ID == "find-llm" {
+			// Keep its introduction.
+			intro = tp.Intro
+		} // end of the id check
+	} // end of the topic loop
+	// The topic must exist.
+	if intro == "" {
+		// Report.
+		t.Fatal("the find-llm help topic is missing")
+	} // end of the existence check
+	// Each phrase stands for one behaviour of the page; the introduction must name it.
+	for _, want := range []string{"which of your choices it matched", "compare its sizes", "newer Ollama", "Decision models", "does not know yet"} {
+		// A missing phrase means the Help text no longer matches the page.
+		if !strings.Contains(intro, want) {
+			// Report.
+			t.Errorf("the Find LLM help introduction does not say %q", want)
+		} // end of the phrase check
+	} // end of the phrase loop
+} // end of TestHelpFindLLMIntroNamesTheNewBehaviour
