@@ -10,7 +10,7 @@ A small program that watches an [Ollama](https://ollama.com) server and lets you
 - Shows the loaded and the installed models, with their memory use.
 - Loads and unloads a model (it asks first, and warns about memory).
 - Shows and changes a model's settings, and shows its Modelfile.
-- Finds models: **Find LLM** reads the public Ollama model list, lets you search and sort it, and shows which models you already have.
+- Finds models: **Find LLM** reads the public Ollama model list, lets you search and sort it, and shows which models you already have. Each result says which of your choices it matched, warns when a model needs a newer Ollama than yours, and has a size comparison table.
 - Tests a model's speed with one fixed built-in prompt, and compares the tested models (PDF and CSV). A built-in guide explains each figure in plain words.
 - Has a Help page with 13 topics, each drawn as a swimlane diagram of who does what (You, LLMsControlDock, Ollama, ollama.com).
 - Deletes a model and helps you restore it later (it shows the commands; you run them yourself).
@@ -21,7 +21,7 @@ A small program that watches an [Ollama](https://ollama.com) server and lets you
 - The page listens on this computer only (`127.0.0.1:8765`) unless you change that in Settings.
 - Only the program's own page can use the Stop and Unload buttons.
 - No prompt or response text is stored.
-- The only internet requests are read-only: a look-up of a model name in the public Ollama library before a delete; the public model list and version lists, read when you press Find LLM (your choices are not sent; the list is also kept in the program's data folder, so Find LLM can show it, dated, when the website cannot be reached); and the optional `-check-links` command.
+- The only internet requests are read-only: a look-up of a model name in the public Ollama library before a delete; the public model list, the version list and the page of each listed model (to read which Ollama version it needs), read when you press Find LLM (your choices are not sent; the list is also kept in the program's data folder, so Find LLM can show it, dated, when the website cannot be reached); and the optional `-check-links` command.
 
 ## What is tested
 

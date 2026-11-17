@@ -13,6 +13,8 @@ var findAbilityLabels = map[string]string{
 	"thinking": "Shows its step-by-step thinking",
 	// Embedding.
 	"embedding": "Search and similarity (embedding)",
+	// Decision.
+	"decision": "Decision models (classify, score, yes or no)",
 } // end of findAbilityLabels
 
 // findTipHeadings maps the name of each help bubble on the Find LLM page to the heading its text is stored under.
@@ -27,8 +29,8 @@ var findTipHeadings = map[string]string{
 	"gpu": "Graphics card",
 	// Chat and writing.
 	"chat": "Chat and writing",
-	// The five abilities.
-	"tools": "Uses tools", "vision": "Understands pictures", "audio": "Understands audio", "thinking": "Shows its step-by-step thinking", "embedding": "Search and similarity (embedding)",
+	// The six abilities.
+	"tools": "Uses tools", "vision": "Understands pictures", "audio": "Understands audio", "thinking": "Shows its step-by-step thinking", "embedding": "Search and similarity (embedding)", "decision": "Decision models (classify, score, yes or no)",
 	// The class groups.
 	"size": "Model size", "context": "Memory of a conversation",
 	// The two fixed ticks.
@@ -87,7 +89,7 @@ var findTexts = map[string]tooltip{
 	// Chat and writing.
 	"Chat and writing": {
 		// What it means.
-		Plain: "Models that write text, as opposed to search-and-similarity models. Ticked by default.",
+		Plain: "Models that write text, as opposed to search-and-similarity models and decision models. Ticked by default.",
 		// A real case.
 		Example: "granite4 is a chat model; nomic-embed-text is a search-and-similarity model.",
 		// What it helps with.
@@ -138,6 +140,15 @@ var findTexts = map[string]tooltip{
 		// What it helps with.
 		Decide: "Whether you need to search documents by meaning.",
 	}, // end of embedding
+	// Decision.
+	"Decision models (classify, score, yes or no)": {
+		// What it means.
+		Plain: "It does not chat. It classifies text, answers yes or no, or scores text, with probabilities. Needs Ollama 0.35.0 or newer.",
+		// A real case.
+		Example: "nimble can answer: is a refund being requested in this ticket?",
+		// What it helps with.
+		Decide: "Whether you need to sort, route or check text automatically.",
+	}, // end of decision
 	// Model size.
 	"Model size": {
 		// What it means.

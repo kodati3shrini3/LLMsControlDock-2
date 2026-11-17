@@ -16,6 +16,8 @@ import ( // import lists the standard-library packages this file uses.
 	"net/http"
 	// regexp finds the parts of the page.
 	"regexp"
+	// sort puts the unknown labels in a fixed order.
+	"sort"
 	// strconv turns the number text of a download size into a number.
 	"strconv"
 	// strings splits and trims text.
@@ -47,7 +49,7 @@ type siteModel struct {
 	Name string
 	// Description is the one-line description from the page.
 	Description string
-	// Abilities are the ability labels the page shows: tools, vision, thinking, embedding, audio.
+	// Abilities are the ability labels the page shows: tools, vision, thinking, embedding, audio, decision.
 	Abilities []string
 	// Sizes are the size labels the page shows, for example "0.6b" or "350m".
 	Sizes []string
@@ -92,11 +94,11 @@ var entryBadge = regexp.MustCompile(`<span\s+class="inline-flex[^"]*"[^>]*>([^<]
 // entryPulls finds the download count inside one entry.
 var entryPulls = regexp.MustCompile(`<span >([^<]+)</span>\s*<span class="hidden sm:flex">&nbsp;Pulls`)
 
-// sizeLabel recognises a size label such as 0.6b, 350m, 8b or e4b.
-var sizeLabel = regexp.MustCompile(`^e?[0-9]+(\.[0-9]+)?[mb]$`)
+// sizeLabel recognises a size label such as 0.6b, 350m, 8b, e4b or a mixture such as 8x7b (8 parts of 7 billion).
+var sizeLabel = regexp.MustCompile(`^(?:[0-9]+x)?e?[0-9]+(\.[0-9]+)?[mb]$`)
 
 // knownAbility is the set of ability labels the reader understands.
-var knownAbility = map[string]bool{"tools": true, "vision": true, "thinking": true, "embedding": true, "audio": true}
+var knownAbility = map[string]bool{"tools": true, "vision": true, "thinking": true, "embedding": true, "audio": true, "decision": true}
 
 // parseSiteList reads the library list page; it returns errLayout when no entry can be read, and an entry without a name is an error too, so a changed page is noticed instead of half-read.
 func parseSiteList(page string) ([]siteModel, error) {
@@ -160,6 +162,43 @@ func parseSiteList(page string) ([]siteModel, error) {
 	// The finished list.
 	return out, nil
 } // end of parseSiteList
+
+// unknownLabelNote says which labels of the library list this program does not know (not a size, not "cloud", not a known ability), so a new label on ollama.com is noticed instead of silently ignored; it returns empty text when every label is known.
+func unknownLabelNote(models []siteModel) string {
+	// How many models carry each unknown label.
+	seen := map[string]int{}
+	// Look at every model.
+	for _, m := range models {
+		// Count each unknown label once per model.
+		for _, l := range m.Other {
+			// One more model with this label.
+			seen[l]++
+		} // end of the label loop
+	} // end of the model loop
+	// Everything is known.
+	if len(seen) == 0 {
+		// Nothing to say.
+		return ""
+	} // end of the empty check
+	// The labels in a fixed order.
+	names := make([]string, 0, len(seen))
+	// Collect them.
+	for l := range seen {
+		// Add one.
+		names = append(names, l)
+	} // end of the collect loop
+	// Sort them so the text does not change between runs.
+	sort.Strings(names)
+	// Write each label with its number of models.
+	parts := make([]string, 0, len(names))
+	// One part per label.
+	for _, l := range names {
+		// For example: "preview (2 models)".
+		parts = append(parts, fmt.Sprintf("%s (%d)", l, seen[l]))
+	} // end of the parts loop
+	// The sentence.
+	return "ollama.com shows labels this program does not know yet: " + strings.Join(parts, ", ") + " (number of models). They cannot be ticked here and are not shown with the models. Please report them as an issue on the project page."
+} // end of unknownLabelNote
 
 // tagBlock finds the compact block the tags page writes for every version.
 var tagBlock = regexp.MustCompile(`(?s)<a href="/library/([A-Za-z0-9._:-]+)" class="md:hidden[^>]*>(.*?)</a>`)
@@ -369,6 +408,52 @@ func fetchSiteTags(ctx context.Context, model string) ([]siteTag, error) {
 	// Read the versions.
 	return parseSiteTags(page)
 } // end of fetchSiteTags
+
+// fetchSiteModelText reads the main page of one library model and returns its visible text (tags removed, entities turned into characters, blanks collapsed), so a sentence can be found whatever markup surrounds it.
+func fetchSiteModelText(ctx context.Context, model string) (string, error) {
+	// Only plain names are asked for.
+	if !namePart.MatchString(model) {
+		// Never build an address from it.
+		return "", errors.New("not a plain model name")
+	} // end of the name check
+	// Read the page.
+	page, err := fetchSitePage(ctx, "/library/"+model)
+	// A failure.
+	if err != nil {
+		// Report it.
+		return "", err
+	} // end of the fetch check
+	// Remove the tags, turn the entities back into characters and collapse the blanks.
+	return strings.Join(strings.Fields(html.UnescapeString(htmlTag.ReplaceAllString(page, " "))), " "), nil
+} // end of fetchSiteModelText
+
+// needsOllama finds the sentence a model page writes when the model needs a newer Ollama, for example "Clef requires Ollama 0.35.1 or later."; only the first sentence with "requires Ollama" counts, so a sentence about the cloud version ("use Ollama 0.40.6 or later") is not mixed in.
+var needsOllama = regexp.MustCompile(`(?i)\brequires\s+Ollama\s+v?([0-9]+\.[0-9]+(?:\.[0-9]+)?)\s+or\s+(?:later|newer|above|higher)`)
+
+// ollamaNeeded returns the Ollama version the page text says the model needs, written as three numbers (0.35 becomes 0.35.0); false means the page says nothing of the kind.
+func ollamaNeeded(pageText string) (string, bool) {
+	// The first sentence of the kind.
+	m := needsOllama.FindStringSubmatch(pageText)
+	// None.
+	if m == nil {
+		// Nothing to report.
+		return "", false
+	} // end of the match check
+	// The version as written.
+	v := m[1]
+	// Two numbers become three.
+	if strings.Count(v, ".") == 1 {
+		// Add the patch number.
+		v += ".0"
+	} // end of the two-number case
+	// It must read as a version (the same reader the System check uses).
+	if _, ok := parseOllamaVersion(v); !ok {
+		// Not usable.
+		return "", false
+	} // end of the version check
+	// The version.
+	return v, true
+} // end of ollamaNeeded
 
 // listCache keeps the last answer of the list page for a while.
 type listCache struct {

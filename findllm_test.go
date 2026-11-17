@@ -443,10 +443,10 @@ func TestFindSearchShowsFitAndNoFit(t *testing.T) {
 		// Report.
 		t.Error("the cloud-only model is missing from the cloud section, or has a download command")
 	} // end of the cloud check
-	// One list page and one tags page were read.
-	if n := atomic.LoadInt32(hits); n != 2 {
+	// One list page, one tags page and one model page (for a sentence about the Ollama version it needs) were read.
+	if n := atomic.LoadInt32(hits); n != 3 {
 		// Report.
-		t.Errorf("%d requests, want 2", n)
+		t.Errorf("%d requests, want 3", n)
 	} // end of the count check
 	// The reading time carries a zone.
 	if !strings.Contains(body, "UTC") {
