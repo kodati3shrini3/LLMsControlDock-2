@@ -306,7 +306,7 @@ type findSelection struct {
 	Chat bool
 	// Abilities are the ticked abilities (tools, vision, audio, thinking, embedding, decision).
 	Abilities map[string]bool
-	// Sort is how the models are ordered: "downloads" (the default, also when empty) or "name".
+	// Sort is how the models are ordered: "updated" (the default, also when empty or unknown: the most recently updated first), "downloads" (most downloaded first) or "name" (A to Z); sortOrder turns any text into one of these three.
 	Sort string
 	// Domains are the ticked fields of use (keys of findDomains); empty means no filter.
 	Domains map[string]bool
@@ -357,11 +357,8 @@ func parseFindForm(get func(string) string) (findSelection, []string) {
 	sel.Chat = get("ab_chat") == "on"
 	// Match ANY only when that exact choice was sent; anything else, or nothing, is the default Match ALL.
 	sel.Any = get("ab_mode") == "any"
-	// The order of the results: Name A to Z only when that exact choice was sent; anything else is the default, most downloaded.
-	if get("sort") == "name" {
-		// Name order.
-		sel.Sort = "name"
-	} // end of the sort check
+	// The order of the results: Name A to Z or Most downloaded only when that exact choice was sent; anything else, or nothing, is the default, most recently updated first.
+	sel.Sort = sortOrder(get("sort"))
 	// The same for the fields of use.
 	sel.DomainAny = get("dom_mode") == "any"
 	// Each known field of use that is ticked.
@@ -518,14 +515,55 @@ func domainMatch(sel findSelection, m siteModel) bool {
 	return hits == len(sel.Domains)
 } // end of domainMatch
 
-// modelBefore says whether model a is listed before model b: by name for the choice Name A to Z, otherwise most downloaded first, with equal counts keeping the name order so the list is stable.
+// sortOrder turns the text of the Sort by choice into one of the three known orders: "name" (A to Z), "downloads" (most downloaded first), and for anything else, also an empty or unknown text, the default "updated" (the most recently updated first).
+func sortOrder(s string) string {
+	// The two orders that must be asked for by their exact words.
+	if s == "name" || s == "downloads" {
+		// Keep it.
+		return s
+	} // end of the exact-words check
+	// Everything else is the default.
+	return "updated"
+} // end of sortOrder
+
+// updatedBefore says whether a model updated aWords ago comes before one updated bWords ago: the more recent first, a model without readable update words last, equal words by name so the list is stable.
+func updatedBefore(aWords, aName, bWords, bName string) bool {
+	// The ages in hours; -1 means not known.
+	ha, hb := updatedHours(aWords), updatedHours(bWords)
+	// Different ages decide.
+	if ha != hb {
+		// A model with no age goes after one with an age.
+		if ha < 0 {
+			// a is after b.
+			return false
+		} // end of the a check
+		// A model with no age goes after one with an age.
+		if hb < 0 {
+			// a is before b.
+			return true
+		} // end of the b check
+		// The smaller age is the more recent update.
+		return ha < hb
+	} // end of the age check
+	// The same words: by name.
+	return aName < bName
+} // end of updatedBefore
+
+// modelBefore says whether model a is listed before model b: by name for the choice Name A to Z, by download counts for Most downloaded (equal counts by name), otherwise, which is the default, by update words with the most recent first.
 func modelBefore(sel findSelection, a, b siteModel) bool {
+	// The chosen order, with an empty or unknown choice turned into the default.
+	order := sortOrder(sel.Sort)
+	// Most recently updated first (the default).
+	if order == "updated" {
+		// By the update words.
+		return updatedBefore(a.Updated, a.Name, b.Updated, b.Name)
+	} // end of the updated order
 	// Name A to Z.
-	if sel.Sort == "name" {
+	if order == "name" {
 		// By name.
 		return a.Name < b.Name
 	} // end of the name order
-	// The download counts.
+	// Most downloaded first: the download counts.
 	pa, pb := pullsNumber(a.Pulls), pullsNumber(b.Pulls)
 	// The higher count first.
 	if pa != pb {
@@ -635,7 +673,7 @@ func findCandidates(models []siteModel, sel findSelection) (out []siteModel, noS
 		// It passed.
 		out = append(out, m)
 	} // end of the model loop
-	// The chosen order: most downloaded first (the default) or Name A to Z.
+	// The chosen order: most recently updated first (the default), Most downloaded, or Name A to Z.
 	sort.SliceStable(out, func(i, j int) bool {
 		// Compare as chosen.
 		return modelBefore(sel, out[i], out[j])
@@ -671,7 +709,7 @@ func findCloudModels(models []siteModel, sel findSelection) (out []siteModel, sk
 			out = append(out, m)
 		} // end of the match check
 	} // end of the model loop
-	// The chosen order: most downloaded first (the default) or Name A to Z.
+	// The chosen order: most recently updated first (the default), Most downloaded, or Name A to Z.
 	sort.SliceStable(out, func(i, j int) bool {
 		// Compare as chosen.
 		return modelBefore(sel, out[i], out[j])
@@ -683,7 +721,7 @@ func findCloudModels(models []siteModel, sel findSelection) (out []siteModel, sk
 // cloudView makes the view of a cloud-only model: no versions are read for it, because nothing is downloaded.
 func cloudView(m siteModel) resultView {
 	// The basic facts, with the cloud state.
-	return resultView{Name: m.Name, Description: m.Description, Abilities: strings.Join(m.Abilities, ", "), Pulls: m.Pulls, URL: ollamaSite + "/library/" + m.Name, State: "cloud"}
+	return resultView{Name: m.Name, Description: m.Description, Abilities: strings.Join(m.Abilities, ", "), Pulls: m.Pulls, Updated: m.Updated, URL: ollamaSite + "/library/" + m.Name, State: "cloud"}
 } // end of cloudView
 
 // versionReason says why a version does not fit this computer; empty text means it fits.
@@ -765,6 +803,8 @@ type resultView struct {
 	Abilities, Sizes string
 	// Pulls is the download count as written on the page.
 	Pulls string
+	// Updated is how long ago ollama.com says the model was updated, for example "1 month ago" (empty when not shown); the Updated order uses it.
+	Updated string
 	// URL is the official model page.
 	URL string
 	// Versions are the versions listed (the ones that fit first).
@@ -1104,7 +1144,7 @@ func applyOllamaNeed(r *resultView, need string, run checkResult) {
 // buildResult turns a model and its versions into the view; tags is nil when the tags page could not be read, and why says what went wrong.
 func buildResult(m siteModel, tags []siteTag, why string, sel findSelection, mark func(string) (bool, string)) resultView {
 	// The basic facts.
-	r := resultView{Name: m.Name, Description: m.Description, Abilities: strings.Join(m.Abilities, ", "), Sizes: strings.Join(m.Sizes, ", "), Pulls: m.Pulls, URL: ollamaSite + "/library/" + m.Name}
+	r := resultView{Name: m.Name, Description: m.Description, Abilities: strings.Join(m.Abilities, ", "), Sizes: strings.Join(m.Sizes, ", "), Pulls: m.Pulls, Updated: m.Updated, URL: ollamaSite + "/library/" + m.Name}
 	// Which choices of the person this model matched.
 	r.Because = qualifyReasons(m, sel)
 	// The tags page could not be read: say so, never guess.
@@ -1270,8 +1310,12 @@ type findPage struct {
 	AnyMode bool
 	// Domains are the boxes of the fields of use.
 	Domains []domainTick
-	// SortName is whether Name A to Z is chosen; false means most downloaded.
+	// SortName is whether Name A to Z is chosen.
 	SortName bool
+	// SortUpdated is whether Updated: new to old is chosen, which is the default; when neither this nor SortName is true, Most downloaded is chosen.
+	SortUpdated bool
+	// UpdatedNote explains the Updated order under the results (rounded words, ties by name); empty for the other orders.
+	UpdatedNote string
 	// DomainAnyMode is whether "Match ANY ticked" is chosen for the fields of use.
 	DomainAnyMode bool
 	// Disk and Mem are the typed numbers, as text.
@@ -1376,7 +1420,7 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 	// render draws the page for a selection.
 	render := func(w http.ResponseWriter, r *http.Request, sel findSelection, fm findMachine, problems []string, searched bool, results []resultView, cloudRes []resultView, cloudMore int, total, cloud, noSize int, errText, readAt, copyNote, instNote string, status int) {
 		// The tick boxes.
-		data := findPage{Theme: themeFromRequest(r), Size: sizeFromRequest(r), Token: token, Tips: tips, Chat: sel.Chat, AnyMode: sel.Any, DomainAnyMode: sel.DomainAny, SortName: sel.Sort == "name", Problems: problems, Searched: searched, Error: errText, ReadAt: readAt, CopyNote: copyNote, InstalledNote: instNote, CloudResults: cloudRes, CloudMore: cloudMore, Results: results, Summary: findSummary(len(results), total, cloud, noSize, readAt)}
+		data := findPage{Theme: themeFromRequest(r), Size: sizeFromRequest(r), Token: token, Tips: tips, Chat: sel.Chat, AnyMode: sel.Any, DomainAnyMode: sel.DomainAny, SortName: sortOrder(sel.Sort) == "name", SortUpdated: sortOrder(sel.Sort) == "updated", UpdatedNote: updatedNote(sel.Sort, results, cloudRes), Problems: problems, Searched: searched, Error: errText, ReadAt: readAt, CopyNote: copyNote, InstalledNote: instNote, CloudResults: cloudRes, CloudMore: cloudMore, Results: results, Summary: findSummary(len(results), total, cloud, noSize, sel.Sort, readAt)}
 		// The abilities.
 		for _, k := range abilityKeys {
 			// One box.
@@ -1584,7 +1628,7 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 		shown := cands
 		// Cut the list.
 		if len(shown) > maxFindResults {
-			// Keep the most downloaded.
+			// Keep the first ones of the chosen order.
 			shown = shown[:maxFindResults]
 		} // end of the cut
 		// What is installed here now, so installed versions can be marked; if Ollama cannot be read, nothing is marked and the page says so.
@@ -1665,7 +1709,7 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 		cloudModels, cloudSkipped := findCloudModels(models, sel)
 		// How many are shown and how many are only counted.
 		var cloudRes []resultView
-		// The most downloaded ones.
+		// The first ones of the chosen order.
 		for i, m := range cloudModels {
 			// Stop at the limit.
 			if i >= maxFindCloud {
@@ -1722,18 +1766,12 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 		keptMu.Lock()
 		// Only when there is a kept search.
 		if kept != nil {
-			// The new order: Name A to Z or, by default, most downloaded.
-			if r.PostFormValue("sort") == "name" {
-				// By name.
-				kept.sel.Sort = "name"
-			} else {
-				// By downloads.
-				kept.sel.Sort = "downloads"
-			} // end of the order choice
+			// The new order: Name A to Z, Most downloaded or, by default, most recently updated first.
+			kept.sel.Sort = sortOrder(r.PostFormValue("sort"))
 			// Sort the local models, keeping the ones with a fitting version first.
-			resortViews(kept.results, kept.sel.Sort == "name", true)
+			resortViews(kept.results, kept.sel.Sort, true)
 			// Sort the cloud-only models (they have no versions to fit).
-			resortViews(kept.cloudRes, kept.sel.Sort == "name", false)
+			resortViews(kept.cloudRes, kept.sel.Sort, false)
 		} // end of the kept check
 		keptMu.Unlock()
 		// Back to the page at the Sort by choice; a redirect keeps a reload from sending the form again.
@@ -1743,8 +1781,10 @@ func findLLMHandlers(addr ollamaAddress, token string, store *perfStore) (http.H
 	return show, search, reset, resort
 } // end of findLLMHandlers
 
-// resortViews puts shown models in order again: Name A to Z or most downloaded first (equal counts by name); with fitFirst a model that has a fitting version stays ahead of the others.
-func resortViews(list []resultView, byName, fitFirst bool) {
+// resortViews puts shown models in order again: order "name" is Name A to Z, "downloads" is most downloaded first (equal counts by name), anything else is the default, the most recently updated first (same words by name); with fitFirst a model that has a fitting version stays ahead of the others.
+func resortViews(list []resultView, order string, fitFirst bool) {
+	// An empty or unknown order is the default.
+	order = sortOrder(order)
 	// A stable sort, so equal models keep their places.
 	sort.SliceStable(list, func(i, j int) bool {
 		// Fitting models first, when asked.
@@ -1753,10 +1793,15 @@ func resortViews(list []resultView, byName, fitFirst bool) {
 			return list[i].FitCount > 0
 		} // end of the fit check
 		// By name.
-		if byName {
+		if order == "name" {
 			// A to Z.
 			return list[i].Name < list[j].Name
 		} // end of the name order
+		// By the update words.
+		if order == "updated" {
+			// The more recent first.
+			return updatedBefore(list[i].Updated, list[i].Name, list[j].Updated, list[j].Name)
+		} // end of the updated order
 		// The download counts.
 		pi, pj := pullsNumber(list[i].Pulls), pullsNumber(list[j].Pulls)
 		// The higher count first.
@@ -1769,8 +1814,44 @@ func resortViews(list []resultView, byName, fitFirst bool) {
 	}) // end of the sort
 } // end of resortViews
 
+// updatedNote explains the order Updated: new to old under the results; it is empty for the other orders and when no model is listed. It says so when no listed model carries update words (a saved copy made before this field existed has none).
+func updatedNote(order string, lists ...[]resultView) string {
+	// Only for the Updated order (the default, also for an empty or unknown order).
+	if sortOrder(order) != "updated" {
+		// Nothing to explain.
+		return ""
+	} // end of the order check
+	// How many models are listed and how many of them carry readable update words.
+	total, known := 0, 0
+	// Each list (local and cloud-only).
+	for _, l := range lists {
+		// Each model.
+		for _, v := range l {
+			// One more model.
+			total++
+			// It carries update words.
+			if updatedHours(v.Updated) >= 0 {
+				// One more with words.
+				known++
+			} // end of the words check
+		} // end of the model loop
+	} // end of the list loop
+	// No model is listed: nothing to explain.
+	if total == 0 {
+		// Empty.
+		return ""
+	} // end of the empty check
+	// No model has update words: say why the order is the name order.
+	if known == 0 {
+		// The honest reason.
+		return "No update words are available for these models (a saved copy of the list made by an older version of this program has none), so they are in name order."
+	} // end of the none check
+	// The usual explanation.
+	return "Models are ordered by the update words ollama.com shows for each model, such as \"1 month ago\", the most recent first. The words are rounded and give no exact date, so models with the same words are in name order, and a model without update words comes last."
+} // end of updatedNote
+
 // findSummary writes the sentence above the results in correct singular and plural.
-func findSummary(shown, total, cloud, noSize int, readAt string) string {
+func findSummary(shown, total, cloud, noSize int, order, readAt string) string {
 	// Nothing matched.
 	if total == 0 {
 		// Say so, with the same facts.
@@ -1781,7 +1862,21 @@ func findSummary(shown, total, cloud, noSize int, readAt string) string {
 	// Fewer shown than matching.
 	if shown < total {
 		// Say how many.
-		which = fmt.Sprintf("the %d most downloaded are shown", shown)
+		// What the shown ones are depends on the chosen order.
+		switch sortOrder(order) {
+		// Name A to Z.
+		case "name":
+			// The first ones by name.
+			which = fmt.Sprintf("the first %d by name are shown", shown)
+		// Most downloaded first.
+		case "downloads":
+			// The most downloaded ones.
+			which = fmt.Sprintf("the %d most downloaded are shown", shown)
+		// The default: most recently updated first.
+		default:
+			// The most recently updated ones.
+			which = fmt.Sprintf("the %d most recently updated are shown", shown)
+		} // end of the order check
 	} // end of the count check
 	// The verb agrees with the number.
 	verb := "match"
