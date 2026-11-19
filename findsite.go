@@ -59,6 +59,8 @@ type siteModel struct {
 	Other []string
 	// Pulls is the download count as the page writes it, for example "120.9M".
 	Pulls string
+	// Updated is how long ago the model was updated, as the list page writes it, for example "1 month ago"; empty when not shown (also in a saved copy made before this field existed). The page gives no exact date.
+	Updated string
 } // end of siteModel
 
 // siteTag is one downloadable version of a model as its tags page shows it.
@@ -93,6 +95,9 @@ var entryBadge = regexp.MustCompile(`<span\s+class="inline-flex[^"]*"[^>]*>([^<]
 
 // entryPulls finds the download count inside one entry.
 var entryPulls = regexp.MustCompile(`<span >([^<]+)</span>\s*<span class="hidden sm:flex">&nbsp;Pulls`)
+
+// entryUpdated finds the update words ("6 days ago", "1 month ago") inside one entry.
+var entryUpdated = regexp.MustCompile(`Updated&nbsp;</span>\s*<span >([^<]+)</span>`)
 
 // sizeLabel recognises a size label such as 0.6b, 350m, 8b, e4b or a mixture such as 8x7b (8 parts of 7 billion).
 var sizeLabel = regexp.MustCompile(`^(?:[0-9]+x)?e?[0-9]+(\.[0-9]+)?[mb]$`)
@@ -156,6 +161,11 @@ func parseSiteList(page string) ([]siteModel, error) {
 			// As written.
 			m.Pulls = strings.TrimSpace(pl[1])
 		} // end of the pulls
+		// The update words are optional.
+		if u := entryUpdated.FindStringSubmatch(p); u != nil {
+			// As written, without extra spaces.
+			m.Updated = strings.TrimSpace(html.UnescapeString(u[1]))
+		} // end of the update words
 		// Add the model.
 		out = append(out, m)
 	} // end of the entry loop
@@ -214,6 +224,19 @@ var tagContext = regexp.MustCompile(`([0-9]+(?:\.[0-9]+)?[KM]?) context window`)
 
 // tagAge finds the update age such as "1 year ago", "3 weeks ago" or "an hour ago".
 var tagAge = regexp.MustCompile(`\b(\d+|an?) (second|minute|hour|day|week|month|year)s? ago\b`)
+
+// updatedHours turns the update words of a model ("6 days ago") into hours; empty or unreadable words give -1, which is listed last.
+func updatedHours(words string) int64 {
+	// Find the number and the unit.
+	a := tagAge.FindStringSubmatch(words)
+	// Nothing readable.
+	if a == nil {
+		// Not known.
+		return -1
+	} // end of the read check
+	// The same rounding as for the versions.
+	return ageHours(a[1], a[2])
+} // end of updatedHours
 
 // ageHours turns the words of an age into hours, rounded the way the words are; unreadable words give -1.
 func ageHours(count, unit string) int64 {

@@ -178,8 +178,12 @@ func TestFindCandidatesFilters(t *testing.T) {
 		// Embedding on its own.
 		{"embedding", findSelection{Abilities: map[string]bool{"embedding": true}}, "gamma", 1, 0},
 	} {
+		// The expected names below are in download order, so that order is asked for (the default order is by update words, which these models do not have).
+		sel := c.sel
+		// Most downloaded first.
+		sel.Sort = "downloads"
 		// Run the filter.
-		got, noSize, cloud := findCandidates(sampleModels(), c.sel)
+		got, noSize, cloud := findCandidates(sampleModels(), sel)
 		// Compare the names.
 		if modelNames(got) != c.want {
 			// Report.
@@ -531,7 +535,7 @@ func TestFindSummaryWording(t *testing.T) {
 		{0, 0, 1, 1, []string{"No model matches your choices.", "1 cloud model (it runs", "1 model that shows no size was left out"}},
 	} {
 		// Build it.
-		got := findSummary(c.shown, c.total, c.cloud, c.noSize, "2026-11-08 20:36:00 CET (UTC+01:00)")
+		got := findSummary(c.shown, c.total, c.cloud, c.noSize, "downloads", "2026-11-08 20:36:00 CET (UTC+01:00)")
 		// Each phrase.
 		for _, w := range c.want {
 			// Look for it.
@@ -1751,7 +1755,7 @@ func TestCloudHeadingAndNote(t *testing.T) {
 	} // end of the theme loop
 } // end of TestCloudHeadingAndNote
 
-// TestSortOrder checks the order of the candidates: most downloaded first by default (equal counts by name), and Name A to Z when chosen, for local models and for cloud models.
+// TestSortOrder checks the order of the candidates: most recently updated first by default (without update words: by name), most downloaded first when chosen (equal counts by name), and Name A to Z when chosen, for local models and for cloud models.
 func TestSortOrder(t *testing.T) {
 	// Three local models whose download order differs from their name order, and two cloud models.
 	models := []siteModel{
@@ -1773,13 +1777,20 @@ func TestSortOrder(t *testing.T) {
 		// As text.
 		return strings.Join(out, ",")
 	} // end of names
-	// The default: most downloaded first.
+	// The default is the update order; these models carry no update words, so they are in name order.
 	local, _, _ := findCandidates(models, findSelection{})
+	// Check it.
+	if got := names(local); got != "alpha,bravo,charlie" {
+		// Report.
+		t.Errorf("default local order %q, want alpha,bravo,charlie", got)
+	} // end of the default check
+	// Most downloaded first, when chosen.
+	local, _, _ = findCandidates(models, findSelection{Sort: "downloads"})
 	// Check it.
 	if got := names(local); got != "charlie,bravo,alpha" {
 		// Report.
-		t.Errorf("default local order %q, want charlie,bravo,alpha", got)
-	} // end of the default check
+		t.Errorf("downloads local order %q, want charlie,bravo,alpha", got)
+	} // end of the downloads check
 	// Name A to Z.
 	local, _, _ = findCandidates(models, findSelection{Sort: "name"})
 	// Check it.
@@ -1826,8 +1837,8 @@ func TestFindSortChoice(t *testing.T) {
 	rig := newThemeRig(t)
 	// The empty form page.
 	_, _, form := get(t, rig.h, http.MethodGet, "/findllm")
-	// The choice sits in the same paragraph as the button, with Most downloaded selected.
-	for _, want := range []string{`<p class="findaction"><button type="submit" class="btn-solid btn-go">Find LLM</button>`, `name="sort"`, `<option value="downloads" selected>Most downloaded</option>`, `<option value="name">Name A to Z</option>`, `Sort by <select class="keepselect" id="sortby" name="sort">`} {
+	// The choice sits in the same paragraph as the button, with Updated: new to old first and selected (the default).
+	for _, want := range []string{`<p class="findaction"><button type="submit" class="btn-solid btn-go">Find LLM</button>`, `name="sort"`, `<option value="updated" selected>Updated: new to old</option>`, `<option value="downloads">Most downloaded</option>`, `<option value="name">Name A to Z</option>`, `Sort by <select class="keepselect" id="sortby" name="sort">`} {
 		// Look for it.
 		if !strings.Contains(form, want) {
 			// Report.
@@ -1841,13 +1852,20 @@ func TestFindSortChoice(t *testing.T) {
 		// Report.
 		t.Error("Name A to Z is not kept after the search")
 	} // end of the kept check
-	// An unknown value falls back to the default.
+	// An unknown value falls back to the default, Updated: new to old.
 	_, odd := postFind(t, rig, url.Values{"token": {rig.token}, "sort": {"nonsense"}, "disk_gb": {"100"}, "mem_gb": {"64"}})
 	// The default is selected.
-	if !strings.Contains(odd, `<option value="downloads" selected>Most downloaded</option>`) {
+	if !strings.Contains(odd, `<option value="updated" selected>Updated: new to old</option>`) {
 		// Report.
-		t.Error("an unknown sort value did not fall back to Most downloaded")
+		t.Error("an unknown sort value did not fall back to Updated: new to old")
 	} // end of the fallback check
+	// Most downloaded, when chosen, is kept.
+	_, dl := postFind(t, rig, url.Values{"token": {rig.token}, "sort": {"downloads"}, "disk_gb": {"100"}, "mem_gb": {"64"}})
+	// Kept.
+	if !strings.Contains(dl, `<option value="downloads" selected>Most downloaded</option>`) || strings.Contains(dl, `<option value="updated" selected>`) {
+		// Report.
+		t.Error("Most downloaded is not kept after the search")
+	} // end of the downloads check
 } // end of TestFindSortChoice
 
 // TestFindKeptSearchAndReset: the last search is kept in memory (choices and results) and shown again when the page is opened; the Reset button appears only after a search and forgets it; a new program starts empty.
@@ -1908,10 +1926,10 @@ func TestFindKeptSearchAndReset(t *testing.T) {
 		// Report.
 		t.Errorf("reset = %d to %q, want 303 to /findllm", res.StatusCode, res.Header.Get("Location"))
 	} // end of the redirect check
-	// After the reset: the starting form again, no results, no Reset button, Most downloaded selected.
+	// After the reset: the starting form again, no results, no Reset button, Updated: new to old selected.
 	_, _, cleared := get(t, rig.h, http.MethodGet, "/findllm")
 	// Nothing kept.
-	if strings.Contains(cleared, "Reset Find LLM search options") || strings.Contains(cleared, "Models found") || !strings.Contains(cleared, `<option value="downloads" selected>Most downloaded</option>`) {
+	if strings.Contains(cleared, "Reset Find LLM search options") || strings.Contains(cleared, "Models found") || !strings.Contains(cleared, `<option value="updated" selected>Updated: new to old</option>`) {
 		// Report.
 		t.Error("the page after the reset still shows the kept search")
 	} // end of the cleared check

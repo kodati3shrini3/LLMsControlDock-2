@@ -39,7 +39,7 @@ func TestResortViewsOrder(t *testing.T) {
 	// Most downloaded with fit first: the fitting ones by downloads (ties by name), then the rest.
 	l := list()
 	// Sort.
-	resortViews(l, false, true)
+	resortViews(l, "downloads", true)
 	// Check.
 	if got := names(l); got != "bravo,alpha,delta,charlie" {
 		// Report.
@@ -48,7 +48,7 @@ func TestResortViewsOrder(t *testing.T) {
 	// Name A to Z with fit first.
 	l = list()
 	// Sort.
-	resortViews(l, true, true)
+	resortViews(l, "name", true)
 	// Check.
 	if got := names(l); got != "alpha,bravo,delta,charlie" {
 		// Report.
@@ -57,14 +57,14 @@ func TestResortViewsOrder(t *testing.T) {
 	// Cloud models have no fit grouping: by downloads, then by name.
 	l = list()
 	// Sort.
-	resortViews(l, false, false)
+	resortViews(l, "downloads", false)
 	// Check.
 	if got := names(l); got != "charlie,bravo,alpha,delta" {
 		// Report.
 		t.Errorf("downloads, no fit: %q", got)
 	} // end of the check
 	// And by name.
-	resortViews(l, true, false)
+	resortViews(l, "name", false)
 	// Check.
 	if got := names(l); got != "alpha,bravo,charlie,delta" {
 		// Report.
@@ -120,7 +120,7 @@ func TestFindResortKeepsTheSearch(t *testing.T) {
 		t.Errorf("resort with a wrong token = %d, want 403", bad.StatusCode)
 	} // end of the check
 	// Still the default order after the refusal.
-	if _, _, still := get(t, rig.h, http.MethodGet, "/findllm"); !strings.Contains(still, `<option value="downloads" selected>`) {
+	if _, _, still := get(t, rig.h, http.MethodGet, "/findllm"); !strings.Contains(still, `<option value="updated" selected>`) {
 		// Report.
 		t.Error("a refused re-sort changed the order choice")
 	} // end of the check
@@ -141,7 +141,7 @@ func TestFindResortKeepsTheSearch(t *testing.T) {
 	// Back to the default order.
 	post(t, rig.h, "/findllm/resort", url.Values{"token": {rig.token}}, fromThisPage)
 	// Check.
-	if _, _, back := get(t, rig.h, http.MethodGet, "/findllm"); !strings.Contains(back, `<option value="downloads" selected>`) {
+	if _, _, back := get(t, rig.h, http.MethodGet, "/findllm"); !strings.Contains(back, `<option value="updated" selected>`) {
 		// Report.
 		t.Error("the default order did not come back")
 	} // end of the check
