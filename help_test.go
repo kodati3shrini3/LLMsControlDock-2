@@ -410,7 +410,7 @@ func TestHelpPerformanceGuide(t *testing.T) {
 	} // end of the template loop
 } // end of TestHelpPerformanceGuide
 
-// TestHelpFindLLMIntroNamesTheNewBehaviour keeps the Find LLM introduction in step with the page: matched choices, the size table, the newer-Ollama warning, decision models and the notice for unknown labels.
+// TestHelpFindLLMIntroNamesTheNewBehaviour keeps the Find LLM introduction in step with the page: matched choices, the size table, the newer-Ollama warning, decision models, the sort order and the notice for unknown labels.
 func TestHelpFindLLMIntroNamesTheNewBehaviour(t *testing.T) {
 	// The Find LLM topic, found by its id.
 	var intro string
@@ -428,7 +428,7 @@ func TestHelpFindLLMIntroNamesTheNewBehaviour(t *testing.T) {
 		t.Fatal("the find-llm help topic is missing")
 	} // end of the existence check
 	// Each phrase stands for one behaviour of the page; the introduction must name it.
-	for _, want := range []string{"which of your choices it matched", "compare its sizes", "newer Ollama", "Decision models", "does not know yet"} {
+	for _, want := range []string{"which of your choices it matched", "compare its sizes", "newer Ollama", "Decision models", "does not know yet", "newest first", "Sort by"} {
 		// A missing phrase means the Help text no longer matches the page.
 		if !strings.Contains(intro, want) {
 			// Report.
@@ -436,3 +436,23 @@ func TestHelpFindLLMIntroNamesTheNewBehaviour(t *testing.T) {
 		} // end of the phrase check
 	} // end of the phrase loop
 } // end of TestHelpFindLLMIntroNamesTheNewBehaviour
+
+// TestHelpNamesPauseAndTheAboutEstimate keeps two small features in the Help: the Pause and Resume of the monitor page (Settings topic) and the estimate on the About page (System check topic).
+func TestHelpNamesPauseAndTheAboutEstimate(t *testing.T) {
+	// The wanted phrases per topic: each stands for one thing the pages do.
+	want := map[string][]string{
+		"settings":     {"Pause button", "Resume", "every 10 seconds", "pauses by itself"},
+		"system-check": {"About page", "Estimate what this program uses", "estimate from that one run", "Ollama holds are not counted"},
+	}
+	// Look through all topics.
+	for _, tp := range helpTopics {
+		// Only the two topics above are wanted.
+		for _, phrase := range want[tp.ID] {
+			// A missing phrase means the Help text no longer matches the page.
+			if !strings.Contains(tp.Intro, phrase) {
+				// Report.
+				t.Errorf("the %s help introduction does not say %q", tp.ID, phrase)
+			} // end of the phrase check
+		} // end of the phrase loop
+	} // end of the topic loop
+} // end of TestHelpNamesPauseAndTheAboutEstimate

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Smoke test and load test for the built LLMsControlDock program (read-only; it never loads, unloads, deletes or tunes a model).
-# Usage: bash scripts/test-smoke-load.sh [path-to-program] [port]     (defaults: bin/LLMsControlDock and 8799)
+# Usage: bash smokeAndLoadTest/test-smoke-load.sh [path-to-program] [port]     (defaults: bin/LLMsControlDock and 8799)
 # Optional settings in the environment: LCD_LOAD_SECONDS (default 20), LCD_LOAD_PARALLEL (default 10), LCD_P95_MS (default 1000).
 #
 # How it stays safe: it starts its OWN copy of the program on another port, with a throw-away HOME folder, so your real settings, saved results and your running monitor are not touched.
@@ -174,6 +174,10 @@ if [ "$TOPICS" = "13" ]; then ok "Help page has 13 topics"; else bad "Help page 
 page_check "Settings page" /settings 200 text/html "Settings"
 # The Find LLM page (only the choices; this does not search the internet).
 page_check "Find LLM page" /findllm 200 text/html "Find LLM"
+# The sort choice must start on "Updated: new to old" (the default since 0.34.0).
+page_check "Find LLM sort defaults to Updated: new to old" /findllm 200 text/html '<option value="updated" selected>Updated: new to old</option>'
+# The other two sort choices must still be offered.
+page_check "Find LLM sort offers Most downloaded and Name A to Z" /findllm 200 text/html 'Most downloaded</option><option value="name"'
 # The Uninstall page only shows what would be removed.
 page_check "Uninstall page (shows only, removes nothing)" /uninstall 200 text/html "Uninstall LLMsControlDock"
 # The re-test status page.
