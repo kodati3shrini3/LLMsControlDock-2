@@ -59,10 +59,10 @@ sha256sum -c SHA256SUMS --ignore-missing      # macOS: shasum -a 256 -c SHA256SU
 ## Verified so far
 
 - An automated suite of about 515 tests passes on Linux ARM64 (DGX Spark) for the final code of this release, and the program compiles for all six systems (Linux, Windows and macOS, each for x86-64 and ARM64 or Apple silicon).
-- The GitHub start-up check, which also runs the automated tests, passed on all six systems for an earlier state of this version (run `43981980700`). It has **not** been run on the final files of this release.
+- The GitHub workflow (go vet, build, start-up check and automated tests on each of the six systems) completed successfully on the final code of this release, commit `ce30d4a`: [run 44680558258](https://github.com/kodati3shrini3/LLMsControlDock-2/actions/runs/44680558258).
 - Used by hand on Ubuntu ARM64 (DGX Spark): the Find LLM changes of this release. Used by hand on Windows 11 x86-64 with 0.33.0.
 - Run on 2026-11-20 on Linux ARM64 (DGX Spark, Ollama 0.34.4) with the final files of this release: the smoke and load test (41 checks; 10 parallel readers for 20 seconds, about 15,000 requests, none failed, 95th percentile 45 ms) and the functional regression test (55 checks: every page and button, checked against Ollama's own API, including delete and download again). All passed.
-- The files in this release were built on the author's computer.
+- The six files in this release were built by that GitHub workflow run (Go 1.27.4) from commit `ce30d4a`, and each is listed with its checksum in `SHA256SUMS`. The smoke and load test (41 checks) was also run on the GitHub-built Linux ARM64 file and passed.
 
 ## Known limits
 
