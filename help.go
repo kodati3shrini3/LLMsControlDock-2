@@ -127,7 +127,7 @@ var helpTopics = []helpTopic{
 	{
 		ID:    "system-check",
 		Title: "System check: what this computer offers",
-		Intro: "The first time the program starts, it shows this report before the monitor. It lists the processors, memory and graphics cards of this computer, checks that Ollama is found and states what the tool needs. If a problem stops the tool from working fully, an alert lists the steps to fix it. The report stays available later in the footer bar.",
+		Intro: "The first time the program starts, it shows this report before the monitor. It lists the processors, memory and graphics cards of this computer, checks that Ollama is found and states what the tool needs. If a problem stops the tool from working fully, an alert lists the steps to fix it. The report stays available later in the footer bar. On the About page, the button Estimate what this program uses runs it again and adds what the operating system reports for this program; the figures are an estimate from that one run, and the models that Ollama holds are not counted.",
 		Steps: []helpStep{
 			{0, "Start LLMsControlDock for the first time."},
 			{1, "Opens the System check before the monitor."},
@@ -142,7 +142,7 @@ var helpTopics = []helpTopic{
 	{
 		ID:    "find-llm",
 		Title: "Find LLM: from your needs to a model you can install",
-		Intro: "Find LLM lists the models of the official Ollama library that fit what you tick and what this computer has. Each result says which of your choices it matched, has a table to compare its sizes, and warns you, with the steps to update, when it needs a newer Ollama than yours. Decision models, which classify or score text and do not chat, have their own tick. A label that ollama.com shows and this program does not know yet is named in a notice. It never installs anything: you copy a command and run it yourself. If ollama.com cannot be reached, a saved copy of the list is shown with its date and without versions.",
+		Intro: "Find LLM lists the models of the official Ollama library that fit what you tick and what this computer has. Each result says which of your choices it matched, has a table to compare its sizes, and warns you, with the steps to update, when it needs a newer Ollama than yours. Decision models, which classify or score text and do not chat, have their own tick. A label that ollama.com shows and this program does not know yet is named in a notice. The results are sorted by the day ollama.com last updated each model, newest first (shown as rounded words such as 6 days ago); the Sort by choice switches to most downloaded or name A to Z without a new search. It never installs anything: you copy a command and run it yourself. If ollama.com cannot be reached, a saved copy of the list is shown with its date and without versions.",
 		Steps: []helpStep{
 			{0, "Open Find LLM from the monitor."},
 			{1, "Shows the choices, with free disk and memory filled in."},
@@ -312,7 +312,7 @@ var helpTopics = []helpTopic{
 	{
 		ID:    "settings",
 		Title: "Settings",
-		Intro: "Settings holds the Ollama address, the check interval, the timeout, the chart history and the access from other machines. Values marked restart are used the next time the monitor starts; the others apply at once. The desktop icon is created, updated or removed on the same page.",
+		Intro: "Settings holds the Ollama address, the check interval, the timeout, the chart history and the access from other machines. Values marked restart are used the next time the monitor starts; the others apply at once. The desktop icon is created, updated or removed on the same page. The monitor page updates itself every 10 seconds; its Pause button stops that, the choice is remembered in this browser for a year, and Resume starts it again. The page also pauses by itself while the key to the symbols or the numbers of the charts are open.",
 		Steps: []helpStep{
 			{0, "Press Settings in the monitor's top bar."},
 			{1, "Shows each setting: in use now, new value and default."},

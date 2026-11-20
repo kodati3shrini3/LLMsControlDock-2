@@ -40,3 +40,6 @@ OllamaControlCenter-comparison*
 
 # Developer regression test (local only, not part of the program)
 regressionTest/
+
+# Results of the smoke and load test runs (local only)
+smokeAndLoadTest/results/

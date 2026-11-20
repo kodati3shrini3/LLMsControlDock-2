@@ -2,7 +2,7 @@
 
 A small program that watches an [Ollama](https://ollama.com) server and lets you control it from one web page: see which models are loaded, load and unload them, change their settings, test their speed and compare them. It runs on your own computer and needs nothing but Ollama and a web browser.
 
-> **Status: pre-release, version 0.33.0 (first public release).** Early software, tested on two systems only. See "What is tested" below.
+> **Status: pre-release, version 0.34.0.** Early software, tested on two systems only. See "What is tested" below.
 
 ## What it does
 
