@@ -56,6 +56,15 @@ Then open http://127.0.0.1:8765/ in your browser. On the first start you see a S
 
 Installing is optional: the program runs from wherever you put it and makes its folders when it first needs them. Run it once with `-install` to do everything up front, after it asks you: it shows the System check, makes its folders, copies itself to `~/.local/bin` (Windows: `%LocalAppData%\Programs\LLMsControlDock`) and creates the desktop icon. No administrator rights are needed. The About page shows where the files are.
 
+## Update to a newer release
+
+1. Download the file for your system and `SHA256SUMS` from the newest entry on the [releases page](https://github.com/kodati3shrini3/LLMsControlDock-2/releases), and check the checksum as described above.
+2. Stop the running program (the Stop button on the page, or Ctrl+C in its terminal).
+3. Run the new file once with `-install`. It shows the System check and a plan that names both versions, for example "Replace the installed program (version 0.33.0) with version 0.34.0 at ...; settings and results are kept", and it asks you to type `yes`. Your settings, results and history folders are kept, and Ollama and your models are not touched.
+4. Start the program again (the desktop icon, or the installed file) and open the About page: it shows the new version.
+
+If the installed copy is still running, Windows refuses to replace it; the installer says so, and you stop the program and run `-install` again. If the earlier copy was not placed by `-install`, the plan says "an unknown version" and replaces the copy at the standard place. If you never used `-install`, replace the file you start the program from. The update steps have been tested by hand on Linux only.
+
 | Option | Effect |
 |---|---|
 | `-listen host:port` | Where the page listens (default `127.0.0.1:8765`) |
